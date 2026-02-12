@@ -5,6 +5,7 @@ import type { CreateTemplateResponse, TemplateSummary } from '../types';
 import { ActionButton, IconView } from '@/shared/ui/ActionButtons';
 import { Button } from '@/shared/ui/Button';
 import { EmptyState } from '@/shared/ui/EmptyState';
+import { Input } from '@/shared/ui/Input';
 import { ErrorPanel } from '@/shared/errors/ErrorPanel';
 import { Modal } from '@/shared/ui/Modal';
 import { Spinner } from '@/shared/ui/Spinner';
@@ -72,14 +73,13 @@ function CreateTemplateForm({
         <label htmlFor="create-name" className="mb-1 block text-sm font-medium text-neutral-700">
           Name <span className="text-red-600">*</span>
         </label>
-        <input
+        <Input
           id="create-name"
           type="text"
           value={name}
-          onChange={(e) => setName(e.target.value)}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setName(e.target.value)}
           required
           maxLength={255}
-          className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm focus:border-neutral-500 focus:outline-none focus:ring-1 focus:ring-neutral-500"
           placeholder="Template name"
         />
       </div>
@@ -87,14 +87,13 @@ function CreateTemplateForm({
         <label htmlFor="create-sectorCode" className="mb-1 block text-sm font-medium text-neutral-700">
           Sector Code <span className="text-red-600">*</span>
         </label>
-        <input
+        <Input
           id="create-sectorCode"
           type="text"
           value={sectorCode}
-          onChange={(e) => setSectorCode(e.target.value)}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSectorCode(e.target.value)}
           required
           maxLength={64}
-          className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm focus:border-neutral-500 focus:outline-none focus:ring-1 focus:ring-neutral-500"
           placeholder="e.g. FIN"
         />
       </div>

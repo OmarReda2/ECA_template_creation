@@ -26,7 +26,9 @@ import {
 } from '@/shared/ui/ActionButtons';
 import { Button } from '@/shared/ui/Button';
 import { ErrorPanel } from '@/shared/errors/ErrorPanel';
+import { Input } from '@/shared/ui/Input';
 import { Modal } from '@/shared/ui/Modal';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/ui/Select';
 import { Spinner } from '@/shared/ui/Spinner';
 import { useToast } from '@/shared/ui/Toast';
 import {
@@ -601,34 +603,31 @@ function TableModal({
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <label className="mb-1 block text-sm font-medium text-neutral-700">Table key *</label>
-          <input
+          <Input
             type="text"
             value={tableKey}
-            onChange={(e) => setTableKey(e.target.value)}
-            className="w-full rounded border border-neutral-300 px-3 py-2 text-sm"
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setTableKey(e.target.value)}
             placeholder="e.g. main_data"
           />
           {tableKeyError && <p className="mt-1 text-xs text-red-600">{tableKeyError}</p>}
         </div>
         <div>
           <label className="mb-1 block text-sm font-medium text-neutral-700">Sheet name *</label>
-          <input
+          <Input
             type="text"
             value={sheetName}
-            onChange={(e) => setSheetName(e.target.value)}
-            className="w-full rounded border border-neutral-300 px-3 py-2 text-sm"
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSheetName(e.target.value)}
             placeholder="Excel sheet name (max 31 chars)"
           />
           {sheetNameError && <p className="mt-1 text-xs text-red-600">{sheetNameError}</p>}
         </div>
         <div>
           <label className="mb-1 block text-sm font-medium text-neutral-700">Order</label>
-          <input
+          <Input
             type="number"
             min={0}
             value={order}
-            onChange={(e) => setOrder(Number(e.target.value) || 0)}
-            className="w-full rounded border border-neutral-300 px-3 py-2 text-sm"
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setOrder(Number(e.target.value) || 0)}
           />
         </div>
         <div className="flex justify-end gap-2">
@@ -714,42 +713,41 @@ function FieldModal({
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <label className="mb-1 block text-sm font-medium text-neutral-700">Field key *</label>
-          <input
+          <Input
             type="text"
             value={fieldKey}
-            onChange={(e) => setFieldKey(e.target.value)}
-            className="w-full rounded border border-neutral-300 px-3 py-2 text-sm"
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFieldKey(e.target.value)}
             placeholder="e.g. amount"
           />
           {fieldKeyError && <p className="mt-1 text-xs text-red-600">{fieldKeyError}</p>}
         </div>
         <div>
           <label className="mb-1 block text-sm font-medium text-neutral-700">Header name *</label>
-          <input
+          <Input
             type="text"
             value={headerName}
-            onChange={(e) => setHeaderName(e.target.value)}
-            className="w-full rounded border border-neutral-300 px-3 py-2 text-sm"
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setHeaderName(e.target.value)}
             placeholder="Column header in Excel"
           />
           {headerError && <p className="mt-1 text-xs text-red-600">{headerError}</p>}
         </div>
         <div>
           <label className="mb-1 block text-sm font-medium text-neutral-700">Type</label>
-          <select
-            value={type}
-            onChange={(e) => setType(e.target.value)}
-            className="w-full rounded border border-neutral-300 px-3 py-2 text-sm"
-          >
-            <option value="TEXT">TEXT</option>
-            <option value="NUMBER">NUMBER</option>
-            <option value="CURRENCY">CURRENCY</option>
-            <option value="DATE">DATE</option>
-            <option value="BOOLEAN">BOOLEAN</option>
-          </select>
+          <Select value={type} onValueChange={setType}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="TEXT">TEXT</SelectItem>
+              <SelectItem value="NUMBER">NUMBER</SelectItem>
+              <SelectItem value="CURRENCY">CURRENCY</SelectItem>
+              <SelectItem value="DATE">DATE</SelectItem>
+              <SelectItem value="BOOLEAN">BOOLEAN</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
         <div className="flex items-center gap-2">
-          <input type="checkbox" id="field-required" checked={required} onChange={(e) => setRequired(e.target.checked)} />
+          <input type="checkbox" id="field-required" checked={required} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setRequired(e.target.checked)} />
           <label htmlFor="field-required" className="text-sm text-neutral-700">Required</label>
         </div>
         <div>
@@ -757,31 +755,31 @@ function FieldModal({
           <div className="space-y-2 text-sm">
             <div>
               <label className="text-neutral-600">Enum (comma-separated)</label>
-              <input
+              <Input
                 type="text"
                 value={enumStr}
-                onChange={(e) => setEnumStr(e.target.value)}
-                className="mt-0.5 w-full rounded border border-neutral-300 px-2 py-1"
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEnumStr(e.target.value)}
+                className="mt-0.5"
                 placeholder="A, B, C"
               />
             </div>
             <div className="flex gap-2">
               <div>
                 <label className="text-neutral-600">Min</label>
-                <input
+                <Input
                   type="number"
                   value={min}
-                  onChange={(e) => setMin(e.target.value)}
-                  className="mt-0.5 w-full rounded border border-neutral-300 px-2 py-1"
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setMin(e.target.value)}
+                  className="mt-0.5"
                 />
               </div>
               <div>
                 <label className="text-neutral-600">Max</label>
-                <input
+                <Input
                   type="number"
                   value={max}
-                  onChange={(e) => setMax(e.target.value)}
-                  className="mt-0.5 w-full rounded border border-neutral-300 px-2 py-1"
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setMax(e.target.value)}
+                  className="mt-0.5"
                 />
               </div>
             </div>
