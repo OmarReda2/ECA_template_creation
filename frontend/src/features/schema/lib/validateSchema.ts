@@ -1,4 +1,4 @@
-import type { FieldDefinition, FieldValidations, TableDefinition } from '../types';
+import type { FieldValidations, TableDefinition } from '../types';
 
 export interface ValidationError {
   path: string;

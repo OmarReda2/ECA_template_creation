@@ -34,7 +34,6 @@ import {
   getErrorMessage,
   type FrontendError,
 } from '@/shared/errors/errorTypes';
-const DEFAULT_TABLES: TableDefinition[] = [];
 const SHEET_NAME_FORBIDDEN = /[\\/?*[\]]/;
 const SHEET_NAME_MAX = 31;
 
