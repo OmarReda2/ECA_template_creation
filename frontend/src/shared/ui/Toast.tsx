@@ -1,120 +1,84 @@
-import {
-  type ReactNode,
-  createContext,
-  useCallback,
-  useContext,
-  useMemo,
-  useState,
-} from 'react';
+import { useState } from 'react';
+import { toast as sonnerToast } from 'sonner';
 
 export type ToastVariant = 'info' | 'success' | 'error';
 
-interface ToastItem {
-  id: string;
-  message: string;
-  variant: ToastVariant;
+/** User-friendly short message for API errors by status. */
+function userFriendlyMessage(message: string, status: number | null): string {
+  if (status == null) return message;
+  if (status === 400) return 'Invalid request.';
+  if (status === 409) return 'Conflict: this version cannot be edited.';
+  if (status >= 500) return 'Server error. Please try again later.';
+  return message;
 }
 
-interface ToastContextValue {
-  showToast: (message: string, variant?: ToastVariant) => void;
-}
-
-const ToastContext = createContext<ToastContextValue | null>(null);
-
-const DEFAULT_DURATION_MS = 5000;
-
-export function useToast(): ToastContextValue {
-  const ctx = useContext(ToastContext);
-  if (!ctx) throw new Error('useToast must be used within ToastProvider');
-  return ctx;
-}
-
-interface ToastProviderProps {
-  children: ReactNode;
-  /** Auto-dismiss after this many ms; 0 = no auto-dismiss. */
-  durationMs?: number;
-}
-
-export function ToastProvider({ children, durationMs = DEFAULT_DURATION_MS }: ToastProviderProps) {
-  const [toasts, setToasts] = useState<ToastItem[]>([]);
-
-  const showToast = useCallback(
-    (message: string, variant: ToastVariant = 'info') => {
-      const id = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-      setToasts((prev) => [...prev, { id, message, variant }]);
-      if (durationMs > 0) {
-        setTimeout(() => {
-          setToasts((prev) => prev.filter((t) => t.id !== id));
-        }, durationMs);
-      }
-    },
-    [durationMs]
-  );
-
-  const removeToast = useCallback((id: string) => {
-    setToasts((prev) => prev.filter((t) => t.id !== id));
-  }, []);
-
-  const value = useMemo(() => ({ showToast }), [showToast]);
-
+/** Expandable "View details" content for error toasts. */
+function ExpandableErrorDetails({ details }: { details: string }) {
+  const [expanded, setExpanded] = useState(false);
   return (
-    <ToastContext.Provider value={value}>
-      {children}
-      <ToastContainer toasts={toasts} onDismiss={removeToast} />
-    </ToastContext.Provider>
-  );
-}
-
-const variantClasses: Record<ToastVariant, string> = {
-  info: 'bg-neutral-900 text-white',
-  success: 'bg-green-700 text-white',
-  error: 'bg-red-600 text-white',
-};
-
-interface ToastContainerProps {
-  toasts: ToastItem[];
-  onDismiss: (id: string) => void;
-}
-
-function ToastContainer({ toasts, onDismiss }: ToastContainerProps) {
-  return (
-    <div className="fixed bottom-4 right-4 z-50 flex flex-col gap-2" aria-live="polite">
-      {toasts.map((t) => (
-        <div
-          key={t.id}
-          className={`flex items-center justify-between gap-4 rounded-lg px-4 py-3 shadow-lg ${variantClasses[t.variant]}`}
-          role="status"
+    <div className="mt-1">
+      {!expanded ? (
+        <button
+          type="button"
+          onClick={() => setExpanded(true)}
+          className="text-left text-xs underline opacity-90 hover:opacity-100"
         >
-          <p className="text-sm font-medium">{t.message}</p>
-          <button
-            type="button"
-            onClick={() => onDismiss(t.id)}
-            className="shrink-0 rounded p-1 opacity-80 hover:opacity-100"
-            aria-label="Dismiss"
-          >
-            ×
-          </button>
-        </div>
-      ))}
+          View details
+        </button>
+      ) : (
+        <pre className="mt-1 max-h-32 overflow-auto whitespace-pre-wrap break-words text-xs opacity-90">
+          {details}
+        </pre>
+      )}
     </div>
   );
 }
 
-/** Presentational Toast (for use outside context if needed). */
-interface ToastProps {
-  message: string;
-  variant?: ToastVariant;
-  action?: ReactNode;
+export interface ShowErrorOptions {
+  /** HTTP status for user-friendly title (400, 409, 500). */
+  status?: number | null;
+  /** Full error text for "View details" expandable; defaults to message. */
+  details?: string;
+  /** Optional retry callback; adds a "Retry" action to the toast. */
+  onRetry?: () => void;
 }
 
-export function Toast({ message, variant = 'info', action }: ToastProps) {
-  return (
-    <div
-      className={`flex items-center justify-between gap-4 rounded-lg px-4 py-3 shadow-lg ${variantClasses[variant]}`}
-      role="status"
-    >
-      <p className="text-sm font-medium">{message}</p>
-      {action}
-    </div>
-  );
+/**
+ * Show an error toast with optional expandable details and retry action.
+ * Uses a short user-friendly message as title when status is provided.
+ */
+export function showErrorToast(message: string, options?: ShowErrorOptions): void {
+  const { status = null, details = message, onRetry } = options ?? {};
+  const shortMessage = userFriendlyMessage(message, status);
+  sonnerToast.error(shortMessage, {
+    description: details ? <ExpandableErrorDetails details={details} /> : undefined,
+    action: onRetry ? { label: 'Retry', onClick: onRetry } : undefined,
+    duration: details ? 10000 : 5000,
+  });
+}
+
+export interface UseToastReturn {
+  showToast: (message: string, variant?: ToastVariant) => void;
+  showErrorToast: typeof showErrorToast;
+}
+
+/**
+ * Single toast API backed by sonner.
+ * Use for success/info toasts and for API errors (with optional details and retry).
+ */
+export function useToast(): UseToastReturn {
+  const showToast = (message: string, variant: ToastVariant = 'info') => {
+    switch (variant) {
+      case 'success':
+        sonnerToast.success(message);
+        break;
+      case 'error':
+        sonnerToast.error(message);
+        break;
+      default:
+        sonnerToast(message);
+    }
+  };
+
+  return { showToast, showErrorToast };
 }
