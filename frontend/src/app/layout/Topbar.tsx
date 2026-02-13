@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { useLocation } from 'react-router-dom';
 
 const titleByPath: Record<string, string> = {
@@ -15,13 +16,19 @@ function getPageTitle(pathname: string): string {
   return titleByPath[pathname] ?? 'Template Creation Admin';
 }
 
-export default function Topbar() {
+interface TopbarProps {
+  rightActions?: ReactNode;
+}
+
+/** Page title from route and optional right slot. Card-like border using design tokens. */
+export default function Topbar({ rightActions }: TopbarProps) {
   const location = useLocation();
   const title = getPageTitle(location.pathname);
 
   return (
-    <header className="sticky top-0 z-10 flex h-14 items-center border-b border-neutral-200 bg-white px-6">
-      <h1 className="text-lg font-semibold text-neutral-900">{title}</h1>
+    <header className="sticky top-0 z-10 flex h-14 shrink-0 items-center justify-between gap-4 border-b border-border bg-card px-6">
+      <h1 className="text-lg font-semibold text-foreground truncate">{title}</h1>
+      {rightActions != null && <div className="flex items-center gap-2 shrink-0">{rightActions}</div>}
     </header>
   );
 }
