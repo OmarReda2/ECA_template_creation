@@ -2,7 +2,8 @@ import type { ReactNode } from 'react';
 import { cn } from '@/shared/lib/utils';
 
 interface PageHeaderProps {
-  title: string;
+  /** Omit when Topbar/Sidebar already show the page title to avoid duplication. */
+  title?: string;
   description?: ReactNode;
   rightActions?: ReactNode;
   className?: string;
@@ -18,11 +19,15 @@ export function PageHeader({ title, description, rightActions, className }: Page
       )}
     >
       <div>
-        <h1 className="text-xl font-semibold tracking-tight text-foreground">
-          {title}
-        </h1>
+        {title != null && (
+          <h1 className="text-xl font-semibold tracking-tight text-foreground">
+            {title}
+          </h1>
+        )}
         {description != null && (
-          <div className="mt-1 text-sm text-muted-foreground">{description}</div>
+          <div className={cn('text-sm text-muted-foreground', title != null && 'mt-1')}>
+            {description}
+          </div>
         )}
       </div>
       {rightActions != null && <div className="flex items-center gap-2">{rightActions}</div>}

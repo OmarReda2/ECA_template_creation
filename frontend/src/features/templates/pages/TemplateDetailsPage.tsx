@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
+import { useBreadcrumb } from '@/app/layout/BreadcrumbContext';
 import { templatesApi } from '../api';
 import { versionsApi } from '@/features/versions/api';
 import { exportVersion } from '@/features/export/api';
@@ -11,8 +12,8 @@ import { Button } from '@/shared/ui/Button';
 import { Card, CardContent } from '@/shared/ui/Card';
 import { EmptyState } from '@/shared/ui/EmptyState';
 import { PageHeader } from '@/shared/ui/PageHeader';
-import { ErrorPanel } from '@/shared/errors/ErrorPanel';
 import { Spinner } from '@/shared/ui/Spinner';
+import { TableLoadingOverlay } from '@/shared/ui/TableLoadingOverlay';
 import {
   Table,
   TableBody,
@@ -45,12 +46,12 @@ function badgeVariantForStatus(status: string): 'default' | 'success' | 'warning
 
 export default function TemplateDetailsPage() {
   const { templateId } = useParams<{ templateId: string }>();
-  const { showToast } = useToast();
+  const { showToast, showErrorToast } = useToast();
+  const breadcrumb = useBreadcrumb();
   const [template, setTemplate] = useState<TemplateDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<FrontendError | null>(null);
   const [creatingVersion, setCreatingVersion] = useState(false);
-  const [createError, setCreateError] = useState<FrontendError | null>(null);
   const [exportingVersionId, setExportingVersionId] = useState<string | null>(null);
 
   const loadTemplate = useCallback(async () => {
@@ -61,27 +62,42 @@ export default function TemplateDetailsPage() {
       const data = await templatesApi.getById(templateId);
       setTemplate(data);
     } catch (e) {
-      setError(normalizeHttpError(e));
+      const err = normalizeHttpError(e);
+      setError(err);
       setTemplate(null);
+      showErrorToast(getErrorMessage(err, true), {
+        status: err.status,
+        details: getErrorMessage(err, true),
+        onRetry: loadTemplate,
+      });
     } finally {
       setLoading(false);
     }
-  }, [templateId]);
+  }, [templateId, showErrorToast]);
 
   useEffect(() => {
     loadTemplate();
   }, [loadTemplate]);
 
+  useEffect(() => {
+    if (template != null) {
+      breadcrumb?.setBreadcrumb({ templateName: template.name, versionNumber: null });
+    }
+    return () => {
+      breadcrumb?.setBreadcrumb({ templateName: null, versionNumber: null });
+    };
+  }, [template, breadcrumb]);
+
   const handleCreateVersion = async () => {
     if (!templateId) return;
     setCreatingVersion(true);
-    setCreateError(null);
     try {
       await versionsApi.create(templateId, { createdBy: 'system' });
       showToast('New version created.', 'success');
       await loadTemplate();
     } catch (e) {
-      setCreateError(normalizeHttpError(e));
+      const err = normalizeHttpError(e);
+      showErrorToast(getErrorMessage(err, true), { status: err.status, details: getErrorMessage(err, true) });
     } finally {
       setCreatingVersion(false);
     }
@@ -97,12 +113,12 @@ export default function TemplateDetailsPage() {
         showToast('Export downloaded.', 'success');
       } catch (e) {
         const err = normalizeHttpError(e);
-        showToast(getErrorMessage(err, true), 'error');
+        showErrorToast(getErrorMessage(err, true), { status: err.status, details: getErrorMessage(err, true) });
       } finally {
         setExportingVersionId(null);
       }
     },
-    [template?.name, showToast]
+    [template?.name, showToast, showErrorToast]
   );
 
   if (!templateId) {
@@ -121,11 +137,8 @@ export default function TemplateDetailsPage() {
 
   if (error) {
     return (
-      <div className="space-y-4">
-        <ErrorPanel
-          error={getErrorMessage(error, true)}
-          onDismiss={() => setError(null)}
-        />
+      <div className="flex flex-col gap-2">
+        <p className="text-sm text-muted-foreground">Failed to load template.</p>
         <Button variant="secondary" onClick={loadTemplate}>
           Retry
         </Button>
@@ -164,7 +177,7 @@ export default function TemplateDetailsPage() {
           <Button
             type="button"
             onClick={handleCreateVersion}
-            disabled={creatingVersion || versions.length === 0}
+            disabled={creatingVersion || loading || versions.length === 0}
             title={versions.length === 0 ? 'At least one version must exist to create another.' : undefined}
           >
             {creatingVersion ? (
@@ -179,62 +192,56 @@ export default function TemplateDetailsPage() {
         }
       />
 
-      {createError && (
-        <ErrorPanel
-          error={getErrorMessage(createError, true)}
-          onDismiss={() => setCreateError(null)}
-        />
-      )}
-
       <Card>
         <CardContent className="pt-6">
-          <h2 className="mb-3 text-sm font-medium text-muted-foreground">Versions</h2>
-          {versions.length === 0 ? (
-            <EmptyState
-              title="No versions yet"
-              description="Create a new version to get started."
-              action={
-                <Button
-                  type="button"
-                  onClick={handleCreateVersion}
-                  disabled={creatingVersion}
-                >
-                  {creatingVersion ? (
-                    <>
-                      <Spinner className="h-4 w-4" />
-                      Creating…
-                    </>
-                  ) : (
-                    'Create New Version'
-                  )}
-                </Button>
-              }
-            />
-          ) : (
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableTh>Version</TableTh>
-                  <TableTh>Status</TableTh>
-                  <TableTh>Created</TableTh>
-                  <TableTh>Schema hash</TableTh>
-                  <TableTh>Actions</TableTh>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {versions.map((v) => (
-                  <VersionRow
-                    key={v.id}
-                    version={v}
-                    templateId={templateId}
-                    isLatest={latestVersionNumber !== null && v.versionNumber === latestVersionNumber}
-                    isExporting={exportingVersionId === v.id}
-                    onExport={() => handleExport(v.id, v.versionNumber)}
-                  />
-                ))}
-              </TableBody>
-            </Table>
-          )}
+          <TableLoadingOverlay loading={loading}>
+            {versions.length === 0 ? (
+              <EmptyState
+                title="No versions yet"
+                description="Create a new version to get started."
+                action={
+                  <Button
+                    type="button"
+                    onClick={handleCreateVersion}
+                    disabled={creatingVersion || loading}
+                  >
+                    {creatingVersion ? (
+                      <>
+                        <Spinner className="h-4 w-4" />
+                        Creating…
+                      </>
+                    ) : (
+                      'Create New Version'
+                    )}
+                  </Button>
+                }
+              />
+            ) : (
+              <Table>
+                <TableHead>
+                  <TableRow>
+                    <TableTh>Version</TableTh>
+                    <TableTh>Status</TableTh>
+                    <TableTh>Created</TableTh>
+                    <TableTh>Schema hash</TableTh>
+                    <TableTh>Actions</TableTh>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {versions.map((v) => (
+                    <VersionRow
+                      key={v.id}
+                      version={v}
+                      templateId={templateId}
+                      isLatest={latestVersionNumber !== null && v.versionNumber === latestVersionNumber}
+                      isExporting={exportingVersionId === v.id}
+                      onExport={() => handleExport(v.id, v.versionNumber)}
+                    />
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </TableLoadingOverlay>
         </CardContent>
       </Card>
     </div>
@@ -249,6 +256,20 @@ interface VersionRowProps {
   onExport: () => void;
 }
 
+function getEditSchemaDisabledReason(
+  isLatest: boolean,
+  status: string | undefined
+): string {
+  if (!isLatest) {
+    return 'Only the latest version can be edited. Create a new version to edit.';
+  }
+  const s = (status ?? '').toLowerCase();
+  if (s === 'read_only' || s === 'read only') {
+    return 'Only versions with status DRAFT can be edited.';
+  }
+  return 'Only versions with status DRAFT can be edited.';
+}
+
 function VersionRow({
   version,
   templateId,
@@ -257,10 +278,11 @@ function VersionRow({
   onExport,
 }: VersionRowProps) {
   const editSchemaPath = `/templates/${templateId}/versions/${version.id}/schema`;
-  const editDisabled = !isLatest;
-  const editTitle = isLatest
-    ? 'Edit schema'
-    : 'Only the latest version can be edited. Create a new version to edit.';
+  const isDraft = (version.status ?? '').toLowerCase() === 'draft';
+  const canEditSchema = isLatest && isDraft;
+  const editDisabledReason = canEditSchema
+    ? null
+    : getEditSchemaDisabledReason(isLatest, version.status);
 
   return (
     <TableRow>
@@ -276,29 +298,36 @@ function VersionRow({
       </TableTd>
       <TableTd>
         <span className="flex items-center gap-2">
-          {editDisabled ? (
+          {canEditSchema ? (
+            <ActionButton
+              as="link"
+              to={editSchemaPath}
+              aria-label="Edit schema"
+              label="Edit schema"
+            >
+              <IconEdit />
+            </ActionButton>
+          ) : (
             <Tooltip>
               <TooltipTrigger asChild>
                 <span
-                  className="inline-flex h-8 w-8 cursor-not-allowed items-center justify-center rounded-md text-neutral-400"
+                  className="inline-flex h-8 cursor-not-allowed items-center gap-1.5 rounded-md px-2.5 text-sm font-medium text-neutral-400"
                   aria-disabled="true"
-                  aria-label={editTitle}
+                  aria-label={editDisabledReason ?? 'Edit schema'}
                 >
                   <IconEdit />
+                  <span>Edit schema</span>
                 </span>
               </TooltipTrigger>
               <TooltipContent side="top" align="center">
-                {editTitle}
+                {editDisabledReason}
               </TooltipContent>
             </Tooltip>
-          ) : (
-            <ActionButton as="link" to={editSchemaPath} aria-label="Edit schema">
-              <IconEdit />
-            </ActionButton>
           )}
           <ActionButton
             as="button"
             aria-label={isExporting ? 'Exporting…' : 'Export'}
+            label="Export"
             onClick={onExport}
             disabled={isExporting}
           >

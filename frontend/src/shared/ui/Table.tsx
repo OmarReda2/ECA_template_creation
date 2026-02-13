@@ -5,9 +5,10 @@ interface TableProps {
   className?: string;
 }
 
+/** Use inside Card for a single clean border (no double card + table border). */
 export function Table({ children, className = '' }: TableProps) {
   return (
-    <div className="overflow-hidden rounded-lg border border-neutral-200 bg-white">
+    <div className="overflow-hidden rounded-lg bg-white">
       <table className={`min-w-full divide-y divide-neutral-200 ${className}`}>{children}</table>
     </div>
   );
@@ -22,7 +23,9 @@ export function TableBody({ children, className = '' }: TableProps) {
 }
 
 export function TableRow({ children, className = '' }: TableProps) {
-  return <tr className={className}>{children}</tr>;
+  return (
+    <tr className={`transition-colors hover:bg-neutral-50 ${className}`}>{children}</tr>
+  );
 }
 
 export function TableTh({ children, className = '' }: TableProps) {

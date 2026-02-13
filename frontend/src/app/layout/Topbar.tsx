@@ -1,34 +1,106 @@
 import type { ReactNode } from 'react';
-import { useLocation } from 'react-router-dom';
-
-const titleByPath: Record<string, string> = {
-  '/templates': 'Templates',
-  '/': 'Templates',
-};
-
-function getPageTitle(pathname: string): string {
-  if (pathname.startsWith('/templates/') && pathname.includes('/versions/') && pathname.includes('/schema')) {
-    return 'Schema Editor';
-  }
-  if (pathname.match(/^\/templates\/[^/]+$/)) {
-    return 'Template Details';
-  }
-  return titleByPath[pathname] ?? 'Template Creation Admin';
-}
+import { Link, useLocation, useParams } from 'react-router-dom';
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from '@/shared/ui/Breadcrumb';
+import { SidebarTrigger } from '@/shared/ui/sidebar';
+import { useBreadcrumb } from './BreadcrumbContext';
 
 interface TopbarProps {
   rightActions?: ReactNode;
 }
 
-/** Page title from route and optional right slot. Card-like border using design tokens. */
-export default function Topbar({ rightActions }: TopbarProps) {
+function AppTopbarBreadcrumbs() {
   const location = useLocation();
-  const title = getPageTitle(location.pathname);
+  const params = useParams<{ templateId?: string; versionId?: string }>();
+  const { templateName, versionNumber } = useBreadcrumb() ?? {};
+  const pathname = location.pathname;
+  const isSchema = pathname.includes('/versions/') && pathname.includes('/schema');
+  const isTemplateDetails =
+    params.templateId != null &&
+    !pathname.includes('/versions/');
+
+  if (isSchema && params.templateId != null) {
+    return (
+      <Breadcrumb>
+        <BreadcrumbList>
+          <BreadcrumbItem>
+            <BreadcrumbLink asChild>
+              <Link to="/templates">Templates</Link>
+            </BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>
+            <BreadcrumbLink asChild>
+              <Link to={`/templates/${params.templateId}`}>
+                {templateName ?? 'Template'}
+              </Link>
+            </BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>
+            <BreadcrumbLink asChild>
+              <Link to={`/templates/${params.templateId}`}>
+                Version v{versionNumber ?? '?'}
+              </Link>
+            </BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>
+            <BreadcrumbPage>Schema</BreadcrumbPage>
+          </BreadcrumbItem>
+        </BreadcrumbList>
+      </Breadcrumb>
+    );
+  }
+
+  if (isTemplateDetails && params.templateId != null) {
+    return (
+      <Breadcrumb>
+        <BreadcrumbList>
+          <BreadcrumbItem>
+            <BreadcrumbLink asChild>
+              <Link to="/templates">Templates</Link>
+            </BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>
+            <BreadcrumbPage>{templateName ?? 'Template'}</BreadcrumbPage>
+          </BreadcrumbItem>
+        </BreadcrumbList>
+      </Breadcrumb>
+    );
+  }
 
   return (
+    <Breadcrumb>
+      <BreadcrumbList>
+        <BreadcrumbItem>
+          <BreadcrumbPage>Templates</BreadcrumbPage>
+        </BreadcrumbItem>
+      </BreadcrumbList>
+    </Breadcrumb>
+  );
+}
+
+/** Page breadcrumbs + optional right slot. Toggle sidebar via SidebarTrigger (Topbar left). */
+export default function Topbar({ rightActions }: TopbarProps) {
+  return (
     <header className="sticky top-0 z-10 flex h-14 shrink-0 items-center justify-between gap-4 border-b border-border bg-card px-6">
-      <h1 className="text-lg font-semibold text-foreground truncate">{title}</h1>
-      {rightActions != null && <div className="flex items-center gap-2 shrink-0">{rightActions}</div>}
+      <div className="flex min-w-0 flex-1 items-center gap-2">
+        <SidebarTrigger aria-label="Toggle sidebar" className="hover:bg-muted/80 -ml-2" />
+        <div className="min-w-0 flex-1">
+          <AppTopbarBreadcrumbs />
+        </div>
+      </div>
+      {rightActions != null && (
+        <div className="flex shrink-0 items-center gap-2">{rightActions}</div>
+      )}
     </header>
   );
 }

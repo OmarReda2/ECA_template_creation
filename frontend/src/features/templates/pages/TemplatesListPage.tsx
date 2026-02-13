@@ -3,12 +3,13 @@ import { useNavigate } from 'react-router-dom';
 import { templatesApi } from '../api';
 import type { CreateTemplateResponse, TemplateSummary } from '../types';
 import { ActionButton, IconView } from '@/shared/ui/ActionButtons';
+import { Badge } from '@/shared/ui/Badge';
 import { Button } from '@/shared/ui/Button';
 import { EmptyState } from '@/shared/ui/EmptyState';
 import { Input } from '@/shared/ui/Input';
-import { ErrorPanel } from '@/shared/errors/ErrorPanel';
 import { Modal } from '@/shared/ui/Modal';
 import { Spinner } from '@/shared/ui/Spinner';
+import { TableLoadingOverlay } from '@/shared/ui/TableLoadingOverlay';
 import { Card, CardContent } from '@/shared/ui/Card';
 import { PageHeader } from '@/shared/ui/PageHeader';
 import {
@@ -27,6 +28,16 @@ import {
 } from '@/shared/errors/errorTypes';
 import { formatIsoDate } from '@/shared/lib/format';
 
+function templateStatusBadgeVariant(
+  status: string
+): 'default' | 'success' | 'warning' | 'neutral' {
+  const s = status?.toLowerCase() ?? '';
+  if (s === 'active' || s === 'draft') return 'success';
+  if (s === 'read_only' || s === 'read only') return 'neutral';
+  if (s.includes('error') || s.includes('invalid')) return 'warning';
+  return 'default';
+}
+
 /** Form state lives here so parent re-renders on keystroke don't remount modal content and steal focus. */
 function CreateTemplateForm({
   onSuccess,
@@ -35,11 +46,10 @@ function CreateTemplateForm({
   onSuccess: (res: CreateTemplateResponse) => void;
   onCancel: () => void;
 }) {
-  const { showToast } = useToast();
+  const { showToast, showErrorToast } = useToast();
   const [name, setName] = useState('');
   const [sectorCode, setSectorCode] = useState('');
   const [submitting, setSubmitting] = useState(false);
-  const [createError, setCreateError] = useState<FrontendError | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -47,7 +57,6 @@ function CreateTemplateForm({
     const trimmedSector = sectorCode.trim();
     if (!trimmedName || !trimmedSector) return;
     setSubmitting(true);
-    setCreateError(null);
     try {
       const res = await templatesApi.create({
         name: trimmedName,
@@ -57,7 +66,8 @@ function CreateTemplateForm({
       showToast('Template created successfully.', 'success');
       onSuccess(res);
     } catch (e) {
-      setCreateError(normalizeHttpError(e));
+      const err = normalizeHttpError(e);
+      showErrorToast(getErrorMessage(err, true), { status: err.status, details: getErrorMessage(err, true) });
     } finally {
       setSubmitting(false);
     }
@@ -65,12 +75,6 @@ function CreateTemplateForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      {createError && (
-        <ErrorPanel
-          error={getErrorMessage(createError, true)}
-          onDismiss={() => setCreateError(null)}
-        />
-      )}
       <div>
         <label htmlFor="create-name" className="mb-1 block text-sm font-medium text-neutral-700">
           Name <span className="text-red-600">*</span>
@@ -120,6 +124,7 @@ function CreateTemplateForm({
 
 export default function TemplatesListPage() {
   const navigate = useNavigate();
+  const { showErrorToast } = useToast();
   const [templates, setTemplates] = useState<TemplateSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<FrontendError | null>(null);
@@ -132,11 +137,17 @@ export default function TemplatesListPage() {
       const list = await templatesApi.list();
       setTemplates(list);
     } catch (e) {
-      setError(normalizeHttpError(e));
+      const err = normalizeHttpError(e);
+      setError(err);
+      showErrorToast(getErrorMessage(err, true), {
+        status: err.status,
+        details: getErrorMessage(err, true),
+        onRetry: loadTemplates,
+      });
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [showErrorToast]);
 
   useEffect(() => {
     loadTemplates();
@@ -158,28 +169,24 @@ export default function TemplatesListPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Templates"
         rightActions={
-          <Button type="button" onClick={openCreate}>
+          <Button type="button" onClick={openCreate} disabled={loading}>
             Create Template
           </Button>
         }
       />
 
-      {error && (
-        <ErrorPanel
-          error={getErrorMessage(error, true)}
-          onDismiss={() => setError(null)}
-        />
-      )}
-
+      {error ? (
+        <div className="flex flex-col gap-2">
+          <p className="text-sm text-muted-foreground">Failed to load templates.</p>
+          <Button variant="secondary" onClick={loadTemplates}>
+            Retry
+          </Button>
+        </div>
+      ) : (
       <Card>
         <CardContent className="pt-6">
-          {loading ? (
-            <div className="flex justify-center py-12">
-              <Spinner />
-            </div>
-          ) : templates.length === 0 ? (
+          {templates.length === 0 && !loading ? (
             <EmptyState
               title="No templates yet"
               description="Create your first template to get started."
@@ -189,9 +196,14 @@ export default function TemplatesListPage() {
                 </Button>
               }
             />
+          ) : templates.length === 0 && loading ? (
+            <div className="flex justify-center py-12">
+              <Spinner />
+            </div>
           ) : (
-            <Table>
-              <TableHead>
+            <TableLoadingOverlay loading={loading}>
+              <Table>
+                <TableHead>
                 <TableRow>
                   <TableTh>Name</TableTh>
                   <TableTh>Sector Code</TableTh>
@@ -205,18 +217,33 @@ export default function TemplatesListPage() {
                 {templates.map((t) => (
                   <TableRow key={t.templateId}>
                     <TableTd className="font-medium text-neutral-900">{t.name}</TableTd>
-                    <TableTd>{t.sectorCode}</TableTd>
+                    <TableTd>
+                      <Badge variant="neutral">{t.sectorCode}</Badge>
+                    </TableTd>
                     <TableTd>
                       {t.latestVersion != null ? `v${t.latestVersion.versionNumber}` : '—'}
                     </TableTd>
-                    <TableTd>{t.latestVersion?.status ?? '—'}</TableTd>
+                    <TableTd>
+                      {t.latestVersion?.status != null && t.latestVersion.status !== '' ? (
+                        <Badge variant={templateStatusBadgeVariant(t.latestVersion.status)}>
+                          {t.latestVersion.status}
+                        </Badge>
+                      ) : (
+                        '—'
+                      )}
+                    </TableTd>
                     <TableTd>
                       {t.latestVersion?.createdAt
                         ? formatIsoDate(t.latestVersion.createdAt)
                         : '—'}
                     </TableTd>
                     <TableTd>
-                      <ActionButton as="link" to={`/templates/${t.templateId}`} aria-label={`View template ${t.name}`}>
+                      <ActionButton
+                        as="link"
+                        to={`/templates/${t.templateId}`}
+                        aria-label={`View template ${t.name}`}
+                        label="View"
+                      >
                         <IconView />
                       </ActionButton>
                     </TableTd>
@@ -224,9 +251,11 @@ export default function TemplatesListPage() {
                 ))}
               </TableBody>
             </Table>
+            </TableLoadingOverlay>
           )}
         </CardContent>
       </Card>
+      )}
 
       <Modal open={createOpen} onClose={closeCreate} title="Create Template">
         <CreateTemplateForm onSuccess={handleCreateSuccess} onCancel={closeCreate} />

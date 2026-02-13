@@ -6,6 +6,7 @@ import {
   useMemo,
 } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useBreadcrumb } from '@/app/layout/BreadcrumbContext';
 import { templatesApi } from '@/features/templates/api';
 import { versionsApi } from '@/features/versions/api';
 import type { VersionDetail } from '@/features/versions/types';
@@ -27,12 +28,20 @@ import {
 import { Button } from '@/shared/ui/Button';
 import { Card, CardContent, CardHeader } from '@/shared/ui/Card';
 import { EmptyState } from '@/shared/ui/EmptyState';
-import { ErrorPanel } from '@/shared/errors/ErrorPanel';
+import {
+  Table as DataTable,
+  TableBody,
+  TableHead,
+  TableRow,
+  TableTd,
+  TableTh,
+} from '@/shared/ui/Table';
 import { Input } from '@/shared/ui/Input';
 import { Modal } from '@/shared/ui/Modal';
 import { PageHeader } from '@/shared/ui/PageHeader';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/ui/Select';
 import { Spinner } from '@/shared/ui/Spinner';
+import { TableLoadingOverlay } from '@/shared/ui/TableLoadingOverlay';
 import { useToast } from '@/shared/ui/Toast';
 import {
   normalizeHttpError,
@@ -118,7 +127,8 @@ function buildPutPayload(schema: SchemaDefinition): unknown {
 export default function SchemaEditorPage() {
   const { templateId, versionId } = useParams<{ templateId: string; versionId: string }>();
   const navigate = useNavigate();
-  const { showToast } = useToast();
+  const { showToast, showErrorToast } = useToast();
+  const breadcrumb = useBreadcrumb();
   const [templateInfo, setTemplateInfo] = useState<{ name: string; sectorCode: string } | null>(null);
   const [version, setVersion] = useState<VersionDetail | null>(null);
   const [loading, setLoading] = useState(true);
@@ -152,12 +162,18 @@ export default function SchemaEditorPage() {
       initialSchemaRef.current = JSON.parse(JSON.stringify(parsed));
       setSelectedTableIndex(parsed.tables.length > 0 ? 0 : null);
     } catch (e) {
-      setLoadError(normalizeHttpError(e));
+      const err = normalizeHttpError(e);
+      setLoadError(err);
       setVersion(null);
+      showErrorToast(getErrorMessage(err, true), {
+        status: err.status,
+        details: getErrorMessage(err, true),
+        onRetry: loadVersion,
+      });
     } finally {
       setLoading(false);
     }
-  }, [versionId]);
+  }, [versionId, showErrorToast]);
 
   useEffect(() => {
     loadVersion();
@@ -178,6 +194,18 @@ export default function SchemaEditorPage() {
       cancelled = true;
     };
   }, [templateId]);
+
+  useEffect(() => {
+    if (templateInfo != null && version != null) {
+      breadcrumb?.setBreadcrumb({
+        templateName: templateInfo.name,
+        versionNumber: version.versionNumber,
+      });
+    }
+    return () => {
+      breadcrumb?.setBreadcrumb({ templateName: null, versionNumber: null });
+    };
+  }, [templateInfo, version, breadcrumb]);
 
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
@@ -215,6 +243,10 @@ export default function SchemaEditorPage() {
     } catch (e) {
       const err = normalizeHttpError(e);
       setSaveError(err);
+      showErrorToast(getErrorMessage(err, true), {
+        status: err.status,
+        details: getErrorMessage(err, true),
+      });
     } finally {
       setSaving(false);
     }
@@ -304,9 +336,12 @@ export default function SchemaEditorPage() {
   }
   if (loadError) {
     return (
-      <div className="space-y-4">
-        <ErrorPanel error={getErrorMessage(loadError, true)} onDismiss={() => setLoadError(null)} />
-        <Button variant="secondary" onClick={goBack}>Back to template</Button>
+      <div className="flex flex-col gap-2">
+        <p className="text-sm text-muted-foreground">Failed to load version.</p>
+        <div className="flex gap-2">
+          <Button variant="secondary" onClick={loadVersion}>Retry</Button>
+          <Button variant="secondary" onClick={goBack}>Back to template</Button>
+        </div>
       </div>
     );
   }
@@ -325,10 +360,10 @@ export default function SchemaEditorPage() {
           Back to template details
         </ActionLink>
         <PageHeader
-          title={`Schema builder · Version ${version.versionNumber}`}
+          description={`Version ${version.versionNumber}`}
           rightActions={
             <div className="flex gap-2">
-              <Button variant="secondary" onClick={handleCancel} disabled={readOnly}>Cancel</Button>
+              <Button variant="secondary" onClick={handleCancel} disabled={readOnly || saving}>Cancel</Button>
               <Button onClick={handleSave} disabled={saving || readOnly || !canSave}>
                 {saving ? (
                   <>
@@ -344,10 +379,6 @@ export default function SchemaEditorPage() {
         />
       </div>
 
-      {saveError && !is409 && (
-        <ErrorPanel error={getErrorMessage(saveError, true)} onDismiss={() => setSaveError(null)} />
-      )}
-
       {is409 && (
         <div className="rounded-md border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800" role="alert">
           <p className="font-medium">Only the latest version is editable. This version is read-only.</p>
@@ -360,12 +391,12 @@ export default function SchemaEditorPage() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+      <TableLoadingOverlay loading={saving} className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 p-4 pb-2">
             <h2 className="text-sm font-medium text-muted-foreground">Tables</h2>
             {!readOnly && (
-              <Button type="button" variant="secondary" size="sm" onClick={() => setTableModal('add')}>
+              <Button type="button" variant="secondary" size="sm" onClick={() => setTableModal('add')} disabled={saving}>
                 Add table
               </Button>
             )}
@@ -377,7 +408,7 @@ export default function SchemaEditorPage() {
                 description="Add a table to define your schema."
                 action={
                   !readOnly ? (
-                    <Button type="button" variant="secondary" size="sm" onClick={() => setTableModal('add')}>
+                    <Button type="button" variant="secondary" size="sm" onClick={() => setTableModal('add')} disabled={saving}>
                       Add table
                     </Button>
                   ) : undefined
@@ -404,12 +435,14 @@ export default function SchemaEditorPage() {
                       <ActionButton
                         as="button"
                         aria-label="Edit table"
+                        label="Edit"
                         onClick={() => setTableModal({ edit: i })}
                       >
                         <IconEdit />
                       </ActionButton>
                       <DangerActionButton
                         aria-label="Delete table"
+                        label="Delete"
                         onClick={() => { setConfirmDelete('table'); setDeleteTargetIndex(i); }}
                       >
                         <IconDelete />
@@ -438,7 +471,7 @@ export default function SchemaEditorPage() {
                 description={`Add fields to the "${selectedTable.tableKey}" table.`}
                 action={
                   !readOnly ? (
-                    <Button type="button" variant="secondary" size="sm" onClick={() => setFieldModal('add')}>
+                    <Button type="button" variant="secondary" size="sm" onClick={() => setFieldModal('add')} disabled={saving}>
                       Add field
                     </Button>
                   ) : undefined
@@ -447,58 +480,60 @@ export default function SchemaEditorPage() {
             ) : (
             <>
               {!readOnly && (
-                <Button type="button" variant="secondary" className="mb-3" onClick={() => setFieldModal('add')}>
+                <Button type="button" variant="secondary" className="mb-3" onClick={() => setFieldModal('add')} disabled={saving}>
                   Add field
                 </Button>
               )}
               <div className="overflow-x-auto">
-                <table className="min-w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-neutral-200 text-left text-neutral-500">
-                      <th className="pb-2 pr-4">Field key</th>
-                      <th className="pb-2 pr-4">Header</th>
-                      <th className="pb-2 pr-4">Type</th>
-                      <th className="pb-2 pr-4">Required</th>
-                      <th className="pb-2">Validations</th>
-                      {!readOnly && <th className="w-0" />}
-                    </tr>
-                  </thead>
-                  <tbody>
+                <DataTable className="text-sm">
+                  <TableHead>
+                    <TableRow>
+                      <TableTh>Field key</TableTh>
+                      <TableTh>Header</TableTh>
+                      <TableTh>Type</TableTh>
+                      <TableTh>Required</TableTh>
+                      <TableTh>Validations</TableTh>
+                      {!readOnly && <TableTh className="w-0">Actions</TableTh>}
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
                     {(selectedTable.fields ?? []).map((f, fi) => (
-                      <tr key={fi} className="border-b border-neutral-100">
-                        <td className="py-2 pr-4 font-mono">{f.fieldKey}</td>
-                        <td className="py-2 pr-4">{f.headerName}</td>
-                        <td className="py-2 pr-4">{f.type}</td>
-                        <td className="py-2 pr-4">{f.required ? 'Yes' : '—'}</td>
-                        <td className="py-2">
+                      <TableRow key={fi}>
+                        <TableTd className="font-mono">{f.fieldKey}</TableTd>
+                        <TableTd>{f.headerName}</TableTd>
+                        <TableTd>{f.type}</TableTd>
+                        <TableTd>{f.required ? 'Yes' : '—'}</TableTd>
+                        <TableTd>
                           {f.validations?.enum?.length ? `enum(${f.validations.enum.length})` : ''}
                           {f.validations?.min != null && ` min=${f.validations.min}`}
                           {f.validations?.max != null && ` max=${f.validations.max}`}
                           {!f.validations?.enum?.length && f.validations?.min == null && f.validations?.max == null && '—'}
-                        </td>
+                        </TableTd>
                         {!readOnly && (
-                          <td className="py-2">
-                            <span className="flex items-center gap-1">
+                          <TableTd>
+                            <span className="flex items-center gap-2">
                               <ActionButton
                                 as="button"
                                 aria-label="Edit field"
+                                label="Edit"
                                 onClick={() => setFieldModal({ edit: fi })}
                               >
                                 <IconEdit />
                               </ActionButton>
                               <DangerActionButton
                                 aria-label="Delete field"
+                                label="Delete"
                                 onClick={() => { setConfirmDelete('field'); setDeleteTargetIndex(fi); }}
                               >
                                 <IconDelete />
                               </DangerActionButton>
                             </span>
-                          </td>
+                          </TableTd>
                         )}
-                      </tr>
+                      </TableRow>
                     ))}
-                  </tbody>
-                </table>
+                  </TableBody>
+                </DataTable>
               </div>
             </>
             )
@@ -507,7 +542,7 @@ export default function SchemaEditorPage() {
           )}
           </CardContent>
         </Card>
-      </div>
+      </TableLoadingOverlay>
 
       {/* Validation results */}
       {validationErrors.length > 0 && (
