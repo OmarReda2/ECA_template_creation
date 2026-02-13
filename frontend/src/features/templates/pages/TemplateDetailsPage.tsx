@@ -5,9 +5,12 @@ import { versionsApi } from '@/features/versions/api';
 import { exportVersion } from '@/features/export/api';
 import type { TemplateDetail, VersionSummary } from '../types';
 import { ActionButton, IconEdit, IconExport } from '@/shared/ui/ActionButtons';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/shared/ui/Tooltip';
 import { Badge } from '@/shared/ui/Badge';
 import { Button } from '@/shared/ui/Button';
+import { Card, CardContent } from '@/shared/ui/Card';
 import { EmptyState } from '@/shared/ui/EmptyState';
+import { PageHeader } from '@/shared/ui/PageHeader';
 import { ErrorPanel } from '@/shared/errors/ErrorPanel';
 import { Spinner } from '@/shared/ui/Spinner';
 import {
@@ -143,31 +146,38 @@ export default function TemplateDetailsPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h1 className="text-xl font-semibold text-neutral-900">{template.name}</h1>
-          <p className="mt-1 text-sm text-neutral-500">
+      <PageHeader
+        title={template.name}
+        description={
+          <span className="flex items-center gap-1">
             {template.sectorCode}
             {template.status && (
               <>
-                {' · '}
                 <Badge variant={badgeVariantForStatus(template.status)} className="align-middle">
                   {template.status}
                 </Badge>
               </>
             )}
-          </p>
-        </div>
-        <Button
-          type="button"
-          onClick={handleCreateVersion}
-          disabled={creatingVersion || versions.length === 0}
-          title={versions.length === 0 ? 'At least one version must exist to create another.' : undefined}
-        >
-          {creatingVersion ? 'Creating…' : 'Create New Version'}
-        </Button>
-      </div>
+          </span>
+        }
+        rightActions={
+          <Button
+            type="button"
+            onClick={handleCreateVersion}
+            disabled={creatingVersion || versions.length === 0}
+            title={versions.length === 0 ? 'At least one version must exist to create another.' : undefined}
+          >
+            {creatingVersion ? (
+              <>
+                <Spinner className="h-4 w-4" />
+                Creating…
+              </>
+            ) : (
+              'Create New Version'
+            )}
+          </Button>
+        }
+      />
 
       {createError && (
         <ErrorPanel
@@ -176,49 +186,57 @@ export default function TemplateDetailsPage() {
         />
       )}
 
-      {/* Versions table */}
-      <div>
-        <h2 className="mb-3 text-sm font-medium text-neutral-700">Versions</h2>
-        {versions.length === 0 ? (
-          <EmptyState
-            title="No versions yet"
-            description="Create a new version to get started."
-            action={
-              <Button
-                type="button"
-                onClick={handleCreateVersion}
-                disabled={creatingVersion}
-              >
-                Create New Version
-              </Button>
-            }
-          />
-        ) : (
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableTh>Version</TableTh>
-                <TableTh>Status</TableTh>
-                <TableTh>Created</TableTh>
-                <TableTh>Schema hash</TableTh>
-                <TableTh>Actions</TableTh>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {versions.map((v) => (
-                <VersionRow
-                  key={v.id}
-                  version={v}
-                  templateId={templateId}
-                  isLatest={latestVersionNumber !== null && v.versionNumber === latestVersionNumber}
-                  isExporting={exportingVersionId === v.id}
-                  onExport={() => handleExport(v.id, v.versionNumber)}
-                />
-              ))}
-            </TableBody>
-          </Table>
-        )}
-      </div>
+      <Card>
+        <CardContent className="pt-6">
+          <h2 className="mb-3 text-sm font-medium text-muted-foreground">Versions</h2>
+          {versions.length === 0 ? (
+            <EmptyState
+              title="No versions yet"
+              description="Create a new version to get started."
+              action={
+                <Button
+                  type="button"
+                  onClick={handleCreateVersion}
+                  disabled={creatingVersion}
+                >
+                  {creatingVersion ? (
+                    <>
+                      <Spinner className="h-4 w-4" />
+                      Creating…
+                    </>
+                  ) : (
+                    'Create New Version'
+                  )}
+                </Button>
+              }
+            />
+          ) : (
+            <Table>
+              <TableHead>
+                <TableRow>
+                  <TableTh>Version</TableTh>
+                  <TableTh>Status</TableTh>
+                  <TableTh>Created</TableTh>
+                  <TableTh>Schema hash</TableTh>
+                  <TableTh>Actions</TableTh>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {versions.map((v) => (
+                  <VersionRow
+                    key={v.id}
+                    version={v}
+                    templateId={templateId}
+                    isLatest={latestVersionNumber !== null && v.versionNumber === latestVersionNumber}
+                    isExporting={exportingVersionId === v.id}
+                    onExport={() => handleExport(v.id, v.versionNumber)}
+                  />
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }
@@ -259,14 +277,20 @@ function VersionRow({
       <TableTd>
         <span className="flex items-center gap-2">
           {editDisabled ? (
-            <span
-              title={editTitle}
-              className="inline-flex h-8 w-8 cursor-not-allowed items-center justify-center rounded-md text-neutral-400"
-              aria-disabled="true"
-              aria-label={editTitle}
-            >
-              <IconEdit />
-            </span>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span
+                  className="inline-flex h-8 w-8 cursor-not-allowed items-center justify-center rounded-md text-neutral-400"
+                  aria-disabled="true"
+                  aria-label={editTitle}
+                >
+                  <IconEdit />
+                </span>
+              </TooltipTrigger>
+              <TooltipContent side="top" align="center">
+                {editTitle}
+              </TooltipContent>
+            </Tooltip>
           ) : (
             <ActionButton as="link" to={editSchemaPath} aria-label="Edit schema">
               <IconEdit />
@@ -278,7 +302,11 @@ function VersionRow({
             onClick={onExport}
             disabled={isExporting}
           >
-            <IconExport />
+            {isExporting ? (
+              <Spinner className="h-5 w-5 text-neutral-500" />
+            ) : (
+              <IconExport />
+            )}
           </ActionButton>
         </span>
       </TableTd>

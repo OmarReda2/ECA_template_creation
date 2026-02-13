@@ -25,9 +25,12 @@ import {
   IconEdit,
 } from '@/shared/ui/ActionButtons';
 import { Button } from '@/shared/ui/Button';
+import { Card, CardContent, CardHeader } from '@/shared/ui/Card';
+import { EmptyState } from '@/shared/ui/EmptyState';
 import { ErrorPanel } from '@/shared/errors/ErrorPanel';
 import { Input } from '@/shared/ui/Input';
 import { Modal } from '@/shared/ui/Modal';
+import { PageHeader } from '@/shared/ui/PageHeader';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/ui/Select';
 import { Spinner } from '@/shared/ui/Spinner';
 import { useToast } from '@/shared/ui/Toast';
@@ -315,20 +318,30 @@ export default function SchemaEditorPage() {
   const readOnly = is409;
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <button type="button" onClick={goBack} className="text-sm text-neutral-600 underline hover:text-neutral-900">
-            ← Back
-          </button>
-          <h1 className="text-xl font-semibold text-neutral-900">Schema builder · Version {version.versionNumber}</h1>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="secondary" onClick={handleCancel} disabled={readOnly}>Cancel</Button>
-          <Button onClick={handleSave} disabled={saving || readOnly || !canSave}>
-            {saving ? 'Saving…' : 'Save'}
-          </Button>
-        </div>
+    <div className="space-y-6">
+      <div className="space-y-2">
+        <ActionLink to={templateDetailsPath}>
+          <IconArrowLeft />
+          Back to template details
+        </ActionLink>
+        <PageHeader
+          title={`Schema builder · Version ${version.versionNumber}`}
+          rightActions={
+            <div className="flex gap-2">
+              <Button variant="secondary" onClick={handleCancel} disabled={readOnly}>Cancel</Button>
+              <Button onClick={handleSave} disabled={saving || readOnly || !canSave}>
+                {saving ? (
+                  <>
+                    <Spinner className="h-4 w-4" />
+                    Saving…
+                  </>
+                ) : (
+                  'Save'
+                )}
+              </Button>
+            </div>
+          }
+        />
       </div>
 
       {saveError && !is409 && (
@@ -348,20 +361,30 @@ export default function SchemaEditorPage() {
       )}
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        {/* Left: Tables */}
-        <div className="rounded-lg border border-neutral-200 bg-white p-4">
-          <div className="mb-3 flex items-center justify-between">
-            <h2 className="text-sm font-medium text-neutral-700">Tables</h2>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 p-4 pb-2">
+            <h2 className="text-sm font-medium text-muted-foreground">Tables</h2>
             {!readOnly && (
-              <Button type="button" variant="secondary" onClick={() => setTableModal('add')}>
+              <Button type="button" variant="secondary" size="sm" onClick={() => setTableModal('add')}>
                 Add table
               </Button>
             )}
-          </div>
+          </CardHeader>
+          <CardContent className="p-4 pt-0">
+            {schema.tables.length === 0 ? (
+              <EmptyState
+                title="No tables yet"
+                description="Add a table to define your schema."
+                action={
+                  !readOnly ? (
+                    <Button type="button" variant="secondary" size="sm" onClick={() => setTableModal('add')}>
+                      Add table
+                    </Button>
+                  ) : undefined
+                }
+              />
+            ) : (
           <ul className="space-y-1">
-            {schema.tables.length === 0 && (
-              <li className="text-sm text-neutral-500">No tables. Add one to get started.</li>
-            )}
             {schema.tables.map((t, i) => (
               <li key={i}>
                 <div
@@ -397,14 +420,31 @@ export default function SchemaEditorPage() {
               </li>
             ))}
           </ul>
-        </div>
+            )}
+          </CardContent>
+        </Card>
 
-        {/* Right: Fields */}
-        <div className="rounded-lg border border-neutral-200 bg-white p-4 lg:col-span-2">
-          <h2 className="mb-3 text-sm font-medium text-neutral-700">
-            Fields {selectedTable ? `· ${selectedTable.tableKey}` : ''}
-          </h2>
+        <Card className="lg:col-span-2">
+          <CardHeader className="p-4 pb-2">
+            <h2 className="text-sm font-medium text-muted-foreground">
+              Fields {selectedTable ? `· ${selectedTable.tableKey}` : ''}
+            </h2>
+          </CardHeader>
+          <CardContent className="p-4 pt-0">
           {selectedTable ? (
+            (selectedTable.fields ?? []).length === 0 ? (
+              <EmptyState
+                title="No fields yet"
+                description={`Add fields to the "${selectedTable.tableKey}" table.`}
+                action={
+                  !readOnly ? (
+                    <Button type="button" variant="secondary" size="sm" onClick={() => setFieldModal('add')}>
+                      Add field
+                    </Button>
+                  ) : undefined
+                }
+              />
+            ) : (
             <>
               {!readOnly && (
                 <Button type="button" variant="secondary" className="mb-3" onClick={() => setFieldModal('add')}>
@@ -424,9 +464,6 @@ export default function SchemaEditorPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {(selectedTable.fields ?? []).length === 0 && (
-                      <tr><td colSpan={6} className="py-4 text-neutral-500">No fields.</td></tr>
-                    )}
                     {(selectedTable.fields ?? []).map((f, fi) => (
                       <tr key={fi} className="border-b border-neutral-100">
                         <td className="py-2 pr-4 font-mono">{f.fieldKey}</td>
@@ -464,10 +501,12 @@ export default function SchemaEditorPage() {
                 </table>
               </div>
             </>
+            )
           ) : (
-            <p className="text-sm text-neutral-500">Select a table to edit its fields.</p>
+            <p className="text-sm text-muted-foreground">Select a table to edit its fields.</p>
           )}
-        </div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Validation results */}

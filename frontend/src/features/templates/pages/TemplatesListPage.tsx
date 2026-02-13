@@ -9,6 +9,8 @@ import { Input } from '@/shared/ui/Input';
 import { ErrorPanel } from '@/shared/errors/ErrorPanel';
 import { Modal } from '@/shared/ui/Modal';
 import { Spinner } from '@/shared/ui/Spinner';
+import { Card, CardContent } from '@/shared/ui/Card';
+import { PageHeader } from '@/shared/ui/PageHeader';
 import {
   Table,
   TableBody,
@@ -102,7 +104,14 @@ function CreateTemplateForm({
           Cancel
         </Button>
         <Button type="submit" disabled={submitting}>
-          {submitting ? 'Creating…' : 'Create'}
+          {submitting ? (
+            <>
+              <Spinner className="h-4 w-4" />
+              Creating…
+            </>
+          ) : (
+            'Create'
+          )}
         </Button>
       </div>
     </form>
@@ -148,12 +157,14 @@ export default function TemplatesListPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold text-neutral-900">Templates</h1>
-        <Button type="button" onClick={openCreate}>
-          Create Template
-        </Button>
-      </div>
+      <PageHeader
+        title="Templates"
+        rightActions={
+          <Button type="button" onClick={openCreate}>
+            Create Template
+          </Button>
+        }
+      />
 
       {error && (
         <ErrorPanel
@@ -162,56 +173,60 @@ export default function TemplatesListPage() {
         />
       )}
 
-      {loading ? (
-        <div className="flex justify-center py-12">
-          <Spinner />
-        </div>
-      ) : templates.length === 0 ? (
-        <EmptyState
-          title="No templates yet"
-          description="Create your first template to get started."
-          action={
-            <Button type="button" onClick={openCreate}>
-              Create Template
-            </Button>
-          }
-        />
-      ) : (
-        <Table>
-          <TableHead>
-            <TableRow>
-              <TableTh>Name</TableTh>
-              <TableTh>Sector Code</TableTh>
-              <TableTh>Latest Version</TableTh>
-              <TableTh>Latest Status</TableTh>
-              <TableTh>Last Updated</TableTh>
-              <TableTh>Actions</TableTh>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {templates.map((t) => (
-              <TableRow key={t.templateId}>
-                <TableTd className="font-medium text-neutral-900">{t.name}</TableTd>
-                <TableTd>{t.sectorCode}</TableTd>
-                <TableTd>
-                  {t.latestVersion != null ? `v${t.latestVersion.versionNumber}` : '—'}
-                </TableTd>
-                <TableTd>{t.latestVersion?.status ?? '—'}</TableTd>
-                <TableTd>
-                  {t.latestVersion?.createdAt
-                    ? formatIsoDate(t.latestVersion.createdAt)
-                    : '—'}
-                </TableTd>
-                <TableTd>
-                  <ActionButton as="link" to={`/templates/${t.templateId}`} aria-label={`View template ${t.name}`}>
-                    <IconView />
-                  </ActionButton>
-                </TableTd>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      )}
+      <Card>
+        <CardContent className="pt-6">
+          {loading ? (
+            <div className="flex justify-center py-12">
+              <Spinner />
+            </div>
+          ) : templates.length === 0 ? (
+            <EmptyState
+              title="No templates yet"
+              description="Create your first template to get started."
+              action={
+                <Button type="button" onClick={openCreate}>
+                  Create Template
+                </Button>
+              }
+            />
+          ) : (
+            <Table>
+              <TableHead>
+                <TableRow>
+                  <TableTh>Name</TableTh>
+                  <TableTh>Sector Code</TableTh>
+                  <TableTh>Latest Version</TableTh>
+                  <TableTh>Latest Status</TableTh>
+                  <TableTh>Last Updated</TableTh>
+                  <TableTh>Actions</TableTh>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {templates.map((t) => (
+                  <TableRow key={t.templateId}>
+                    <TableTd className="font-medium text-neutral-900">{t.name}</TableTd>
+                    <TableTd>{t.sectorCode}</TableTd>
+                    <TableTd>
+                      {t.latestVersion != null ? `v${t.latestVersion.versionNumber}` : '—'}
+                    </TableTd>
+                    <TableTd>{t.latestVersion?.status ?? '—'}</TableTd>
+                    <TableTd>
+                      {t.latestVersion?.createdAt
+                        ? formatIsoDate(t.latestVersion.createdAt)
+                        : '—'}
+                    </TableTd>
+                    <TableTd>
+                      <ActionButton as="link" to={`/templates/${t.templateId}`} aria-label={`View template ${t.name}`}>
+                        <IconView />
+                      </ActionButton>
+                    </TableTd>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
 
       <Modal open={createOpen} onClose={closeCreate} title="Create Template">
         <CreateTemplateForm onSuccess={handleCreateSuccess} onCancel={closeCreate} />
