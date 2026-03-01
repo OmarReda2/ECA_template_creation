@@ -1,13 +1,11 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { templatesApi } from '../api';
-import type { CreateTemplateResponse, TemplateSummary } from '../types';
+import type { TemplateSummary } from '../types';
 import { ActionButton, IconView } from '@/shared/ui/ActionButtons';
 import { Badge } from '@/shared/ui/Badge';
 import { Button } from '@/shared/ui/Button';
 import { EmptyState } from '@/shared/ui/EmptyState';
-import { Input } from '@/shared/ui/Input';
-import { Modal } from '@/shared/ui/Modal';
 import { Spinner } from '@/shared/ui/Spinner';
 import { TableLoadingOverlay } from '@/shared/ui/TableLoadingOverlay';
 import { Card, CardContent } from '@/shared/ui/Card';
@@ -38,98 +36,12 @@ function templateStatusBadgeVariant(
   return 'default';
 }
 
-/** Form state lives here so parent re-renders on keystroke don't remount modal content and steal focus. */
-function CreateTemplateForm({
-  onSuccess,
-  onCancel,
-}: {
-  onSuccess: (res: CreateTemplateResponse) => void;
-  onCancel: () => void;
-}) {
-  const { showToast, showErrorToast } = useToast();
-  const [name, setName] = useState('');
-  const [sectorCode, setSectorCode] = useState('');
-  const [submitting, setSubmitting] = useState(false);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const trimmedName = name.trim();
-    const trimmedSector = sectorCode.trim();
-    if (!trimmedName || !trimmedSector) return;
-    setSubmitting(true);
-    try {
-      const res = await templatesApi.create({
-        name: trimmedName,
-        sectorCode: trimmedSector,
-        createdBy: 'system',
-      });
-      showToast('Template created successfully.', 'success');
-      onSuccess(res);
-    } catch (e) {
-      const err = normalizeHttpError(e);
-      showErrorToast(getErrorMessage(err, true), { status: err.status, details: getErrorMessage(err, true) });
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div>
-        <label htmlFor="create-name" className="mb-1 block text-sm font-medium text-neutral-700">
-          Name <span className="text-red-600">*</span>
-        </label>
-        <Input
-          id="create-name"
-          type="text"
-          value={name}
-          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setName(e.target.value)}
-          required
-          maxLength={255}
-          placeholder="Template name"
-        />
-      </div>
-      <div>
-        <label htmlFor="create-sectorCode" className="mb-1 block text-sm font-medium text-neutral-700">
-          Sector Code <span className="text-red-600">*</span>
-        </label>
-        <Input
-          id="create-sectorCode"
-          type="text"
-          value={sectorCode}
-          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSectorCode(e.target.value)}
-          required
-          maxLength={64}
-          placeholder="e.g. FIN"
-        />
-      </div>
-      <div className="flex justify-end gap-2 pt-2">
-        <Button type="button" variant="secondary" onClick={onCancel}>
-          Cancel
-        </Button>
-        <Button type="submit" disabled={submitting}>
-          {submitting ? (
-            <>
-              <Spinner className="h-4 w-4" />
-              Creating…
-            </>
-          ) : (
-            'Create'
-          )}
-        </Button>
-      </div>
-    </form>
-  );
-}
-
 export default function TemplatesListPage() {
   const navigate = useNavigate();
   const { showErrorToast } = useToast();
   const [templates, setTemplates] = useState<TemplateSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<FrontendError | null>(null);
-  const [createOpen, setCreateOpen] = useState(false);
-
   const loadTemplates = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -153,24 +65,13 @@ export default function TemplatesListPage() {
     loadTemplates();
   }, [loadTemplates]);
 
-  const openCreate = () => setCreateOpen(true);
-
-  const closeCreate = useCallback(() => setCreateOpen(false), []);
-
-  const handleCreateSuccess = useCallback(
-    (res: CreateTemplateResponse) => {
-      closeCreate();
-      navigate(`/templates/${res.templateId}`);
-      loadTemplates();
-    },
-    [closeCreate, navigate, loadTemplates]
-  );
+  const goToCreate = () => navigate('/templates/create');
 
   return (
     <div className="space-y-6">
       <PageHeader
         rightActions={
-          <Button type="button" onClick={openCreate} disabled={loading}>
+          <Button type="button" onClick={goToCreate} disabled={loading}>
             Create Template
           </Button>
         }
@@ -191,7 +92,7 @@ export default function TemplatesListPage() {
               title="No templates yet"
               description="Create your first template to get started."
               action={
-                <Button type="button" onClick={openCreate}>
+                <Button type="button" onClick={goToCreate}>
                   Create Template
                 </Button>
               }
@@ -256,10 +157,6 @@ export default function TemplatesListPage() {
         </CardContent>
       </Card>
       )}
-
-      <Modal open={createOpen} onClose={closeCreate} title="Create Template">
-        <CreateTemplateForm onSuccess={handleCreateSuccess} onCancel={closeCreate} />
-      </Modal>
     </div>
   );
 }
