@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { templatesApi } from '../api';
+import { TemplateWizardLayout } from '../components/TemplateWizardLayout';
 import { Button } from '@/shared/ui/Button';
 import { Input } from '@/shared/ui/Input';
-import { PageHeader } from '@/shared/ui/PageHeader';
 import { Spinner } from '@/shared/ui/Spinner';
 import { Card, CardContent } from '@/shared/ui/Card';
 import { useToast } from '@/shared/ui/Toast';
@@ -50,12 +50,10 @@ export default function CreateTemplateStartPage() {
   };
 
   return (
-    <div className="space-y-6 max-w-2xl mx-auto">
-      <PageHeader
-        title="Create Template"
-        description="Step 1: Enter template name and sector code."
-      />
-
+    <TemplateWizardLayout
+      title="Create Template"
+      description="Step 1: Enter template name and sector code."
+    >
       <Card>
         <CardContent className="pt-6">
           <form onSubmit={handleSubmit} className="w-full space-y-4">
@@ -104,6 +102,6 @@ export default function CreateTemplateStartPage() {
           </form>
         </CardContent>
       </Card>
-    </div>
+    </TemplateWizardLayout>
   );
 }

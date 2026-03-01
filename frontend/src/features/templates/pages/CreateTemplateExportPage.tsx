@@ -3,11 +3,11 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { templatesApi } from '../api';
 import { exportVersion } from '@/features/export/api';
 import type { TemplateDetail } from '../types';
+import { TemplateWizardLayout } from '../components/TemplateWizardLayout';
 import { ActionLink, IconArrowLeft } from '@/shared/ui/ActionButtons';
 import { Badge } from '@/shared/ui/Badge';
 import { Button } from '@/shared/ui/Button';
 import { Card, CardContent } from '@/shared/ui/Card';
-import { PageHeader } from '@/shared/ui/PageHeader';
 import { Spinner } from '@/shared/ui/Spinner';
 import { useToast } from '@/shared/ui/Toast';
 import { downloadBlobWithDisposition } from '@/shared/lib/download';
@@ -96,8 +96,10 @@ export default function CreateTemplateExportPage() {
 
   if (error) {
     return (
-      <div className="space-y-6">
-        <PageHeader title="Export Template" description="Step 3: Export artifacts." />
+      <TemplateWizardLayout
+        title="Export Template"
+        description="Step 3: Export artifacts."
+      >
         <div className="flex flex-col gap-2">
           <p className="text-sm text-muted-foreground">Failed to load template.</p>
           <div className="flex gap-2">
@@ -105,7 +107,7 @@ export default function CreateTemplateExportPage() {
             <Button variant="secondary" onClick={goToStep2}>Back to Step 2</Button>
           </div>
         </div>
-      </div>
+      </TemplateWizardLayout>
     );
   }
 
@@ -120,39 +122,35 @@ export default function CreateTemplateExportPage() {
   const canExport = latestVersion != null;
 
   return (
-    <div className="space-y-6">
+    <TemplateWizardLayout
+      title="Export Template"
+      description="Step 3: Export artifacts."
+      rightActions={
+        <div className="flex gap-2">
+          <Button variant="secondary" onClick={goToTemplates}>
+            Finish
+          </Button>
+          <Button
+            onClick={handleExport}
+            disabled={!canExport || exporting}
+          >
+            {exporting ? (
+              <>
+                <Spinner className="h-4 w-4" />
+                Exporting…
+              </>
+            ) : (
+              'Export'
+            )}
+          </Button>
+        </div>
+      }
+    >
       <div className="space-y-2">
         <ActionLink to={`/templates/create/${templateId}`}>
           <IconArrowLeft />
           Back to Step 2
         </ActionLink>
-        <PageHeader
-          title="Export Template"
-          description="Step 3: Export artifacts."
-          rightActions={
-            <div className="flex gap-2">
-              <Button
-                variant="secondary"
-                onClick={goToTemplates}
-              >
-                Finish
-              </Button>
-              <Button
-                onClick={handleExport}
-                disabled={!canExport || exporting}
-              >
-                {exporting ? (
-                  <>
-                    <Spinner className="h-4 w-4" />
-                    Exporting…
-                  </>
-                ) : (
-                  'Export'
-                )}
-              </Button>
-            </div>
-          }
-        />
       </div>
 
       <Card>
@@ -175,6 +173,6 @@ export default function CreateTemplateExportPage() {
           </div>
         </CardContent>
       </Card>
-    </div>
+    </TemplateWizardLayout>
   );
 }

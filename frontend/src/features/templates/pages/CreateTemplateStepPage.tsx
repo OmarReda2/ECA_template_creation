@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { templatesApi } from '../api';
 import type { TemplateDetail } from '../types';
+import { TemplateWizardLayout } from '../components/TemplateWizardLayout';
 import { SchemaEditorView } from '@/features/schema/components/SchemaEditorView';
 import { Button } from '@/shared/ui/Button';
 import { Spinner } from '@/shared/ui/Spinner';
@@ -57,21 +58,31 @@ export default function CreateTemplateStepPage() {
 
   if (loading) {
     return (
-      <div className="flex justify-center py-12">
-        <Spinner />
-      </div>
+      <TemplateWizardLayout
+        title="Edit Schema"
+        description="Step 2: Define tables and fields."
+      >
+        <div className="flex justify-center py-12">
+          <Spinner />
+        </div>
+      </TemplateWizardLayout>
     );
   }
 
   if (error) {
     return (
-      <div className="flex flex-col gap-2">
-        <p className="text-sm text-muted-foreground">Failed to load template.</p>
-        <div className="flex gap-2">
-          <Button variant="secondary" onClick={loadTemplate}>Retry</Button>
-          <Button variant="secondary" onClick={goToStep1}>Back to step 1</Button>
+      <TemplateWizardLayout
+        title="Edit Schema"
+        description="Step 2: Define tables and fields."
+      >
+        <div className="flex flex-col gap-2">
+          <p className="text-sm text-muted-foreground">Failed to load template.</p>
+          <div className="flex gap-2">
+            <Button variant="secondary" onClick={loadTemplate}>Retry</Button>
+            <Button variant="secondary" onClick={goToStep1}>Back to step 1</Button>
+          </div>
         </div>
-      </div>
+      </TemplateWizardLayout>
     );
   }
 
@@ -82,10 +93,15 @@ export default function CreateTemplateStepPage() {
   const versions = template.versions ?? [];
   if (versions.length === 0) {
     return (
-      <div className="flex flex-col gap-2">
-        <p className="text-sm text-muted-foreground">Template has no versions.</p>
-        <Button variant="secondary" onClick={goToStep1}>Back to step 1</Button>
-      </div>
+      <TemplateWizardLayout
+        title="Edit Schema"
+        description="Step 2: Define tables and fields."
+      >
+        <div className="flex flex-col gap-2">
+          <p className="text-sm text-muted-foreground">Template has no versions.</p>
+          <Button variant="secondary" onClick={goToStep1}>Back to step 1</Button>
+        </div>
+      </TemplateWizardLayout>
     );
   }
 
@@ -95,12 +111,17 @@ export default function CreateTemplateStepPage() {
   const versionId = latestVersion.id;
 
   return (
-    <SchemaEditorView
+    <TemplateWizardLayout
+      title="Edit Schema"
+      description="Step 2: Define tables and fields."
+    >
+      <SchemaEditorView
       templateId={templateId}
       versionId={versionId}
-      backPath="/templates/create"
-      backLabel="Back to step 1"
-      saveSuccessPath={`/templates/create/${templateId}/export`}
-    />
+        backPath="/templates/create"
+        backLabel="Back to step 1"
+        saveSuccessPath={`/templates/create/${templateId}/export`}
+      />
+    </TemplateWizardLayout>
   );
 }
