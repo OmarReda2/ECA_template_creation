@@ -130,6 +130,8 @@ export interface SchemaEditorViewProps {
   backPath: string;
   backLabel?: string;
   saveSuccessPath?: string;
+  /** When true, hides top bar (ActionLink + PageHeader) and renders a bottom action bar with Back + Cancel + Save. */
+  variant?: 'default' | 'wizard';
 }
 
 /** Reusable schema editor UI. Accepts templateId/versionId as props (no route params). */
@@ -139,6 +141,7 @@ export function SchemaEditorView({
   backPath,
   backLabel = 'Back to template details',
   saveSuccessPath,
+  variant = 'default',
 }: SchemaEditorViewProps) {
   const navigate = useNavigate();
   const { showToast, showErrorToast } = useToast();
@@ -157,6 +160,7 @@ export function SchemaEditorView({
   const [confirmDelete, setConfirmDelete] = useState<'table' | 'field' | null>(null);
   const [deleteTargetIndex, setDeleteTargetIndex] = useState<number | null>(null);
   const [advancedJsonOpen, setAdvancedJsonOpen] = useState(false);
+  const [showStartOverConfirm, setShowStartOverConfirm] = useState(false);
 
   const dirty = useMemo(
     () => JSON.stringify(schema.tables) !== JSON.stringify(initialSchemaRef.current.tables),
@@ -226,10 +230,21 @@ export function SchemaEditorView({
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [dirty]);
 
+  const needsStartOverConfirm = variant === 'wizard' && backPath === '/templates/create';
+
   const goBack = useCallback(() => {
     if (dirty && !window.confirm('You have unsaved changes. Leave?')) return;
+    if (needsStartOverConfirm) {
+      setShowStartOverConfirm(true);
+      return;
+    }
     navigate(backPath);
-  }, [dirty, navigate, backPath]);
+  }, [dirty, navigate, backPath, needsStartOverConfirm]);
+
+  const handleStartOverConfirm = useCallback(() => {
+    setShowStartOverConfirm(false);
+    navigate(backPath);
+  }, [navigate, backPath]);
 
   const validationErrors = useMemo(() => validateSchema(schema.tables), [schema.tables]);
   const canSave = validationErrors.length === 0;
@@ -265,6 +280,10 @@ export function SchemaEditorView({
 
   const handleCancel = () => {
     if (dirty && !window.confirm('You have unsaved changes. Leave?')) return;
+    if (needsStartOverConfirm) {
+      setShowStartOverConfirm(true);
+      return;
+    }
     navigate(backPath);
   };
 
@@ -360,8 +379,8 @@ export function SchemaEditorView({
   const is409 = saveError?.status === 409;
   const readOnly = is409;
 
-  return (
-    <div className="space-y-6">
+  const topBar =
+    variant === 'wizard' ? null : (
       <div className="space-y-2">
         <ActionLink to={backPath}>
           <IconArrowLeft />
@@ -386,6 +405,34 @@ export function SchemaEditorView({
           }
         />
       </div>
+    );
+
+  const bottomBar =
+    variant === 'wizard' ? (
+      <div className="flex flex-wrap items-center justify-between gap-4 pt-6">
+        <Button variant="secondary" onClick={goBack} disabled={readOnly || saving}>
+          <IconArrowLeft className="h-4 w-4" />
+          {backLabel}
+        </Button>
+        <div className="flex gap-2">
+          <Button variant="secondary" onClick={handleCancel} disabled={readOnly || saving}>Cancel</Button>
+          <Button onClick={handleSave} disabled={saving || readOnly || !canSave}>
+            {saving ? (
+              <>
+                <Spinner className="h-4 w-4" />
+                Saving…
+              </>
+            ) : (
+              'Save'
+            )}
+          </Button>
+        </div>
+      </div>
+    ) : null;
+
+  return (
+    <div className="space-y-6">
+      {topBar}
 
       {is409 && (
         <div className="rounded-md border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800" role="alert">
@@ -624,6 +671,27 @@ export function SchemaEditorView({
           </div>
         </Modal>
       )}
+
+      {showStartOverConfirm && (
+        <Modal open={true} title="Start over?" onClose={() => setShowStartOverConfirm(false)}>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              You can&apos;t edit Template Name or Sector Code after creation. Going back will start a new template and your
+              current template will remain as-is.
+            </p>
+            <div className="flex justify-end gap-2">
+              <Button variant="secondary" onClick={() => setShowStartOverConfirm(false)}>
+                Cancel
+              </Button>
+              <Button variant="destructive" onClick={handleStartOverConfirm}>
+                Start over
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {bottomBar}
     </div>
   );
 }

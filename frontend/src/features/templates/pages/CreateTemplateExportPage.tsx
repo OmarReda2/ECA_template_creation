@@ -4,8 +4,7 @@ import { templatesApi } from '../api';
 import { exportVersion } from '@/features/export/api';
 import type { TemplateDetail } from '../types';
 import { TemplateWizardLayout } from '../components/TemplateWizardLayout';
-import { ActionLink, IconArrowLeft } from '@/shared/ui/ActionButtons';
-import { Badge } from '@/shared/ui/Badge';
+import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/shared/ui/Button';
 import { Card, CardContent } from '@/shared/ui/Card';
 import { Spinner } from '@/shared/ui/Spinner';
@@ -88,9 +87,23 @@ export default function CreateTemplateExportPage() {
 
   if (loading) {
     return (
-      <div className="flex justify-center py-12">
-        <Spinner />
-      </div>
+      <TemplateWizardLayout
+        title="Export Template"
+        description="Step 3: Export artifacts."
+        bottomActions={
+          <>
+            <Button variant="secondary" onClick={goToStep2}>
+              <ArrowLeft className="h-4 w-4" />
+              Back to Step 2
+            </Button>
+            <div />
+          </>
+        }
+      >
+        <div className="flex justify-center py-12">
+          <Spinner />
+        </div>
+      </TemplateWizardLayout>
     );
   }
 
@@ -99,13 +112,20 @@ export default function CreateTemplateExportPage() {
       <TemplateWizardLayout
         title="Export Template"
         description="Step 3: Export artifacts."
+        bottomActions={
+          <>
+            <Button variant="secondary" onClick={goToStep2}>
+              <ArrowLeft className="h-4 w-4" />
+              Back to Step 2
+            </Button>
+            <Button variant="secondary" onClick={loadTemplate}>
+              Retry
+            </Button>
+          </>
+        }
       >
         <div className="flex flex-col gap-2">
           <p className="text-sm text-muted-foreground">Failed to load template.</p>
-          <div className="flex gap-2">
-            <Button variant="secondary" onClick={loadTemplate}>Retry</Button>
-            <Button variant="secondary" onClick={goToStep2}>Back to Step 2</Button>
-          </div>
         </div>
       </TemplateWizardLayout>
     );
@@ -125,52 +145,58 @@ export default function CreateTemplateExportPage() {
     <TemplateWizardLayout
       title="Export Template"
       description="Step 3: Export artifacts."
-      rightActions={
-        <div className="flex gap-2">
-          <Button variant="secondary" onClick={goToTemplates}>
-            Finish
+      bottomActions={
+        <>
+          <Button variant="secondary" onClick={goToStep2}>
+            <ArrowLeft className="h-4 w-4" />
+            Back to Step 2
           </Button>
-          <Button
-            onClick={handleExport}
-            disabled={!canExport || exporting}
-          >
-            {exporting ? (
-              <>
-                <Spinner className="h-4 w-4" />
-                Exporting…
-              </>
-            ) : (
-              'Export'
-            )}
-          </Button>
-        </div>
+          <div className="flex gap-2">
+            <Button
+              onClick={handleExport}
+              disabled={!canExport || exporting}
+            >
+              {exporting ? (
+                <>
+                  <Spinner className="h-4 w-4" />
+                  Exporting…
+                </>
+              ) : (
+                'Export'
+              )}
+            </Button>
+            <Button variant="secondary" onClick={goToTemplates}>
+              Finish
+            </Button>
+          </div>
+        </>
       }
     >
-      <div className="space-y-2">
-        <ActionLink to={`/templates/create/${templateId}`}>
-          <IconArrowLeft />
-          Back to Step 2
-        </ActionLink>
-      </div>
-
       <Card>
         <CardContent className="pt-6">
-          <div className="space-y-4">
-            <div>
-              <p className="text-sm font-medium text-neutral-700">Template</p>
-              <p className="text-sm text-neutral-600">{template.name}</p>
-              <Badge variant="neutral" className="mt-1">{template.sectorCode}</Badge>
-            </div>
-            {canExport ? (
-              <p className="text-sm text-muted-foreground">
-                Export version {latestVersion.versionNumber} as Excel (.xlsx).
-              </p>
-            ) : (
-              <p className="text-sm text-muted-foreground">
-                No versions available. Complete Step 2 to define the schema before exporting.
-              </p>
+          <dl className="grid grid-cols-[auto_1fr] gap-x-2 gap-y-2 text-sm">
+            <dt className="text-muted-foreground">Template:</dt>
+            <dd className="text-foreground">{template.name ?? '—'}</dd>
+
+            <dt className="text-muted-foreground">Sector Code:</dt>
+            <dd className="text-foreground">{template.sectorCode ?? '—'}</dd>
+
+            {latestVersion != null && (
+              <>
+                <dt className="text-muted-foreground">Version:</dt>
+                <dd className="text-foreground">{latestVersion.versionNumber}</dd>
+              </>
             )}
-          </div>
+          </dl>
+          {canExport ? (
+            <p className="mt-4 text-sm text-muted-foreground">
+              Export version {latestVersion?.versionNumber} as Excel (.xlsx).
+            </p>
+          ) : (
+            <p className="mt-4 text-sm text-muted-foreground">
+              No versions available. Complete Step 2 to define the schema before exporting.
+            </p>
+          )}
         </CardContent>
       </Card>
     </TemplateWizardLayout>

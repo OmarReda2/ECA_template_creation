@@ -20,6 +20,11 @@ function AppTopbarBreadcrumbs() {
   const params = useParams<{ templateId?: string; versionId?: string }>();
   const { templateName, versionNumber } = useBreadcrumb() ?? {};
   const pathname = location.pathname;
+
+  if (pathname.startsWith('/templates/create')) {
+    return null;
+  }
+
   const isSchema = pathname.includes('/versions/') && pathname.includes('/schema');
   const isTemplateDetails =
     params.templateId != null &&

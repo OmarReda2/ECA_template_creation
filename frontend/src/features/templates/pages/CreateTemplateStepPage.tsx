@@ -7,6 +7,7 @@ import { SchemaEditorView } from '@/features/schema/components/SchemaEditorView'
 import { Button } from '@/shared/ui/Button';
 import { Spinner } from '@/shared/ui/Spinner';
 import { useToast } from '@/shared/ui/Toast';
+import { ArrowLeft } from 'lucide-react';
 import {
   normalizeHttpError,
   getErrorMessage,
@@ -59,8 +60,17 @@ export default function CreateTemplateStepPage() {
   if (loading) {
     return (
       <TemplateWizardLayout
-        title="Edit Schema"
-        description="Step 2: Define tables and fields."
+        title="Create Template"
+        description="Step 2: Define schema."
+        bottomActions={
+          <>
+            <Button variant="secondary" onClick={goToStep1}>
+              <ArrowLeft className="h-4 w-4" />
+              Back to Step 1
+            </Button>
+            <div />
+          </>
+        }
       >
         <div className="flex justify-center py-12">
           <Spinner />
@@ -72,15 +82,22 @@ export default function CreateTemplateStepPage() {
   if (error) {
     return (
       <TemplateWizardLayout
-        title="Edit Schema"
-        description="Step 2: Define tables and fields."
+        title="Create Template"
+        description="Step 2: Define schema."
+        bottomActions={
+          <>
+            <Button variant="secondary" onClick={goToStep1}>
+              <ArrowLeft className="h-4 w-4" />
+              Back to Step 1
+            </Button>
+            <Button variant="secondary" onClick={loadTemplate}>
+              Retry
+            </Button>
+          </>
+        }
       >
         <div className="flex flex-col gap-2">
           <p className="text-sm text-muted-foreground">Failed to load template.</p>
-          <div className="flex gap-2">
-            <Button variant="secondary" onClick={loadTemplate}>Retry</Button>
-            <Button variant="secondary" onClick={goToStep1}>Back to step 1</Button>
-          </div>
         </div>
       </TemplateWizardLayout>
     );
@@ -94,12 +111,20 @@ export default function CreateTemplateStepPage() {
   if (versions.length === 0) {
     return (
       <TemplateWizardLayout
-        title="Edit Schema"
-        description="Step 2: Define tables and fields."
+        title="Create Template"
+        description="Step 2: Define schema."
+        bottomActions={
+          <>
+            <Button variant="secondary" onClick={goToStep1}>
+              <ArrowLeft className="h-4 w-4" />
+              Back to Step 1
+            </Button>
+            <div />
+          </>
+        }
       >
         <div className="flex flex-col gap-2">
           <p className="text-sm text-muted-foreground">Template has no versions.</p>
-          <Button variant="secondary" onClick={goToStep1}>Back to step 1</Button>
         </div>
       </TemplateWizardLayout>
     );
@@ -112,14 +137,22 @@ export default function CreateTemplateStepPage() {
 
   return (
     <TemplateWizardLayout
-      title="Edit Schema"
-      description="Step 2: Define tables and fields."
+      title="Create Template"
+      description={
+        <>
+          Step 2: Define schema.
+          <span className="block text-xs text-muted-foreground mt-0.5">
+            Version {latestVersion.versionNumber}
+          </span>
+        </>
+      }
     >
       <SchemaEditorView
-      templateId={templateId}
-      versionId={versionId}
+        templateId={templateId}
+        versionId={versionId}
+        variant="wizard"
         backPath="/templates/create"
-        backLabel="Back to step 1"
+        backLabel="Back to Step 1"
         saveSuccessPath={`/templates/create/${templateId}/export`}
       />
     </TemplateWizardLayout>

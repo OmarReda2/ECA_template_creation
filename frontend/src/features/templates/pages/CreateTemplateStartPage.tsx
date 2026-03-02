@@ -56,7 +56,7 @@ export default function CreateTemplateStartPage() {
     >
       <Card>
         <CardContent className="pt-6">
-          <form onSubmit={handleSubmit} className="w-full space-y-4">
+          <form id="create-template-form" onSubmit={handleSubmit} className="flex w-full flex-col gap-4">
             <div>
               <label htmlFor="create-name" className="mb-1 block text-sm font-medium text-neutral-700">
                 Template Name <span className="text-red-600">*</span>
@@ -87,7 +87,7 @@ export default function CreateTemplateStartPage() {
                 disabled={submitting}
               />
             </div>
-            <div className="flex justify-end gap-2 pt-2">
+            <div className="flex justify-end pt-2">
               <Button type="submit" disabled={submitting}>
                 {submitting ? (
                   <>
