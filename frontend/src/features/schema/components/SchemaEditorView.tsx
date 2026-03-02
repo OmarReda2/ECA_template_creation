@@ -26,7 +26,7 @@ import {
   IconEdit,
 } from '@/shared/ui/ActionButtons';
 import { Button } from '@/shared/ui/Button';
-import { Card, CardContent, CardHeader } from '@/shared/ui/Card';
+import { Card } from '@/shared/ui/Card';
 import { EmptyState } from '@/shared/ui/EmptyState';
 import {
   Table as DataTable,
@@ -41,6 +41,11 @@ import { Modal } from '@/shared/ui/Modal';
 import { PageHeader } from '@/shared/ui/PageHeader';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/ui/Select';
 import { Spinner } from '@/shared/ui/Spinner';
+import {
+  ResizableHandle,
+  ResizablePanel,
+  ResizablePanelGroup,
+} from '@/shared/ui/resizable';
 import { TableLoadingOverlay } from '@/shared/ui/TableLoadingOverlay';
 import { useToast } from '@/shared/ui/Toast';
 import {
@@ -446,156 +451,153 @@ export function SchemaEditorView({
         </div>
       )}
 
-      <TableLoadingOverlay loading={saving} className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 p-4 pb-2">
-            <h2 className="text-sm font-medium text-muted-foreground">Tables</h2>
-            {!readOnly && (
-              <Button type="button" variant="secondary" size="sm" onClick={() => setTableModal('add')} disabled={saving}>
-                Add table
-              </Button>
-            )}
-          </CardHeader>
-          <CardContent className="p-4 pt-0">
-            {schema.tables.length === 0 ? (
-              <EmptyState
-                title="No tables yet"
-                description="Add a table to define your schema."
-                action={
-                  !readOnly ? (
+      <TableLoadingOverlay loading={saving} className="min-h-[360px] w-full">
+        <Card className="min-h-[360px] overflow-hidden">
+          <ResizablePanelGroup orientation="horizontal" className="min-h-[360px] w-full">
+            <ResizablePanel defaultSize={35} minSize={20} className="min-w-0">
+              <div className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden">
+                <div className="flex shrink-0 flex-row items-center justify-between p-4 pb-2">
+                  <h2 className="text-sm font-medium text-muted-foreground">Tables</h2>
+                  {!readOnly && schema.tables.length > 0 && (
                     <Button type="button" variant="secondary" size="sm" onClick={() => setTableModal('add')} disabled={saving}>
                       Add table
                     </Button>
-                  ) : undefined
-                }
-              />
-            ) : (
-          <ul className="space-y-1">
-            {schema.tables.map((t, i) => (
-              <li key={i}>
-                <div
-                  className={`flex items-center justify-between rounded px-2 py-1.5 text-sm ${
-                    selectedTableIndex === i ? 'bg-neutral-100 font-medium' : 'hover:bg-neutral-50'
-                  }`}
-                >
-                  <button
-                    type="button"
-                    className="flex-1 text-left"
-                    onClick={() => setSelectedTableIndex(i)}
-                  >
-                    {t.tableKey} <span className="text-neutral-500">({t.sheetName})</span>
-                  </button>
-                  {!readOnly && (
-                    <span className="flex items-center gap-1">
-                      <ActionButton
-                        as="button"
-                        aria-label="Edit table"
-                        label="Edit"
-                        onClick={() => setTableModal({ edit: i })}
-                      >
-                        <IconEdit />
-                      </ActionButton>
-                      <DangerActionButton
-                        aria-label="Delete table"
-                        label="Delete"
-                        onClick={() => { setConfirmDelete('table'); setDeleteTargetIndex(i); }}
-                      >
-                        <IconDelete />
-                      </DangerActionButton>
-                    </span>
                   )}
                 </div>
-              </li>
-            ))}
-          </ul>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card className="lg:col-span-2">
-          <CardHeader className="p-4 pb-2">
-            <h2 className="text-sm font-medium text-muted-foreground">
-              Fields {selectedTable ? `· ${selectedTable.tableKey}` : ''}
-            </h2>
-          </CardHeader>
-          <CardContent className="p-4 pt-0">
-          {selectedTable ? (
-            (selectedTable.fields ?? []).length === 0 ? (
-              <EmptyState
-                title="No fields yet"
-                description={`Add fields to the "${selectedTable.tableKey}" table.`}
-                action={
-                  !readOnly ? (
-                    <Button type="button" variant="secondary" size="sm" onClick={() => setFieldModal('add')} disabled={saving}>
+                <div className="min-h-0 min-w-0 flex-1 overflow-auto px-4 pb-4 pt-0">
+                  {schema.tables.length === 0 ? (
+                    <EmptyState
+                      title="No tables yet"
+                      description="Add a table to define your schema."
+                      action={
+                        !readOnly ? (
+                          <Button type="button" variant="secondary" size="sm" onClick={() => setTableModal('add')} disabled={saving}>
+                            Add table
+                          </Button>
+                        ) : undefined
+                      }
+                    />
+                  ) : (
+                    <ul className="min-w-0 space-y-1 overflow-x-auto">
+                      {schema.tables.map((t, i) => (
+                        <li key={i} className="min-w-0">
+                          <div
+                            className={`flex min-w-0 items-center justify-between rounded px-2 py-1.5 text-sm ${
+                              selectedTableIndex === i ? 'bg-neutral-100 font-medium' : 'hover:bg-neutral-50'
+                            }`}
+                          >
+                            <button
+                              type="button"
+                              className="min-w-0 flex-1 truncate text-left"
+                              onClick={() => setSelectedTableIndex(i)}
+                            >
+                              {t.tableKey} <span className="text-neutral-500">({t.sheetName})</span>
+                            </button>
+                            {!readOnly && (
+                              <span className="flex shrink-0 items-center gap-1">
+                                <ActionButton
+                                  as="button"
+                                  aria-label="Edit table"
+                                  label="Edit"
+                                  onClick={() => setTableModal({ edit: i })}
+                                >
+                                  <IconEdit />
+                                </ActionButton>
+                                <DangerActionButton
+                                  aria-label="Delete table"
+                                  label="Delete"
+                                  onClick={() => { setConfirmDelete('table'); setDeleteTargetIndex(i); }}
+                                >
+                                  <IconDelete />
+                                </DangerActionButton>
+                              </span>
+                            )}
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              </div>
+            </ResizablePanel>
+            <ResizableHandle withHandle className=" shadow-none after:w-2" />
+            <ResizablePanel defaultSize={65} minSize={40} className="min-w-0">
+              <div className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden">
+                <div className="flex shrink-0 flex-row items-center justify-between p-4 pb-2">
+                  <h2 className="min-w-0 truncate text-sm font-medium text-muted-foreground">
+                    Fields {selectedTable ? `· ${selectedTable.tableKey}` : ''}
+                  </h2>
+                  {selectedTable && !readOnly && (
+                    <Button type="button" variant="secondary" size="sm" className="shrink-0" onClick={() => setFieldModal('add')} disabled={saving}>
                       Add field
                     </Button>
-                  ) : undefined
-                }
-              />
-            ) : (
-            <>
-              {!readOnly && (
-                <Button type="button" variant="secondary" className="mb-3" onClick={() => setFieldModal('add')} disabled={saving}>
-                  Add field
-                </Button>
-              )}
-              <div className="overflow-x-auto">
-                <DataTable className="text-sm">
-                  <TableHead>
-                    <TableRow>
-                      <TableTh>Field key</TableTh>
-                      <TableTh>Header</TableTh>
-                      <TableTh>Type</TableTh>
-                      <TableTh>Required</TableTh>
-                      <TableTh>Validations</TableTh>
-                      {!readOnly && <TableTh className="w-0">Actions</TableTh>}
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {(selectedTable.fields ?? []).map((f, fi) => (
-                      <TableRow key={fi}>
-                        <TableTd className="font-mono">{f.fieldKey}</TableTd>
-                        <TableTd>{f.headerName}</TableTd>
-                        <TableTd>{f.type}</TableTd>
-                        <TableTd>{f.required ? 'Yes' : '—'}</TableTd>
-                        <TableTd>
-                          {f.validations?.enum?.length ? `enum(${f.validations.enum.length})` : ''}
-                          {f.validations?.min != null && ` min=${f.validations.min}`}
-                          {f.validations?.max != null && ` max=${f.validations.max}`}
-                          {!f.validations?.enum?.length && f.validations?.min == null && f.validations?.max == null && '—'}
-                        </TableTd>
-                        {!readOnly && (
-                          <TableTd>
-                            <span className="flex items-center gap-2">
-                              <ActionButton
-                                as="button"
-                                aria-label="Edit field"
-                                label="Edit"
-                                onClick={() => setFieldModal({ edit: fi })}
-                              >
-                                <IconEdit />
-                              </ActionButton>
-                              <DangerActionButton
-                                aria-label="Delete field"
-                                label="Delete"
-                                onClick={() => { setConfirmDelete('field'); setDeleteTargetIndex(fi); }}
-                              >
-                                <IconDelete />
-                              </DangerActionButton>
-                            </span>
-                          </TableTd>
-                        )}
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </DataTable>
+                  )}
+                </div>
+                <div className="min-h-0 min-w-0 flex-1 overflow-auto px-4 pb-4 pt-0">
+                  {selectedTable ? (
+                    (selectedTable.fields ?? []).length === 0 ? (
+                      <EmptyState
+                        title="No fields yet"
+                        description={`Add fields to the "${selectedTable.tableKey}" table.`}
+                      />
+                    ) : (
+                      <DataTable className="text-sm" scrollable>
+                            <TableHead>
+                              <TableRow>
+                                <TableTh>Field key</TableTh>
+                                <TableTh>Header</TableTh>
+                                <TableTh>Type</TableTh>
+                                <TableTh>Required</TableTh>
+                                <TableTh>Validations</TableTh>
+                                {!readOnly && <TableTh className="w-0">Actions</TableTh>}
+                              </TableRow>
+                            </TableHead>
+                            <TableBody>
+                              {(selectedTable.fields ?? []).map((f, fi) => (
+                                <TableRow key={fi}>
+                                  <TableTd className="font-mono">{f.fieldKey}</TableTd>
+                                  <TableTd>{f.headerName}</TableTd>
+                                  <TableTd>{f.type}</TableTd>
+                                  <TableTd>{f.required ? 'Yes' : '—'}</TableTd>
+                                  <TableTd>
+                                    {f.validations?.enum?.length ? `enum(${f.validations.enum.length})` : ''}
+                                    {f.validations?.min != null && ` min=${f.validations.min}`}
+                                    {f.validations?.max != null && ` max=${f.validations.max}`}
+                                    {!f.validations?.enum?.length && f.validations?.min == null && f.validations?.max == null && '—'}
+                                  </TableTd>
+                                  {!readOnly && (
+                                    <TableTd>
+                                      <span className="flex items-center gap-2">
+                                        <ActionButton
+                                          as="button"
+                                          aria-label="Edit field"
+                                          label="Edit"
+                                          onClick={() => setFieldModal({ edit: fi })}
+                                        >
+                                          <IconEdit />
+                                        </ActionButton>
+                                        <DangerActionButton
+                                          aria-label="Delete field"
+                                          label="Delete"
+                                          onClick={() => { setConfirmDelete('field'); setDeleteTargetIndex(fi); }}
+                                        >
+                                          <IconDelete />
+                                        </DangerActionButton>
+                                      </span>
+                                    </TableTd>
+                                  )}
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </DataTable>
+                    )
+                  ) : (
+                    <p className="text-sm text-muted-foreground">Select a table to edit its fields.</p>
+                  )}
+                </div>
               </div>
-            </>
-            )
-          ) : (
-            <p className="text-sm text-muted-foreground">Select a table to edit its fields.</p>
-          )}
-          </CardContent>
+            </ResizablePanel>
+          </ResizablePanelGroup>
         </Card>
       </TableLoadingOverlay>
 

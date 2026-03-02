@@ -70,7 +70,7 @@ export function TemplateWizardLayout({
   };
 
   return (
-    <div className={cn('mx-auto max-w-4xl space-y-6', className)}>
+    <div className={cn('mx-auto w-full max-w-6xl space-y-6', className)}>
       <Stepper value={activeStep}>
         <StepperList className="w-full">
           <StepperItem
