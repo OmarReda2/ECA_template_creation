@@ -3,13 +3,15 @@ import { type ReactNode } from 'react';
 interface TableProps {
   children: ReactNode;
   className?: string;
+  /** When true, wrapper uses overflow-x-auto for horizontal scroll when content exceeds width. */
+  scrollable?: boolean;
 }
 
 /** Use inside Card for a single clean border (no double card + table border). */
-export function Table({ children, className = '' }: TableProps) {
+export function Table({ children, className = '', scrollable = false }: TableProps) {
   return (
-    <div className="overflow-hidden rounded-lg bg-white">
-      <table className={`min-w-full divide-y divide-neutral-200 ${className}`}>{children}</table>
+    <div className={`rounded-lg bg-white ${scrollable ? 'overflow-x-auto' : 'overflow-hidden'}`}>
+      <table className={`divide-y divide-neutral-200 ${scrollable ? 'min-w-max' : 'min-w-full'} ${className}`}>{children}</table>
     </div>
   );
 }
