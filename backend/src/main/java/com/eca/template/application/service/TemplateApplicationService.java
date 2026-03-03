@@ -31,6 +31,7 @@ public class TemplateApplicationService {
 
     private static final String PLACEHOLDER_HASH = "PENDING_HASH";
     private static final String STATUS_DRAFT = "DRAFT";
+    private static final String STATUS_ACTIVE = "ACTIVE";
     private static final String STATUS_READ_ONLY = "READ_ONLY";
 
     private final TemplateJpaRepository templateRepository;
@@ -82,7 +83,7 @@ public class TemplateApplicationService {
         TemplateEntity template = new TemplateEntity();
         template.setName(name);
         template.setSectorCode(sectorCode);
-        template.setStatus(STATUS_DRAFT);
+        template.setStatus(STATUS_ACTIVE);
         template.setCreatedBy(createdBy);
         template = templateRepository.save(template);
 
