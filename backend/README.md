@@ -182,7 +182,7 @@ See [ARCHITECTURE.md](ARCHITECTURE.md) for scope, invariants, and rules.
 ## Project Structure
 
 ```
-com.yourcompany.template
+com.eca.template
 ├── api (controller, dto)
 ├── application (usecase, service)
 ├── domain (model, policy, exception)
