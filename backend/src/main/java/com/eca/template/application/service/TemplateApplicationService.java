@@ -90,8 +90,12 @@ public class TemplateApplicationService {
         v1.setTemplate(template);
         v1.setVersionNumber(1);
         v1.setStatus(STATUS_DRAFT);
-        v1.setSchemaJson(buildInitialSchemaJson(template.getName(), template.getSectorCode()));
-        v1.setSchemaHash(PLACEHOLDER_HASH);
+
+        JsonNode schemaJson = buildInitialSchemaJson(template.getName(), template.getSectorCode());
+        v1.setSchemaJson(schemaJson);
+        String schemaHash = schemaHasher.hash(schemaJson);
+        v1.setSchemaHash(schemaHash);
+
         v1.setCreatedBy(createdBy);
         v1 = versionRepository.save(v1);
 
