@@ -22,11 +22,8 @@ public class SchemaHasherImpl implements SchemaHasher {
     }
 
     @Override
-    public String hash(Object schemaContent) {
-        if (!(schemaContent instanceof JsonNode node)) {
-            throw new IllegalArgumentException("Schema content must be JsonNode");
-        }
-        String canonical = canonicalizer.toCanonicalString(node);
+    public String hash(JsonNode schemaContent) {
+        String canonical = canonicalizer.toCanonicalString(schemaContent);
         byte[] digest = sha256(canonical.getBytes(StandardCharsets.UTF_8));
         return HexFormat.of().formatHex(digest);
     }

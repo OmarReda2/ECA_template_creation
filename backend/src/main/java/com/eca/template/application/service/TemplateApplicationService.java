@@ -31,6 +31,7 @@ public class TemplateApplicationService {
 
     private static final String PLACEHOLDER_HASH = "PENDING_HASH";
     private static final String STATUS_DRAFT = "DRAFT";
+    private static final String STATUS_ACTIVE = "ACTIVE";
     private static final String STATUS_READ_ONLY = "READ_ONLY";
 
     private final TemplateJpaRepository templateRepository;
@@ -79,19 +80,24 @@ public class TemplateApplicationService {
 
     @Transactional
     public CreateTemplateResponse createTemplate(String name, String sectorCode, String createdBy) {
+        // create new TemplateEntity object
         TemplateEntity template = new TemplateEntity();
         template.setName(name);
         template.setSectorCode(sectorCode);
-        template.setStatus(STATUS_DRAFT);
+        template.setStatus(STATUS_ACTIVE);
         template.setCreatedBy(createdBy);
         template = templateRepository.save(template);
 
+        // create new TemplateVersionEntity object as version 1 (business rule)
         TemplateVersionEntity v1 = new TemplateVersionEntity();
         v1.setTemplate(template);
         v1.setVersionNumber(1);
         v1.setStatus(STATUS_DRAFT);
-        v1.setSchemaJson(buildInitialSchemaJson(template.getName(), template.getSectorCode()));
-        v1.setSchemaHash(PLACEHOLDER_HASH);
+        JsonNode schemaJson = buildInitialSchemaJson(template.getName(), template.getSectorCode()); // initial template
+        v1.setSchemaJson(schemaJson);
+        String schemaHash = schemaHasher.hash(schemaJson); // hashing schema
+        v1.setSchemaHash(schemaHash);
+
         v1.setCreatedBy(createdBy);
         v1 = versionRepository.save(v1);
 
