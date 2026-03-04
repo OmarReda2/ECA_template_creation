@@ -24,6 +24,7 @@ export interface TableDefinition {
 export interface ExportProfile {
   format?: string;
   includeInstructionsSheet?: boolean;
+  includeValidationRules?: boolean;
   protectSheets?: boolean;
 }
 

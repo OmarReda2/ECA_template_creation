@@ -2,12 +2,15 @@ package com.eca.template.api.controller;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.eca.template.api.dto.ExportRequest;
 import com.eca.template.api.dto.UpdateSchemaRequest;
 import com.eca.template.api.dto.UpdateSchemaResponse;
 import com.eca.template.api.dto.VersionDetailResponse;
 import com.eca.template.application.service.TemplateApplicationService;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.io.IOException;
 import java.net.URLEncoder;
@@ -47,12 +50,16 @@ public class VersionController {
     @PostMapping(value = "/{versionId}/export", produces = XLSX_CONTENT_TYPE)
     public void exportVersion(
             @PathVariable UUID versionId,
+            @RequestBody(required = false) ExportRequest request,
             HttpServletResponse response) throws IOException {
-        String filename = templateService.getExportFilename(versionId);
+        if (request != null && request.format() != null && !"XLSX".equalsIgnoreCase(request.format().trim())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Only XLSX format is supported. Got: " + request.format());
+        }
+        String filename = templateService.getExportFilename(versionId, request != null ? request.fileName() : null);
         String encodedFilename = URLEncoder.encode(filename, StandardCharsets.UTF_8).replace("+", "%20");
         response.setContentType(XLSX_CONTENT_TYPE);
         response.setHeader("Content-Disposition", "attachment; filename=\"" + filename + "\"; filename*=UTF-8''" + encodedFilename);
-        templateService.writeExportWorkbook(versionId, response.getOutputStream());
+        templateService.writeExportWorkbook(versionId, response.getOutputStream(), request);
         response.getOutputStream().flush();
     }
 }

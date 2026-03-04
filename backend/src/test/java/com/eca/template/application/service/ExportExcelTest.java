@@ -1,5 +1,6 @@
 package com.eca.template.application.service;
 
+import com.eca.template.api.dto.ExportRequest;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.eca.template.infrastructure.excel.SXSSFExcelWorkbookBuilder;
@@ -10,6 +11,9 @@ import com.eca.template.infrastructure.persistence.repository.TemplateVersionJpa
 import com.eca.template.infrastructure.validation.SchemaValidatorImpl;
 import com.eca.template.infrastructure.hashing.JsonCanonicalizerImpl;
 import com.eca.template.infrastructure.hashing.SchemaHasherImpl;
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.FillPatternType;
+import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.SheetVisibility;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
@@ -128,7 +132,7 @@ class ExportExcelTest {
         version = versionRepository.saveAndFlush(version);
 
         ByteArrayOutputStream out = new ByteArrayOutputStream();
-        templateService.writeExportWorkbook(version.getId(), out);
+        templateService.writeExportWorkbook(version.getId(), out, null);
         byte[] bytes = out.toByteArray();
         assertThat(bytes.length).isGreaterThan(0);
 
@@ -149,5 +153,118 @@ class ExportExcelTest {
             String firstHeader = headerRow.getCell(0).getStringCellValue();
             assertThat(firstHeader).endsWith(" *");
         }
+    }
+
+    @Test
+    void exportWithInstructionsSheet_createsInstructionsSheet() throws Exception {
+        TemplateEntity template = saveTemplate("Inst Test", "S1");
+        JsonNode schema = schemaWithOneTable("T1", "Sheet1");
+        TemplateVersionEntity version = saveVersion(template, schema);
+
+        ExportRequest request = new ExportRequest("XLSX", null, true, false, false);
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        templateService.writeExportWorkbook(version.getId(), out, request);
+        byte[] bytes = out.toByteArray();
+
+        try (Workbook wb = new XSSFWorkbook(new ByteArrayInputStream(bytes))) {
+            assertThat(wb.getSheet("Instructions")).isNotNull();
+            Sheet instructions = wb.getSheet("Instructions");
+            assertThat(instructions.getRow(0).getCell(0).getStringCellValue()).isEqualTo("Table (sheet)");
+        }
+    }
+
+    @Test
+    void export_appliesHeaderStyleAndFreezePane() throws Exception {
+        TemplateEntity template = saveTemplate("Style Test", "S1");
+        JsonNode schema = schemaWithOneTable("T1", "Data");
+        TemplateVersionEntity version = saveVersion(template, schema);
+
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        templateService.writeExportWorkbook(version.getId(), out, null);
+        byte[] bytes = out.toByteArray();
+
+        try (Workbook wb = new XSSFWorkbook(new ByteArrayInputStream(bytes))) {
+            Sheet data = wb.getSheet("Data");
+            assertThat(data).isNotNull();
+            Cell headerCell = data.getRow(0).getCell(0);
+            assertThat(headerCell.getCellStyle().getFillForegroundColor()).isNotEqualTo((short) 0);
+            assertThat(headerCell.getCellStyle().getFillPattern()).isEqualTo(FillPatternType.SOLID_FOREGROUND);
+            assertThat(wb.getFontAt(headerCell.getCellStyle().getFontIndex()).getBold()).isTrue();
+            assertThat(data.getPaneInformation()).isNotNull();
+            assertThat(data.getPaneInformation().isFreezePane()).isTrue();
+            assertThat(data.getPaneInformation().getHorizontalSplitTopRow()).isEqualTo(1);
+        }
+    }
+
+    @Test
+    void exportWithProtectSheets_protectsDataSheets() throws Exception {
+        TemplateEntity template = saveTemplate("Protect Test", "S1");
+        JsonNode schema = schemaWithOneTable("T1", "Locked");
+        TemplateVersionEntity version = saveVersion(template, schema);
+
+        ExportRequest request = new ExportRequest("XLSX", null, false, false, true);
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        templateService.writeExportWorkbook(version.getId(), out, request);
+        byte[] bytes = out.toByteArray();
+
+        try (Workbook wb = new XSSFWorkbook(new ByteArrayInputStream(bytes))) {
+            Sheet data = wb.getSheet("Locked");
+            assertThat(data).isNotNull();
+            assertThat(data.getProtect()).isTrue();
+        }
+    }
+
+    @Test
+    void exportWithValidationRules_addsDataValidations() throws Exception {
+        TemplateEntity template = saveTemplate("Valid Test", "S1");
+        JsonNode schema = objectMapper.readTree("""
+            { "sectorCode": "S1", "tables": [
+              { "tableKey": "t1", "sheetName": "V", "order": 1, "fields": [
+                { "fieldKey": "f1", "headerName": "Choice", "type": "TEXT", "validations": { "enum": ["A","B"] } }
+              ]}
+            ]}
+            """);
+        TemplateVersionEntity version = saveVersion(template, schema);
+
+        ExportRequest request = new ExportRequest("XLSX", null, false, true, false);
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        templateService.writeExportWorkbook(version.getId(), out, request);
+        byte[] bytes = out.toByteArray();
+
+        try (Workbook wb = new XSSFWorkbook(new ByteArrayInputStream(bytes))) {
+            Sheet data = wb.getSheet("V");
+            assertThat(data).isNotNull();
+            assertThat(data.getDataValidations()).isNotEmpty();
+        }
+    }
+
+    private TemplateEntity saveTemplate(String name, String sectorCode) {
+        TemplateEntity template = new TemplateEntity();
+        template.setName(name);
+        template.setSectorCode(sectorCode);
+        template.setStatus("DRAFT");
+        template.setCreatedBy("u");
+        return templateRepository.saveAndFlush(template);
+    }
+
+    private JsonNode schemaWithOneTable(String tableKey, String sheetName) throws Exception {
+        return objectMapper.readTree("""
+            { "sectorCode": "S1", "tables": [
+              { "tableKey": "%s", "sheetName": "%s", "order": 1, "fields": [
+                { "fieldKey": "f1", "headerName": "H1", "type": "TEXT" }
+              ]}
+            ]}
+            """.formatted(tableKey, sheetName));
+    }
+
+    private TemplateVersionEntity saveVersion(TemplateEntity template, JsonNode schema) {
+        TemplateVersionEntity version = new TemplateVersionEntity();
+        version.setTemplate(template);
+        version.setVersionNumber(1);
+        version.setStatus("DRAFT");
+        version.setSchemaJson(schema);
+        version.setSchemaHash("hash");
+        version.setCreatedBy("u");
+        return versionRepository.saveAndFlush(version);
     }
 }

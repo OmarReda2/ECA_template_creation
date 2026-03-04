@@ -21,6 +21,7 @@ public interface ExcelWorkbookBuilder {
      * @param versionId      for metadata sheet
      * @param versionNumber  for metadata sheet and filename
      * @param schemaHash     for metadata sheet
+     * @param options        include instructions sheet, validation rules, protect sheets
      * @param outputStream   stream to write workbook to (not closed by this method)
      */
     void writeWorkbook(
@@ -30,6 +31,7 @@ public interface ExcelWorkbookBuilder {
             UUID versionId,
             int versionNumber,
             String schemaHash,
+            ExportOptions options,
             OutputStream outputStream
     );
 }
