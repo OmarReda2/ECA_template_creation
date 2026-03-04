@@ -28,14 +28,6 @@ import {
 import { Button } from '@/shared/ui/Button';
 import { Card } from '@/shared/ui/Card';
 import { EmptyState } from '@/shared/ui/EmptyState';
-import {
-  Table as DataTable,
-  TableBody,
-  TableHead,
-  TableRow,
-  TableTd,
-  TableTh,
-} from '@/shared/ui/Table';
 import { Input } from '@/shared/ui/Input';
 import { Modal } from '@/shared/ui/Modal';
 import { PageHeader } from '@/shared/ui/PageHeader';
@@ -159,11 +151,16 @@ export function SchemaEditorView({
   const initialSchemaRef = useRef<SchemaDefinition>({ sectorCode: '', tables: [] });
   const [saveError, setSaveError] = useState<FrontendError | null>(null);
   const [saving, setSaving] = useState(false);
-  const [selectedTableIndex, setSelectedTableIndex] = useState<number | null>(null);
+  /** Stable selection by tableKey so field CRUD and table switch don't get out of sync. */
+  const [selectedTableKey, setSelectedTableKey] = useState<string | null>(null);
   const [tableModal, setTableModal] = useState<'add' | { edit: number } | null>(null);
-  const [fieldModal, setFieldModal] = useState<'add' | { edit: number } | null>(null);
+  const [fieldModal, setFieldModal] = useState<'add' | { edit: string } | null>(null);
+  /** Table key when field modal was opened, so switching selection does not change modal target. */
+  const [fieldModalTableKey, setFieldModalTableKey] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<'table' | 'field' | null>(null);
   const [deleteTargetIndex, setDeleteTargetIndex] = useState<number | null>(null);
+  const [deleteTargetFieldKey, setDeleteTargetFieldKey] = useState<string | null>(null);
+  const [deleteTargetTableKey, setDeleteTargetTableKey] = useState<string | null>(null);
   const [advancedJsonOpen, setAdvancedJsonOpen] = useState(false);
   const [showStartOverConfirm, setShowStartOverConfirm] = useState(false);
 
@@ -181,7 +178,7 @@ export function SchemaEditorView({
       const parsed = parseSchemaJson(data.schemaJson);
       setSchema(parsed);
       initialSchemaRef.current = JSON.parse(JSON.stringify(parsed));
-      setSelectedTableIndex(parsed.tables.length > 0 ? 0 : null);
+      setSelectedTableKey(parsed.tables.length > 0 ? parsed.tables[0].tableKey : null);
     } catch (e) {
       const err = normalizeHttpError(e);
       setLoadError(err);
@@ -296,68 +293,120 @@ export function SchemaEditorView({
     setSchema((prev) => ({ ...prev, tables: updater(prev.tables) }));
   }, []);
 
-  const selectedTable = selectedTableIndex != null ? schema.tables[selectedTableIndex] ?? null : null;
+  const selectedTable = useMemo(
+    () => (selectedTableKey != null ? schema.tables.find((t) => t.tableKey === selectedTableKey) ?? null : null),
+    [schema.tables, selectedTableKey]
+  );
+  const selectedTableIndex = useMemo(
+    () => (selectedTableKey != null ? schema.tables.findIndex((t) => t.tableKey === selectedTableKey) : -1),
+    [schema.tables, selectedTableKey]
+  );
 
-  const addTable = (tableKey: string, sheetName: string, order: number) => {
-    updateTables((prev) => [...prev, { tableKey: tableKey.trim(), sheetName: sheetName.trim(), order, fields: [] }]);
-    setSelectedTableIndex(schema.tables.length);
-    setTableModal(null);
-  };
+  const addTable = useCallback(
+    (tableKey: string, sheetName: string, order: number, defaultFields?: { year?: boolean; month?: boolean; productName?: boolean }) => {
+      const fields: FieldDefinition[] = [];
+      if (defaultFields?.year) fields.push({ fieldKey: 'year', headerName: 'Year', type: 'NUMBER', required: true });
+      if (defaultFields?.month) fields.push({ fieldKey: 'month', headerName: 'Month', type: 'TEXT', required: true });
+      if (defaultFields?.productName) fields.push({ fieldKey: 'product_name', headerName: 'Product Name', type: 'TEXT', required: true });
+      const newTable: TableDefinition = {
+        tableKey: tableKey.trim(),
+        sheetName: sheetName.trim(),
+        order,
+        fields,
+      };
+      updateTables((prev) => [...prev, newTable]);
+      setSelectedTableKey(newTable.tableKey);
+      setTableModal(null);
+    },
+    [updateTables]
+  );
 
-  const editTable = (index: number, tableKey: string, sheetName: string, order: number) => {
-    updateTables((prev) => {
-      const next = [...prev];
-      const t = next[index];
-      if (t) next[index] = { ...t, tableKey: tableKey.trim(), sheetName: sheetName.trim(), order };
-      return next;
-    });
-    setTableModal(null);
-  };
+  const editTable = useCallback(
+    (index: number, tableKey: string, sheetName: string, order: number) => {
+      updateTables((prev) => {
+        const next = [...prev];
+        const t = next[index];
+        if (t) next[index] = { ...t, tableKey: tableKey.trim(), sheetName: sheetName.trim(), order };
+        return next;
+      });
+      if (selectedTableKey === schema.tables[index]?.tableKey) {
+        setSelectedTableKey(tableKey.trim());
+      }
+      setTableModal(null);
+    },
+    [updateTables, selectedTableKey, schema.tables]
+  );
 
-  const deleteTable = (index: number) => {
-    updateTables((prev) => prev.filter((_, i) => i !== index));
-    setSelectedTableIndex(index >= schema.tables.length - 1 ? Math.max(0, index - 1) : index);
-    setConfirmDelete(null);
-    setDeleteTargetIndex(null);
-  };
+  const deleteTable = useCallback(
+    (index: number) => {
+      const removedKey = schema.tables[index]?.tableKey ?? null;
+      const nextTables = schema.tables.filter((_, i) => i !== index);
+      updateTables(() => nextTables);
+      if (selectedTableKey === removedKey) {
+        setSelectedTableKey(nextTables.length > 0 ? nextTables[0].tableKey : null);
+      }
+      setConfirmDelete(null);
+      setDeleteTargetIndex(null);
+    },
+    [schema.tables, selectedTableKey, updateTables]
+  );
 
-  const addField = (field: FieldDefinition) => {
-    if (selectedTableIndex == null) return;
-    updateTables((prev) => {
-      const next = [...prev];
-      const t = next[selectedTableIndex];
-      if (t) next[selectedTableIndex] = { ...t, fields: [...(t.fields ?? []), field] };
-      return next;
-    });
-    setFieldModal(null);
-  };
+  const addField = useCallback(
+    (field: FieldDefinition) => {
+      const tableKey = fieldModalTableKey ?? selectedTableKey;
+      if (tableKey == null) return;
+      updateTables((prev) => {
+        const idx = prev.findIndex((t) => t.tableKey === tableKey);
+        if (idx < 0) return prev;
+        const next = [...prev];
+        const t = next[idx];
+        if (!t) return prev;
+        next[idx] = { ...t, fields: [...(t.fields ?? []), field] };
+        return next;
+      });
+      setFieldModal(null);
+      setFieldModalTableKey(null);
+    },
+    [fieldModalTableKey, selectedTableKey, updateTables]
+  );
 
-  const editField = (fieldIndex: number, field: FieldDefinition) => {
-    if (selectedTableIndex == null) return;
-    updateTables((prev) => {
-      const next = [...prev];
-      const t = next[selectedTableIndex];
-      if (!t) return prev;
-      const fields = [...(t.fields ?? [])];
-      fields[fieldIndex] = field;
-      next[selectedTableIndex] = { ...t, fields };
-      return prev;
-    });
-    setFieldModal(null);
-  };
+  const editField = useCallback(
+    (previousFieldKey: string, field: FieldDefinition) => {
+      const tableKey = fieldModalTableKey ?? selectedTableKey;
+      if (tableKey == null) return;
+      updateTables((prev) => {
+        const idx = prev.findIndex((t) => t.tableKey === tableKey);
+        if (idx < 0) return prev;
+        const next = [...prev];
+        const t = next[idx];
+        if (!t) return prev;
+        const fields = (t.fields ?? []).map((f) => (f.fieldKey === previousFieldKey ? field : f));
+        next[idx] = { ...t, fields };
+        return next;
+      });
+      setFieldModal(null);
+      setFieldModalTableKey(null);
+    },
+    [fieldModalTableKey, selectedTableKey, updateTables]
+  );
 
-  const deleteField = (fieldIndex: number) => {
-    if (selectedTableIndex == null) return;
-    updateTables((prev) => {
-      const next = [...prev];
-      const t = next[selectedTableIndex];
-      if (!t) return prev;
-      next[selectedTableIndex] = { ...t, fields: (t.fields ?? []).filter((_, i) => i !== fieldIndex) };
-      return prev;
-    });
-    setConfirmDelete(null);
-    setDeleteTargetIndex(null);
-  };
+  const deleteField = useCallback(
+    (tableKey: string, fieldKey: string) => {
+      updateTables((prev) => {
+        const idx = prev.findIndex((t) => t.tableKey === tableKey);
+        if (idx < 0) return prev;
+        const next = [...prev];
+        const t = next[idx];
+        if (!t) return prev;
+        next[idx] = { ...t, fields: (t.fields ?? []).filter((f) => f.fieldKey !== fieldKey) };
+        return next;
+      });
+      setConfirmDelete(null);
+      setDeleteTargetFieldKey(null);
+      setDeleteTargetTableKey(null);
+    },
+    [updateTables]
+  );
 
   if (loading) {
     return (
@@ -480,16 +529,16 @@ export function SchemaEditorView({
                   ) : (
                     <ul className="min-w-0 space-y-1 overflow-x-auto">
                       {schema.tables.map((t, i) => (
-                        <li key={i} className="min-w-0">
+                        <li key={t.tableKey} className="min-w-0">
                           <div
                             className={`flex min-w-0 items-center justify-between rounded px-2 py-1.5 text-sm ${
-                              selectedTableIndex === i ? 'bg-neutral-100 font-medium' : 'hover:bg-neutral-50'
+                              selectedTableKey === t.tableKey ? 'bg-neutral-100 font-medium' : 'hover:bg-neutral-50'
                             }`}
                           >
                             <button
                               type="button"
                               className="min-w-0 flex-1 truncate text-left"
-                              onClick={() => setSelectedTableIndex(i)}
+                              onClick={() => setSelectedTableKey(t.tableKey)}
                             >
                               {t.tableKey} <span className="text-neutral-500">({t.sheetName})</span>
                             </button>
@@ -528,7 +577,14 @@ export function SchemaEditorView({
                     Fields {selectedTable ? `· ${selectedTable.tableKey}` : ''}
                   </h2>
                   {selectedTable && !readOnly && (
-                    <Button type="button" variant="secondary" size="sm" className="shrink-0" onClick={() => setFieldModal('add')} disabled={saving}>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="sm"
+                      className="shrink-0"
+                      onClick={() => { setFieldModal('add'); setFieldModalTableKey(selectedTableKey ?? null); }}
+                      disabled={saving}
+                    >
                       Add field
                     </Button>
                   )}
@@ -541,58 +597,45 @@ export function SchemaEditorView({
                         description={`Add fields to the "${selectedTable.tableKey}" table.`}
                       />
                     ) : (
-                      <DataTable className="text-sm" scrollable>
-                            <TableHead>
-                              <TableRow>
-                                <TableTh>Field key</TableTh>
-                                <TableTh>Header</TableTh>
-                                <TableTh>Type</TableTh>
-                                <TableTh>Required</TableTh>
-                                <TableTh>Validations</TableTh>
-                                {!readOnly && <TableTh className="w-0">Actions</TableTh>}
-                              </TableRow>
-                            </TableHead>
-                            <TableBody>
-                              {(selectedTable.fields ?? []).map((f, fi) => (
-                                <TableRow key={fi}>
-                                  <TableTd className="font-mono">{f.fieldKey}</TableTd>
-                                  <TableTd>{f.headerName}</TableTd>
-                                  <TableTd>{f.type}</TableTd>
-                                  <TableTd>{f.required ? 'Yes' : '—'}</TableTd>
-                                  <TableTd>
-                                    {f.validations?.enum?.length ? `enum(${f.validations.enum.length})` : ''}
-                                    {f.validations?.min != null && ` min=${f.validations.min}`}
-                                    {f.validations?.max != null && ` max=${f.validations.max}`}
-                                    {!f.validations?.enum?.length && f.validations?.min == null && f.validations?.max == null && '—'}
-                                  </TableTd>
-                                  {!readOnly && (
-                                    <TableTd>
-                                      <span className="flex items-center gap-2">
-                                        <ActionButton
-                                          as="button"
-                                          aria-label="Edit field"
-                                          label="Edit"
-                                          onClick={() => setFieldModal({ edit: fi })}
-                                        >
-                                          <IconEdit />
-                                        </ActionButton>
-                                        <DangerActionButton
-                                          aria-label="Delete field"
-                                          label="Delete"
-                                          onClick={() => { setConfirmDelete('field'); setDeleteTargetIndex(fi); }}
-                                        >
-                                          <IconDelete />
-                                        </DangerActionButton>
-                                      </span>
-                                    </TableTd>
-                                  )}
-                                </TableRow>
-                              ))}
-                            </TableBody>
-                          </DataTable>
+                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                        {(selectedTable.fields ?? []).map((f) => (
+                          <div
+                            key={f.fieldKey}
+                            className="group relative rounded-lg border border-neutral-200 bg-white p-3 shadow-sm transition-shadow hover:shadow-md"
+                          >
+                            <div className="pr-16 min-w-0">
+                              <p className="truncate font-medium text-neutral-900">{f.headerName}</p>
+                              <p className="mt-0.5 font-mono text-xs text-neutral-500">{f.fieldKey}</p>
+                              <p className="mt-0.5 text-xs text-neutral-600">{f.type}</p>
+                              {f.required && (
+                                <span className="mt-1 inline-block text-xs font-medium text-amber-700">* Required</span>
+                              )}
+                            </div>
+                            {!readOnly && (
+                              <span className="absolute right-2 top-2 flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+                                <ActionButton
+                                  as="button"
+                                  aria-label="Edit field"
+                                  label="Edit"
+                                  onClick={() => { setFieldModal({ edit: f.fieldKey }); setFieldModalTableKey(selectedTableKey ?? null); }}
+                                >
+                                  <IconEdit />
+                                </ActionButton>
+                                <DangerActionButton
+                                  aria-label="Delete field"
+                                  label="Delete"
+                                  onClick={() => { setConfirmDelete('field'); setDeleteTargetFieldKey(f.fieldKey); setDeleteTargetTableKey(selectedTableKey ?? null); }}
+                                >
+                                  <IconDelete />
+                                </DangerActionButton>
+                              </span>
+                            )}
+                          </div>
+                        ))}
+                      </div>
                     )
                   ) : (
-                    <p className="text-sm text-muted-foreground">Select a table to edit its fields.</p>
+                    <p className="text-sm text-muted-foreground">Select a table to view fields.</p>
                   )}
                 </div>
               </div>
@@ -641,15 +684,18 @@ export function SchemaEditorView({
         />
       )}
 
-      {fieldModal && selectedTable != null && (
-        <FieldModal
-          table={selectedTable}
-          mode={fieldModal}
-          onClose={() => setFieldModal(null)}
-          onAdd={addField}
-          onEdit={editField}
-        />
-      )}
+      {fieldModal !== null && (() => {
+        const tableForModal = fieldModalTableKey != null ? schema.tables.find((t) => t.tableKey === fieldModalTableKey) ?? null : null;
+        return tableForModal != null && (
+          <FieldModal
+            table={tableForModal}
+            mode={fieldModal}
+            onClose={() => { setFieldModal(null); setFieldModalTableKey(null); }}
+            onAdd={addField}
+            onEdit={editField}
+          />
+        );
+      })()}
 
       {confirmDelete === 'table' && deleteTargetIndex != null && (
         <Modal open={true} title="Delete table?" onClose={() => { setConfirmDelete(null); setDeleteTargetIndex(null); }}>
@@ -662,14 +708,14 @@ export function SchemaEditorView({
           </div>
         </Modal>
       )}
-      {confirmDelete === 'field' && deleteTargetIndex != null && selectedTable && (
-        <Modal open={true} title="Delete field?" onClose={() => { setConfirmDelete(null); setDeleteTargetIndex(null); }}>
+      {confirmDelete === 'field' && deleteTargetFieldKey != null && deleteTargetTableKey != null && (
+        <Modal open={true} title="Delete field?" onClose={() => { setConfirmDelete(null); setDeleteTargetFieldKey(null); setDeleteTargetTableKey(null); }}>
           <p className="text-sm text-neutral-700">
-            Delete field &quot;{(selectedTable.fields ?? [])[deleteTargetIndex]?.fieldKey}&quot;?
+            Delete field &quot;{deleteTargetFieldKey}&quot;?
           </p>
           <div className="mt-4 flex justify-end gap-2">
-            <Button variant="secondary" onClick={() => { setConfirmDelete(null); setDeleteTargetIndex(null); }}>Cancel</Button>
-            <Button variant="danger" onClick={() => deleteField(deleteTargetIndex)}>Delete</Button>
+            <Button variant="secondary" onClick={() => { setConfirmDelete(null); setDeleteTargetFieldKey(null); setDeleteTargetTableKey(null); }}>Cancel</Button>
+            <Button variant="danger" onClick={() => deleteField(deleteTargetTableKey, deleteTargetFieldKey)}>Delete</Button>
           </div>
         </Modal>
       )}
@@ -708,7 +754,7 @@ function TableModal({
   schema: SchemaDefinition;
   mode: 'add' | { edit: number };
   onClose: () => void;
-  onAdd: (tableKey: string, sheetName: string, order: number) => void;
+  onAdd: (tableKey: string, sheetName: string, order: number, defaultFields?: { year?: boolean; month?: boolean; productName?: boolean }) => void;
   onEdit: (index: number, tableKey: string, sheetName: string, order: number) => void;
 }) {
   const isEdit = mode !== 'add';
@@ -717,6 +763,9 @@ function TableModal({
   const [tableKey, setTableKey] = useState(existing?.tableKey ?? '');
   const [sheetName, setSheetName] = useState(existing?.sheetName ?? '');
   const [order, setOrder] = useState(existing?.order ?? schema.tables.length);
+  const [defaultYear, setDefaultYear] = useState(true);
+  const [defaultMonth, setDefaultMonth] = useState(true);
+  const [defaultProductName, setDefaultProductName] = useState(true);
   const [touched, setTouched] = useState<Record<'tableKey' | 'sheetName' | 'order', boolean>>({
     tableKey: false,
     sheetName: false,
@@ -733,6 +782,9 @@ function TableModal({
       setTableKey('');
       setSheetName('');
       setOrder(schema.tables.length);
+      setDefaultYear(true);
+      setDefaultMonth(true);
+      setDefaultProductName(true);
     }
     setTouched({ tableKey: false, sheetName: false, order: false });
     setSubmitAttempted(false);
@@ -765,7 +817,7 @@ function TableModal({
     setSubmitAttempted(true);
     if (!canSubmit) return;
     if (isEdit) onEdit(index, tableKey.trim(), sheetName.trim(), order);
-    else onAdd(tableKey.trim(), sheetName.trim(), order);
+    else onAdd(tableKey.trim(), sheetName.trim(), order, { year: defaultYear, month: defaultMonth, productName: defaultProductName });
   };
 
   return (
@@ -811,6 +863,25 @@ function TableModal({
             }}
           />
         </div>
+        {!isEdit && (
+          <div className="rounded border border-neutral-200 bg-neutral-50 p-3">
+            <p className="mb-2 text-sm font-medium text-neutral-700">Add default fields</p>
+            <div className="flex flex-col gap-2">
+              <label className="flex items-center gap-2 text-sm text-neutral-700">
+                <input type="checkbox" checked={defaultYear} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDefaultYear(e.target.checked)} />
+                Year Field
+              </label>
+              <label className="flex items-center gap-2 text-sm text-neutral-700">
+                <input type="checkbox" checked={defaultMonth} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDefaultMonth(e.target.checked)} />
+                Month Field
+              </label>
+              <label className="flex items-center gap-2 text-sm text-neutral-700">
+                <input type="checkbox" checked={defaultProductName} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDefaultProductName(e.target.checked)} />
+                Product Name Field
+              </label>
+            </div>
+          </div>
+        )}
         <div className="flex justify-end gap-2">
           <Button type="button" variant="secondary" onClick={onClose}>Cancel</Button>
           <Button type="submit" disabled={addDisabled}>{isEdit ? 'Save' : 'Add'}</Button>
@@ -830,14 +901,14 @@ function FieldModal({
   onEdit,
 }: {
   table: TableDefinition;
-  mode: 'add' | { edit: number };
+  mode: 'add' | { edit: string };
   onClose: () => void;
   onAdd: (f: FieldDefinition) => void;
-  onEdit: (index: number, f: FieldDefinition) => void;
+  onEdit: (previousFieldKey: string, f: FieldDefinition) => void;
 }) {
   const isEdit = mode !== 'add';
-  const index = isEdit ? (mode as { edit: number }).edit : 0;
-  const existing = isEdit ? (table.fields ?? [])[index] : null;
+  const editFieldKey = isEdit ? (mode as { edit: string }).edit : '';
+  const existing = isEdit ? (table.fields ?? []).find((f) => f.fieldKey === editFieldKey) ?? null : null;
   const [fieldKey, setFieldKey] = useState(existing?.fieldKey ?? '');
   const [headerName, setHeaderName] = useState(existing?.headerName ?? '');
   const [type, setType] = useState(existing?.type ?? 'TEXT');
@@ -937,7 +1008,7 @@ function FieldModal({
     ? 'Min/max only allowed for NUMBER or CURRENCY.'
     : null;
 
-  const otherFields = (table.fields ?? []).filter((_, i) => i !== index);
+  const otherFields = (table.fields ?? []).filter((f) => f.fieldKey !== editFieldKey);
   const fieldKeyError = (() => {
     if (!fieldKey.trim()) return 'Field key is required.';
     const key = fieldKey.trim().toLowerCase();
@@ -969,7 +1040,7 @@ function FieldModal({
       required,
       validations: sanitized && Object.keys(sanitized).length ? sanitized : undefined,
     };
-    if (isEdit) onEdit(index, field);
+    if (isEdit && editFieldKey) onEdit(editFieldKey, field);
     else onAdd(field);
   };
 
@@ -977,7 +1048,7 @@ function FieldModal({
     <Modal open={true} title={isEdit ? 'Edit field' : 'Add field'} onClose={onClose}>
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label className="mb-1 block text-sm font-medium text-neutral-700">Field key *</label>
+          <label className="mb-1 block text-sm font-medium text-neutral-700">Field key</label>
           <Input
             type="text"
             value={fieldKey}
@@ -991,7 +1062,7 @@ function FieldModal({
           {showFieldKeyError && <p className="mt-1 text-xs text-red-600">{fieldKeyError}</p>}
         </div>
         <div>
-          <label className="mb-1 block text-sm font-medium text-neutral-700">Header name *</label>
+          <label className="mb-1 block text-sm font-medium text-neutral-700">Header name</label>
           <Input
             type="text"
             value={headerName}
