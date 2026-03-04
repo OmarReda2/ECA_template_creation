@@ -80,6 +80,7 @@ public class TemplateApplicationService {
 
     @Transactional
     public CreateTemplateResponse createTemplate(String name, String sectorCode, String createdBy) {
+        // create new TemplateEntity object
         TemplateEntity template = new TemplateEntity();
         template.setName(name);
         template.setSectorCode(sectorCode);
@@ -87,14 +88,14 @@ public class TemplateApplicationService {
         template.setCreatedBy(createdBy);
         template = templateRepository.save(template);
 
+        // create new TemplateVersionEntity object as version 1 (business rule)
         TemplateVersionEntity v1 = new TemplateVersionEntity();
         v1.setTemplate(template);
         v1.setVersionNumber(1);
         v1.setStatus(STATUS_DRAFT);
-
-        JsonNode schemaJson = buildInitialSchemaJson(template.getName(), template.getSectorCode());
+        JsonNode schemaJson = buildInitialSchemaJson(template.getName(), template.getSectorCode()); // initial template
         v1.setSchemaJson(schemaJson);
-        String schemaHash = schemaHasher.hash(schemaJson);
+        String schemaHash = schemaHasher.hash(schemaJson); // hashing schema
         v1.setSchemaHash(schemaHash);
 
         v1.setCreatedBy(createdBy);
