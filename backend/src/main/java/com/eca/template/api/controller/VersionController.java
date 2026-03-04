@@ -6,6 +6,7 @@ import com.eca.template.api.dto.UpdateSchemaRequest;
 import com.eca.template.api.dto.UpdateSchemaResponse;
 import com.eca.template.api.dto.VersionDetailResponse;
 import com.eca.template.application.service.TemplateApplicationService;
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.web.bind.annotation.*;
@@ -18,7 +19,9 @@ import java.util.UUID;
 /**
  * API controller for version operations. Delegates to application layer only.
  */
-@Tag(name = "Version API", description = "Operation related to template versions")
+@Tag(
+        name = "Version API",
+        description = "Operation related to template versions")
 @RestController
 @RequestMapping("/api/versions")
 public class VersionController {
@@ -34,11 +37,16 @@ public class VersionController {
     }
 
     @GetMapping("/{versionId}")
+    @Operation(summary = "Get version details by ID")
     public VersionDetailResponse getVersion(@PathVariable UUID versionId) {
         return templateService.getVersion(versionId);
     }
 
     @PutMapping("/{versionId}/schema")
+    @Operation(
+            summary = "Update schema of a version",
+            description = "Validates and persists schema JSON for the latest editable version."
+    )
     public UpdateSchemaResponse updateSchema(
             @PathVariable UUID versionId,
             @RequestBody UpdateSchemaRequest request) {
@@ -47,6 +55,10 @@ public class VersionController {
     }
 
     @PostMapping(value = "/{versionId}/export", produces = XLSX_CONTENT_TYPE)
+    @Operation(
+            summary = "Export version as Excel",
+            description = "Generates and streams an XLSX file based on the version schema."
+    )
     public void exportVersion(
             @PathVariable UUID versionId,
             HttpServletResponse response) throws IOException {
