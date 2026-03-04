@@ -19,6 +19,24 @@ public class SchemaValidatorImpl implements SchemaValidator {
     private static final int MAX_SHEET_NAME_LENGTH = 31;
     private static final Pattern INVALID_SHEET_NAME_CHARS = Pattern.compile("[\\\\/?*\\[\\]]");
 
+    /**
+     * Validates the provided schema content.
+     *
+     * <p>Ensures the input is a valid {@link JsonNode} representing a JSON object,
+     * then performs structural and business-rule validation on the schema.
+     * All detected validation issues are accumulated and reported together
+     * through {@link SchemaValidationException}.
+     *
+     * <p>Validation flow:
+     * <ul>
+     *   <li>Verify schema is a JSON object</li>
+     *   <li>Validate root-level attributes (templateName, sectorCode)</li>
+     *   <li>Validate tables and their fields</li>
+     * </ul>
+     *
+     * @param schemaContent schema content expected to be a JsonNode
+     * @throws SchemaValidationException if validation fails with one or more errors
+     */
     @Override
     public void validate(Object schemaContent) {
         if (!(schemaContent instanceof JsonNode root)) {
@@ -37,6 +55,20 @@ public class SchemaValidatorImpl implements SchemaValidator {
         }
     }
 
+    /**
+     * Validates root-level schema attributes.
+     *
+     * <p>Checks high-level metadata fields required for the template:
+     * <ul>
+     *   <li>{@code templateName} – optional but must not be blank if present</li>
+     *   <li>{@code sectorCode} – required, must be a non-empty string</li>
+     * </ul>
+     *
+     * <p>Any validation failures are appended to the provided error list.
+     *
+     * @param root   root JSON schema node
+     * @param errors collection where validation errors are accumulated
+     */
     private void validateRoot(JsonNode root, List<SchemaValidationException.SchemaValidationError> errors) {
         JsonNode templateName = root.get("templateName");
         if (templateName != null && templateName.isTextual() && templateName.asText().isBlank()) {
@@ -48,6 +80,26 @@ public class SchemaValidatorImpl implements SchemaValidator {
         }
     }
 
+    /**
+     * Validates the list of table definitions within the schema.
+     *
+     * <p>For each table the following checks are performed:
+     * <ul>
+     *   <li>{@code tableKey} uniqueness (when present)</li>
+     *   <li>{@code sheetName} existence, format, Excel constraints and uniqueness</li>
+     *   <li>{@code order} must represent an integer if provided</li>
+     *   <li>Delegates validation of table fields</li>
+     * </ul>
+     *
+     * <p>Excel-specific constraints enforced:
+     * <ul>
+     *   <li>Sheet name length ≤ 31 characters</li>
+     *   <li>No invalid characters: \ / ? * [ ]</li>
+     * </ul>
+     *
+     * @param tablesNode JSON node representing the array of tables
+     * @param errors     collection where validation errors are accumulated
+     */
     private void validateTables(JsonNode tablesNode, List<SchemaValidationException.SchemaValidationError> errors) {
         if (tablesNode == null || !tablesNode.isArray()) return;
 
@@ -56,7 +108,7 @@ public class SchemaValidatorImpl implements SchemaValidator {
 
         for (int i = 0; i < tablesNode.size(); i++) {
             JsonNode t = tablesNode.get(i);
-            String prefix = "tables[" + i + "]";
+            String prefix = "tables[" + (i+1) + "]";
             if (!t.isObject()) continue;
 
             JsonNode tableKeyNode = t.get("tableKey");
@@ -96,13 +148,29 @@ public class SchemaValidatorImpl implements SchemaValidator {
         }
     }
 
+
+    /**
+     * Validates field definitions inside a table.
+     *
+     * <p>For each field the following validations are performed:
+     * <ul>
+     *   <li>{@code fieldKey} uniqueness within the table</li>
+     *   <li>{@code headerName} must exist and be non-empty</li>
+     *   <li>{@code type} must be one of the allowed field types</li>
+     *   <li>Delegates validation of type-specific validation rules</li>
+     * </ul>
+     *
+     * @param fieldsNode  JSON node representing the array of fields
+     * @param pathPrefix  path prefix used to build precise error locations
+     * @param errors      collection where validation errors are accumulated
+     */
     private void validateFields(JsonNode fieldsNode, String pathPrefix, List<SchemaValidationException.SchemaValidationError> errors) {
         if (fieldsNode == null || !fieldsNode.isArray()) return;
         Set<String> fieldKeys = new HashSet<>();
 
         for (int i = 0; i < fieldsNode.size(); i++) {
             JsonNode f = fieldsNode.get(i);
-            String prefix = pathPrefix + "[" + i + "]";
+            String prefix = pathPrefix + "[" + (i+1) + "]";
             if (!f.isObject()) continue;
 
             JsonNode fieldKeyNode = f.get("fieldKey");
@@ -132,6 +200,24 @@ public class SchemaValidatorImpl implements SchemaValidator {
         }
     }
 
+
+    /**
+     * Validates field-level validation rules based on the field type.
+     *
+     * <p>Supported rules:
+     * <ul>
+     *   <li>{@code enum} – allowed only for TEXT fields</li>
+     *   <li>{@code min}/{@code max} – allowed only for NUMBER or CURRENCY fields</li>
+     *   <li>{@code min <= max} constraint when both are provided</li>
+     * </ul>
+     *
+     * <p>If a rule is used with an incompatible field type, a validation error is recorded.
+     *
+     * @param v            JSON node containing validation rules
+     * @param type         normalized field type
+     * @param fieldPrefix  path used for reporting validation errors
+     * @param errors       collection where validation errors are accumulated
+     */
     private void validateFieldValidations(JsonNode v, String type, String fieldPrefix, List<SchemaValidationException.SchemaValidationError> errors) {
         if (v == null || !v.isObject()) return;
         JsonNode enumNode = v.get("enum");

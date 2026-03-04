@@ -16,7 +16,7 @@ import type {
   FieldValidations,
   SchemaDefinition,
 } from '../types';
-import { validateSchema } from '../lib/validateSchema';
+import { validateSchema, sanitizeValidationsByType } from '../lib/validateSchema';
 import {
   ActionButton,
   ActionLink,
@@ -602,8 +602,8 @@ export function SchemaEditorView({
       </TableLoadingOverlay>
 
       {validationErrors.length > 0 && (
-        <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
-          <h3 className="text-sm font-medium text-amber-800">Validation errors (fix before save)</h3>
+        <div className="rounded-lg border border-amber-200 bg-amber-50 p-4" role="alert">
+          <h3 className="text-sm font-medium text-amber-800">Fix schema errors before saving</h3>
           <ul className="mt-2 list-inside list-disc space-y-0.5 text-sm text-amber-700">
             {validationErrors.map((e, i) => (
               <li key={i}><span className="font-mono text-amber-800">{e.path}</span>: {e.message}</li>
@@ -717,6 +717,12 @@ function TableModal({
   const [tableKey, setTableKey] = useState(existing?.tableKey ?? '');
   const [sheetName, setSheetName] = useState(existing?.sheetName ?? '');
   const [order, setOrder] = useState(existing?.order ?? schema.tables.length);
+  const [touched, setTouched] = useState<Record<'tableKey' | 'sheetName' | 'order', boolean>>({
+    tableKey: false,
+    sheetName: false,
+    order: false,
+  });
+  const [submitAttempted, setSubmitAttempted] = useState(false);
 
   useEffect(() => {
     if (existing) {
@@ -728,21 +734,38 @@ function TableModal({
       setSheetName('');
       setOrder(schema.tables.length);
     }
+    setTouched({ tableKey: false, sheetName: false, order: false });
+    setSubmitAttempted(false);
   }, [existing, index, schema.tables.length]);
 
-  const sheetNameError = (() => {
-    if (!sheetName.trim()) return 'Sheet name is required.';
-    if (sheetName.length > SHEET_NAME_MAX) return `Max ${SHEET_NAME_MAX} characters.`;
-    if (SHEET_NAME_FORBIDDEN.test(sheetName)) return 'Cannot contain \\ / ? * [ ]';
+  const otherTables = schema.tables.filter((_, i) => i !== index);
+  const tableKeyError = (() => {
+    if (!tableKey.trim()) return 'Table key is required.';
+    const key = tableKey.trim().toLowerCase();
+    if (otherTables.some((t) => t.tableKey.trim().toLowerCase() === key)) return 'Table key must be unique across the schema.';
     return null;
   })();
-  const tableKeyError = !tableKey.trim() ? 'Table key is required.' : null;
+  const sheetNameError = (() => {
+    const trimmed = sheetName.trim();
+    if (!trimmed) return 'Sheet name is required.';
+    if (trimmed.length > SHEET_NAME_MAX) return `Max ${SHEET_NAME_MAX} characters.`;
+    if (SHEET_NAME_FORBIDDEN.test(trimmed)) return 'Cannot contain \\ / ? * [ ]';
+    const normalized = trimmed.toLowerCase();
+    if (otherTables.some((t) => t.sheetName.trim().toLowerCase() === normalized)) return 'Sheet name must be unique (after trimming).';
+    return null;
+  })();
+
+  const showTableKeyError = (touched.tableKey || submitAttempted) && tableKeyError;
+  const showSheetNameError = (touched.sheetName || submitAttempted) && sheetNameError;
+  const canSubmit = !tableKeyError && !sheetNameError;
+  const addDisabled = !tableKey.trim() || !sheetName.trim();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (sheetNameError || tableKeyError) return;
-    if (isEdit) onEdit(index, tableKey, sheetName, order);
-    else onAdd(tableKey, sheetName, order);
+    setSubmitAttempted(true);
+    if (!canSubmit) return;
+    if (isEdit) onEdit(index, tableKey.trim(), sheetName.trim(), order);
+    else onAdd(tableKey.trim(), sheetName.trim(), order);
   };
 
   return (
@@ -753,20 +776,28 @@ function TableModal({
           <Input
             type="text"
             value={tableKey}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setTableKey(e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+              setTableKey(e.target.value);
+              setTouched((t) => ({ ...t, tableKey: true }));
+            }}
+            onBlur={() => setTouched((t) => ({ ...t, tableKey: true }))}
             placeholder="e.g. main_data"
           />
-          {tableKeyError && <p className="mt-1 text-xs text-red-600">{tableKeyError}</p>}
+          {showTableKeyError && <p className="mt-1 text-xs text-red-600">{tableKeyError}</p>}
         </div>
         <div>
           <label className="mb-1 block text-sm font-medium text-neutral-700">Sheet name *</label>
           <Input
             type="text"
             value={sheetName}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSheetName(e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+              setSheetName(e.target.value);
+              setTouched((t) => ({ ...t, sheetName: true }));
+            }}
+            onBlur={() => setTouched((t) => ({ ...t, sheetName: true }))}
             placeholder="Excel sheet name (max 31 chars)"
           />
-          {sheetNameError && <p className="mt-1 text-xs text-red-600">{sheetNameError}</p>}
+          {showSheetNameError && <p className="mt-1 text-xs text-red-600">{sheetNameError}</p>}
         </div>
         <div>
           <label className="mb-1 block text-sm font-medium text-neutral-700">Order</label>
@@ -774,17 +805,22 @@ function TableModal({
             type="number"
             min={0}
             value={order}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setOrder(Number(e.target.value) || 0)}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+              setOrder(Number(e.target.value) || 0);
+              setTouched((t) => ({ ...t, order: true }));
+            }}
           />
         </div>
         <div className="flex justify-end gap-2">
           <Button type="button" variant="secondary" onClick={onClose}>Cancel</Button>
-          <Button type="submit" disabled={!!(sheetNameError || tableKeyError)}>{isEdit ? 'Save' : 'Add'}</Button>
+          <Button type="submit" disabled={addDisabled}>{isEdit ? 'Save' : 'Add'}</Button>
         </div>
       </form>
     </Modal>
   );
 }
+
+type FieldModalTouched = Record<'fieldKey' | 'headerName' | 'type' | 'validations.enum' | 'validations.min' | 'validations.max', boolean>;
 
 function FieldModal({
   table,
@@ -807,8 +843,22 @@ function FieldModal({
   const [type, setType] = useState(existing?.type ?? 'TEXT');
   const [required, setRequired] = useState(existing?.required ?? false);
   const [enumStr, setEnumStr] = useState((existing?.validations?.enum ?? []).join(', '));
-  const [min, setMin] = useState(existing?.validations?.min ?? '');
-  const [max, setMax] = useState(existing?.validations?.max ?? '');
+  const [min, setMin] = useState<string | number>(existing?.validations?.min ?? '');
+  const [max, setMax] = useState<string | number>(existing?.validations?.max ?? '');
+  const [touched, setTouched] = useState<FieldModalTouched>({
+    'fieldKey': false,
+    'headerName': false,
+    'type': false,
+    'validations.enum': false,
+    'validations.min': false,
+    'validations.max': false,
+  });
+  const [submitAttempted, setSubmitAttempted] = useState(false);
+  const [autoCleanHint, setAutoCleanHint] = useState<string | null>(null);
+
+  const clearAutoCleanHint = () => {
+    if (autoCleanHint) setAutoCleanHint(null);
+  };
 
   useEffect(() => {
     if (existing) {
@@ -828,28 +878,96 @@ function FieldModal({
       setMin('');
       setMax('');
     }
+    setTouched({
+      'fieldKey': false,
+      'headerName': false,
+      'type': false,
+      'validations.enum': false,
+      'validations.min': false,
+      'validations.max': false,
+    });
+    setSubmitAttempted(false);
+    setAutoCleanHint(null);
   }, [existing]);
+
+  const handleTypeChange = (newType: string) => {
+    const prevType = type.trim().toUpperCase();
+    setType(newType);
+    setTouched((t) => ({ ...t, type: true }));
+    const currentValidations: FieldValidations = {};
+    const enumArr = enumStr.split(',').map((s) => s.trim()).filter(Boolean);
+    if (enumArr.length) currentValidations.enum = enumArr;
+    const minVal = min === '' ? undefined : Number(min);
+    const maxVal = max === '' ? undefined : Number(max);
+    if (minVal != null && !Number.isNaN(minVal)) currentValidations.min = minVal;
+    if (maxVal != null && !Number.isNaN(maxVal)) currentValidations.max = maxVal;
+    const cleaned = sanitizeValidationsByType(newType, currentValidations);
+    const nextType = newType.trim().toUpperCase();
+    if (nextType === 'TEXT' && (prevType === 'NUMBER' || prevType === 'CURRENCY' || prevType === 'DATE' || prevType === 'BOOLEAN')) {
+      setMin('');
+      setMax('');
+      setAutoCleanHint('Cleared min/max because type is TEXT.');
+    } else if ((nextType === 'NUMBER' || nextType === 'CURRENCY') && prevType === 'TEXT') {
+      setEnumStr('');
+      setAutoCleanHint('Cleared enum because type is NUMBER/CURRENCY.');
+    } else if (nextType === 'DATE' || nextType === 'BOOLEAN') {
+      setEnumStr('');
+      setMin('');
+      setMax('');
+      setAutoCleanHint('Cleared enum and min/max because type is DATE/BOOLEAN.');
+    } else {
+      setEnumStr((cleaned?.enum ?? []).join(', '));
+      setMin(cleaned?.min ?? '');
+      setMax(cleaned?.max ?? '');
+    }
+  };
 
   const minNum = min === '' ? undefined : Number(min);
   const maxNum = max === '' ? undefined : Number(max);
-  const rangeError = minNum != null && maxNum != null && minNum > maxNum ? 'min must be ≤ max' : null;
-  const fieldKeyError = !fieldKey.trim() ? 'Field key is required.' : null;
+  const normalizedType = type.trim().toUpperCase();
+  const enumArr = enumStr.split(',').map((s) => s.trim()).filter(Boolean);
+  const hasEnum = enumArr.length > 0;
+  const hasMinMax = minNum != null && !Number.isNaN(minNum) || maxNum != null && !Number.isNaN(maxNum);
+
+  const rangeError = minNum != null && maxNum != null && !Number.isNaN(minNum) && !Number.isNaN(maxNum) && minNum > maxNum
+    ? 'min must be ≤ max'
+    : null;
+  const enumTypeError = hasEnum && normalizedType !== 'TEXT' ? 'Enum is only allowed for type TEXT.' : null;
+  const minMaxTypeError = hasMinMax && normalizedType !== 'NUMBER' && normalizedType !== 'CURRENCY'
+    ? 'Min/max only allowed for NUMBER or CURRENCY.'
+    : null;
+
+  const otherFields = (table.fields ?? []).filter((_, i) => i !== index);
+  const fieldKeyError = (() => {
+    if (!fieldKey.trim()) return 'Field key is required.';
+    const key = fieldKey.trim().toLowerCase();
+    if (otherFields.some((f) => f.fieldKey.trim().toLowerCase() === key)) return 'Field key must be unique within this table.';
+    return null;
+  })();
   const headerError = !headerName.trim() ? 'Header name is required.' : null;
+  const validationsError = enumTypeError || minMaxTypeError || rangeError;
+
+  const showFieldKeyError = (touched['fieldKey'] || submitAttempted) && fieldKeyError;
+  const showHeaderError = (touched['headerName'] || submitAttempted) && headerError;
+  const showValidationsError = (touched['validations.enum'] || touched['validations.min'] || touched['validations.max'] || submitAttempted) && validationsError;
+  const canSubmit = !fieldKeyError && !headerError && !validationsError;
+  const addDisabled = !fieldKey.trim() || !headerName.trim();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (fieldKeyError || headerError || rangeError) return;
+    setSubmitAttempted(true);
+    if (!canSubmit) return;
     const validations: FieldValidations = {};
-    const enumArr = enumStr.split(',').map((s) => s.trim()).filter(Boolean);
-    if (enumArr.length) validations.enum = enumArr;
-    if (minNum != null && !Number.isNaN(minNum)) validations.min = minNum;
-    if (maxNum != null && !Number.isNaN(maxNum)) validations.max = maxNum;
+    if (enumArr.length && normalizedType === 'TEXT') validations.enum = enumArr;
+    if ((normalizedType === 'NUMBER' || normalizedType === 'CURRENCY') && minNum != null && !Number.isNaN(minNum)) validations.min = minNum;
+    if ((normalizedType === 'NUMBER' || normalizedType === 'CURRENCY') && maxNum != null && !Number.isNaN(maxNum)) validations.max = maxNum;
+    const sanitized = sanitizeValidationsByType(type, validations);
     const field: FieldDefinition = {
       fieldKey: fieldKey.trim(),
       headerName: headerName.trim(),
       type: type.trim(),
       required,
-      validations: Object.keys(validations).length ? validations : undefined,
+      validations: sanitized && Object.keys(sanitized).length ? sanitized : undefined,
     };
     if (isEdit) onEdit(index, field);
     else onAdd(field);
@@ -863,24 +981,32 @@ function FieldModal({
           <Input
             type="text"
             value={fieldKey}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFieldKey(e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+              setFieldKey(e.target.value);
+              setTouched((t) => ({ ...t, fieldKey: true }));
+            }}
+            onBlur={() => setTouched((t) => ({ ...t, fieldKey: true }))}
             placeholder="e.g. amount"
           />
-          {fieldKeyError && <p className="mt-1 text-xs text-red-600">{fieldKeyError}</p>}
+          {showFieldKeyError && <p className="mt-1 text-xs text-red-600">{fieldKeyError}</p>}
         </div>
         <div>
           <label className="mb-1 block text-sm font-medium text-neutral-700">Header name *</label>
           <Input
             type="text"
             value={headerName}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setHeaderName(e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+              setHeaderName(e.target.value);
+              setTouched((t) => ({ ...t, headerName: true }));
+            }}
+            onBlur={() => setTouched((t) => ({ ...t, headerName: true }))}
             placeholder="Column header in Excel"
           />
-          {headerError && <p className="mt-1 text-xs text-red-600">{headerError}</p>}
+          {showHeaderError && <p className="mt-1 text-xs text-red-600">{headerError}</p>}
         </div>
         <div>
           <label className="mb-1 block text-sm font-medium text-neutral-700">Type</label>
-          <Select value={type} onValueChange={setType}>
+          <Select value={type} onValueChange={handleTypeChange}>
             <SelectTrigger>
               <SelectValue />
             </SelectTrigger>
@@ -899,43 +1025,59 @@ function FieldModal({
         </div>
         <div>
           <label className="mb-1 block text-sm font-medium text-neutral-700">Validations</label>
+          {autoCleanHint && (
+            <p className="mb-1 text-xs text-muted-foreground" role="status">{autoCleanHint}</p>
+          )}
           <div className="space-y-2 text-sm">
             <div>
-              <label className="text-neutral-600">Enum (comma-separated)</label>
+              <label className="text-neutral-600">Enum (comma-separated, TEXT only)</label>
               <Input
                 type="text"
                 value={enumStr}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEnumStr(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                  setEnumStr(e.target.value);
+                  setTouched((t) => ({ ...t, 'validations.enum': true }));
+                  clearAutoCleanHint();
+                }}
+                onFocus={clearAutoCleanHint}
                 className="mt-0.5"
                 placeholder="A, B, C"
               />
             </div>
             <div className="flex gap-2">
               <div>
-                <label className="text-neutral-600">Min</label>
+                <label className="text-neutral-600">Min (NUMBER/CURRENCY only)</label>
                 <Input
                   type="number"
                   value={min}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setMin(e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                    setMin(e.target.value);
+                    setTouched((t) => ({ ...t, 'validations.min': true }));
+                    clearAutoCleanHint();
+                  }}
                   className="mt-0.5"
                 />
               </div>
               <div>
-                <label className="text-neutral-600">Max</label>
+                <label className="text-neutral-600">Max (NUMBER/CURRENCY only)</label>
                 <Input
                   type="number"
                   value={max}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setMax(e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                    setMax(e.target.value);
+                    setTouched((t) => ({ ...t, 'validations.max': true }));
+                    clearAutoCleanHint();
+                  }}
                   className="mt-0.5"
                 />
               </div>
             </div>
-            {rangeError && <p className="text-xs text-red-600">{rangeError}</p>}
+            {showValidationsError && validationsError && <p className="text-xs text-red-600">{validationsError}</p>}
           </div>
         </div>
         <div className="flex justify-end gap-2">
           <Button type="button" variant="secondary" onClick={onClose}>Cancel</Button>
-          <Button type="submit" disabled={!!(fieldKeyError || headerError || rangeError)}>{isEdit ? 'Save' : 'Add'}</Button>
+          <Button type="submit" disabled={addDisabled}>{isEdit ? 'Save' : 'Add'}</Button>
         </div>
       </form>
     </Modal>
