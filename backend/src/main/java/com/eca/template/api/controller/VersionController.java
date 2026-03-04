@@ -6,6 +6,7 @@ import com.eca.template.api.dto.UpdateSchemaRequest;
 import com.eca.template.api.dto.UpdateSchemaResponse;
 import com.eca.template.api.dto.VersionDetailResponse;
 import com.eca.template.application.service.TemplateApplicationService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.web.bind.annotation.*;
 
@@ -17,6 +18,7 @@ import java.util.UUID;
 /**
  * API controller for version operations. Delegates to application layer only.
  */
+@Tag(name = "Version API", description = "Operation related to template versions")
 @RestController
 @RequestMapping("/api/versions")
 public class VersionController {
