@@ -571,22 +571,27 @@ export function SchemaEditorView({
                         description={`Add fields to the "${selectedTable.tableKey}" table.`}
                       />
                     ) : (
-                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                      <div
+                        className="grid gap-3"
+                        style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 280px), 1fr))' }}
+                      >
                         {(selectedTable.fields ?? []).map((f) => (
                           <div
                             key={f.fieldKey}
-                            className="group relative rounded-lg border border-neutral-200 bg-white p-3 shadow-sm transition-shadow hover:shadow-md"
+                            className="group flex min-w-0 rounded-lg border border-neutral-200 bg-white p-3 shadow-sm transition-[box-shadow,border-color] hover:border-neutral-300 hover:shadow"
                           >
-                            <div className="pr-16 min-w-0">
-                              <p className="truncate font-medium text-neutral-900">{f.headerName}</p>
+                            <div className="min-w-0 flex-1">
+                              <p className="line-clamp-2 font-medium text-neutral-900">{f.headerName}</p>
                               <p className="mt-0.5 font-mono text-xs text-neutral-500">{f.fieldKey}</p>
-                              <p className="mt-0.5 text-xs text-neutral-600">{f.type}</p>
-                              {f.required && (
-                                <span className="mt-1 inline-block text-xs font-medium text-amber-700">* Required</span>
-                              )}
+                              <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-neutral-600">
+                                <span>{f.type}</span>
+                                {f.required && (
+                                  <span className="font-medium text-amber-700">* Required</span>
+                                )}
+                              </div>
                             </div>
                             {!readOnly && (
-                              <span className="absolute right-2 top-2 flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+                              <div className="flex shrink-0 flex-col gap-1 pl-2 opacity-75 transition-opacity group-hover:opacity-100">
                                 <ActionButton
                                   as="button"
                                   aria-label="Edit field"
@@ -602,7 +607,7 @@ export function SchemaEditorView({
                                 >
                                   <IconDelete />
                                 </DangerActionButton>
-                              </span>
+                              </div>
                             )}
                           </div>
                         ))}
