@@ -6,6 +6,7 @@ import { exportVersion } from '@/features/export/api';
 import type { ExportRequest } from '@/features/export/types';
 import type { TemplateDetail } from '../types';
 import type { SchemaDefinition, ExportProfile } from '@/features/schema/types';
+import { buildSchemaPayloadForUpdate } from '@/features/schema/lib/buildSchemaPayload';
 import { TemplateWizardLayout } from '../components/TemplateWizardLayout';
 import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/shared/ui/Button';
@@ -53,7 +54,7 @@ export default function CreateTemplateExportPage() {
   const [error, setError] = useState<FrontendError | null>(null);
   const [exporting, setExporting] = useState(false);
   const [savingSettings, setSavingSettings] = useState(false);
-  const [includeInstructionsSheet, setIncludeInstructionsSheet] = useState(true);
+  const [includeInstructionsSheet, setIncludeInstructionsSheet] = useState(false);
   const [includeValidationRules, setIncludeValidationRules] = useState(true);
   const [protectSheets, setProtectSheets] = useState(false);
   const [fileName, setFileName] = useState('');
@@ -74,7 +75,7 @@ export default function CreateTemplateExportPage() {
         const parsed = parseSchema(versionDetail.schemaJson);
         setSchema(parsed);
         const ep = parsed.exportProfile;
-        setIncludeInstructionsSheet(ep?.includeInstructionsSheet ?? true);
+        setIncludeInstructionsSheet(ep?.includeInstructionsSheet ?? false);
         setIncludeValidationRules(ep?.includeValidationRules ?? true);
         setProtectSheets(ep?.protectSheets ?? false);
         setFileName(`${(parsed.templateName || data.name || 'template')}_v${latest.versionNumber}.xlsx`);
@@ -121,14 +122,11 @@ export default function CreateTemplateExportPage() {
     if (!latest) return;
     setSavingSettings(true);
     try {
-      const payload = {
-        ...(schema.templateName != null && { templateName: schema.templateName }),
-        sectorCode: schema.sectorCode ?? '',
-        tables: schema.tables,
-        exportProfile: { format: 'XLSX', includeInstructionsSheet, includeValidationRules, protectSheets },
-      };
+      const exportProfile = { format: 'XLSX' as const, includeInstructionsSheet, includeValidationRules, protectSheets };
+      const schemaWithExportProfile: SchemaDefinition = { ...schema, exportProfile };
+      const payload = buildSchemaPayloadForUpdate(schemaWithExportProfile);
       await versionsApi.updateSchema(latest.id, payload);
-      setSchema((prev) => prev ? { ...prev, exportProfile: payload.exportProfile } : null);
+      setSchema((prev) => prev ? { ...prev, exportProfile } : null);
       showToast('Export settings saved.', 'success');
     } catch (e) {
       const err = normalizeHttpError(e);

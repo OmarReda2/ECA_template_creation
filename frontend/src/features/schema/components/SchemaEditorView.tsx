@@ -16,6 +16,7 @@ import type {
   FieldValidations,
   SchemaDefinition,
 } from '../types';
+import { buildSchemaPayloadForUpdate } from '../lib/buildSchemaPayload';
 import { validateSchema, sanitizeValidationsByType } from '../lib/validateSchema';
 import {
   ActionButton,
@@ -91,33 +92,6 @@ function normalizeField(f: Record<string, unknown>): FieldDefinition {
     type: String(f.type ?? 'TEXT').trim(),
     required: Boolean(f.required),
     validations: validationsOut,
-  };
-}
-
-function buildPutPayload(schema: SchemaDefinition): unknown {
-  return {
-    ...(schema.templateName != null && { templateName: schema.templateName }),
-    sectorCode: schema.sectorCode ?? '',
-    tables: schema.tables.map((t) => ({
-      tableKey: t.tableKey,
-      sheetName: t.sheetName,
-      ...(t.order != null && { order: t.order }),
-      fields: (t.fields ?? []).map((f) => ({
-        fieldKey: f.fieldKey,
-        headerName: f.headerName,
-        type: f.type,
-        ...(f.required != null && { required: f.required }),
-        ...(f.validations &&
-          (f.validations.enum?.length || f.validations.min != null || f.validations.max != null) && {
-            validations: {
-              ...(f.validations.enum?.length && { enumValues: f.validations.enum }),
-              ...(f.validations.min != null && { min: f.validations.min }),
-              ...(f.validations.max != null && { max: f.validations.max }),
-            },
-          }),
-      })),
-    })),
-    ...(schema.exportProfile != null && { exportProfile: schema.exportProfile }),
   };
 }
 
@@ -263,7 +237,7 @@ export function SchemaEditorView({
         sectorCode,
         ...(templateNameResolved != null && templateNameResolved !== '' && { templateName: templateNameResolved }),
       };
-      const payload = buildPutPayload(mergedSchema);
+      const payload = buildSchemaPayloadForUpdate(mergedSchema);
       await versionsApi.updateSchema(versionId, payload);
       showToast('Schema saved.', 'success');
       initialSchemaRef.current = JSON.parse(JSON.stringify(schema));
@@ -669,7 +643,7 @@ export function SchemaEditorView({
         </button>
         {advancedJsonOpen && (
           <pre className="mt-2 max-h-48 overflow-auto rounded bg-white p-2 font-mono text-xs text-neutral-700">
-            {JSON.stringify(buildPutPayload(schema), null, 2)}
+            {JSON.stringify(buildSchemaPayloadForUpdate(schema), null, 2)}
           </pre>
         )}
       </div>
