@@ -25,6 +25,8 @@ public class SXSSFExcelWorkbookBuilder implements ExcelWorkbookBuilder {
     private static final String INSTRUCTIONS_SHEET_NAME = "Instructions";
     private static final int VALIDATION_ROW_END = 1000;
     private static final int PROTECTION_DATA_ROW_END = 1000;
+    /** Excel width units for data-sheet columns (~30 character units; POI uses 1/256th). */
+    private static final int DATA_SHEET_COLUMN_WIDTH = 30 * 256;
     private static final String GENERATOR_VERSION = "template-service/0.1";
     private static final String REQUIRED_HEADER_SUFFIX = " *";
 
@@ -145,6 +147,10 @@ public class SXSSFExcelWorkbookBuilder implements ExcelWorkbookBuilder {
                 cell.setCellValue(headerName);
                 cell.setCellStyle(headerStyle);
             }
+        }
+
+        for (int i = 0; i < numCols; i++) {
+            sheet.setColumnWidth(i, DATA_SHEET_COLUMN_WIDTH);
         }
 
         sheet.createFreezePane(0, 1);
