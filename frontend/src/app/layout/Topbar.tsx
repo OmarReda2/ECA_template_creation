@@ -49,15 +49,7 @@ function AppTopbarBreadcrumbs() {
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>
-            <BreadcrumbLink asChild>
-              <Link to={`/templates/${params.templateId}`}>
-                Version v{versionNumber ?? '?'}
-              </Link>
-            </BreadcrumbLink>
-          </BreadcrumbItem>
-          <BreadcrumbSeparator />
-          <BreadcrumbItem>
-            <BreadcrumbPage>Schema</BreadcrumbPage>
+            <BreadcrumbPage>Schema (v{versionNumber ?? '?'})</BreadcrumbPage>
           </BreadcrumbItem>
         </BreadcrumbList>
       </Breadcrumb>

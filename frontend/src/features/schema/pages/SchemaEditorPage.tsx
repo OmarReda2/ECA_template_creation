@@ -13,7 +13,7 @@ export default function SchemaEditorPage() {
       templateId={templateId}
       versionId={versionId}
       backPath={`/templates/${templateId}`}
-      backLabel="Back to template details"
+      backLabel="Back to Template Details"
     />
   );
 }

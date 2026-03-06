@@ -270,10 +270,8 @@ public class SXSSFExcelWorkbookBuilder implements ExcelWorkbookBuilder {
             applyValidations(sheet, tableKey, fields, validationSlotMap, validationSheetName);
         }
 
-        if (options.protectSheets()) {
-            protectSheetWithUnlockedDataRange(sheet, numCols);
-        }
-        applyCurrencyColumnFormats(workbook, sheet, fields, numCols, options.protectSheets());
+        // Sheet protection disabled for stability; export always uses current options without protection.
+        applyCurrencyColumnFormats(workbook, sheet, fields, numCols, false);
     }
 
     /** Applies numeric/currency format (#,##0.00) to CURRENCY columns for data rows 1..VALIDATION_ROW_END. */

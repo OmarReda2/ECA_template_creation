@@ -67,13 +67,17 @@ export default function TemplatesListPage() {
 
   const goToCreate = () => navigate('/templates/create');
 
+  const showTopCreateButton = templates.length > 0 && !loading;
+
   return (
     <div className="space-y-6">
       <PageHeader
         rightActions={
-          <Button type="button" onClick={goToCreate} disabled={loading}>
-            Create Template
-          </Button>
+          showTopCreateButton ? (
+            <Button type="button" onClick={goToCreate} disabled={loading}>
+              Create Template
+            </Button>
+          ) : undefined
         }
       />
 

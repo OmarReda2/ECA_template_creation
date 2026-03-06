@@ -415,7 +415,7 @@ export function SchemaEditorView({
           {backLabel}
         </ActionLink>
         <PageHeader
-          description={`Version ${version.versionNumber}`}
+          title="Schema Editor"
           rightActions={
             <div className="flex gap-2">
               <Button variant="secondary" onClick={handleCancel} disabled={readOnly || saving}>Cancel</Button>

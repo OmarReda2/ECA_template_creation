@@ -6,7 +6,6 @@ import { exportVersion } from '@/features/export/api';
 import type { ExportRequest } from '@/features/export/types';
 import type { TemplateDetail } from '../types';
 import type { SchemaDefinition, ExportProfile } from '@/features/schema/types';
-import { buildSchemaPayloadForUpdate } from '@/features/schema/lib/buildSchemaPayload';
 import { TemplateWizardLayout } from '../components/TemplateWizardLayout';
 import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/shared/ui/Button';
@@ -53,10 +52,8 @@ export default function CreateTemplateExportPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<FrontendError | null>(null);
   const [exporting, setExporting] = useState(false);
-  const [savingSettings, setSavingSettings] = useState(false);
   const [includeInstructionsSheet, setIncludeInstructionsSheet] = useState(false);
   const [includeValidationRules, setIncludeValidationRules] = useState(true);
-  const [protectSheets, setProtectSheets] = useState(false);
   const [fileName, setFileName] = useState('');
 
   const loadTemplate = useCallback(async () => {
@@ -77,7 +74,6 @@ export default function CreateTemplateExportPage() {
         const ep = parsed.exportProfile;
         setIncludeInstructionsSheet(ep?.includeInstructionsSheet ?? false);
         setIncludeValidationRules(ep?.includeValidationRules ?? true);
-        setProtectSheets(ep?.protectSheets ?? false);
         setFileName(`${(parsed.templateName || data.name || 'template')}_v${latest.versionNumber}.xlsx`);
       } else {
         setSchema({ sectorCode: data.sectorCode ?? '', tables: [] });
@@ -115,27 +111,6 @@ export default function CreateTemplateExportPage() {
     return { tablesCount, fieldsCount, estimatedKb: estimateFileSizeKb(tablesCount, fieldsCount) };
   }, [schema]);
 
-  const handleSaveSettings = useCallback(async () => {
-    if (!template || !schema) return;
-    const versions = template.versions ?? [];
-    const latest = versions.length > 0 ? versions.reduce((a, b) => (b.versionNumber ?? 0) > (a.versionNumber ?? 0) ? b : a) : null;
-    if (!latest) return;
-    setSavingSettings(true);
-    try {
-      const exportProfile = { format: 'XLSX' as const, includeInstructionsSheet, includeValidationRules, protectSheets };
-      const schemaWithExportProfile: SchemaDefinition = { ...schema, exportProfile };
-      const payload = buildSchemaPayloadForUpdate(schemaWithExportProfile);
-      await versionsApi.updateSchema(latest.id, payload);
-      setSchema((prev) => prev ? { ...prev, exportProfile } : null);
-      showToast('Export settings saved.', 'success');
-    } catch (e) {
-      const err = normalizeHttpError(e);
-      showErrorToast(getErrorMessage(err, true), { status: err.status, details: getErrorMessage(err, true) });
-    } finally {
-      setSavingSettings(false);
-    }
-  }, [template, schema, includeInstructionsSheet, includeValidationRules, protectSheets, showToast, showErrorToast]);
-
   const handleExport = useCallback(async () => {
     if (!template) return;
     const versions = template.versions ?? [];
@@ -148,7 +123,7 @@ export default function CreateTemplateExportPage() {
         fileName: fileName.trim() ? sanitizeFileName(fileName.trim()) : undefined,
         includeInstructionsSheet,
         includeValidationRules,
-        protectSheets,
+        protectSheets: false,
       };
       const { blob, contentDisposition } = await exportVersion(latest.id, request);
       const fallback = fileName.trim() ? sanitizeFileName(fileName.trim()) : `${template.name ?? 'template'}_v${latest.versionNumber}.xlsx`;
@@ -160,7 +135,7 @@ export default function CreateTemplateExportPage() {
     } finally {
       setExporting(false);
     }
-  }, [template, fileName, includeInstructionsSheet, includeValidationRules, protectSheets, showToast, showErrorToast]);
+  }, [template, fileName, includeInstructionsSheet, includeValidationRules, showToast, showErrorToast]);
 
   if (!templateId) {
     return null;
@@ -177,9 +152,6 @@ export default function CreateTemplateExportPage() {
         Back to Step 2
       </Button>
       <div className="flex gap-2">
-        <Button variant="secondary" onClick={handleSaveSettings} disabled={!latestVersion || savingSettings}>
-          {savingSettings ? <><Spinner className="h-4 w-4" /> Saving…</> : 'Save Settings'}
-        </Button>
         <Button onClick={handleExport} disabled={!canExport || exporting}>
           {exporting ? <><Spinner className="h-4 w-4" /> Exporting…</> : 'Export Excel File'}
         </Button>
@@ -220,15 +192,16 @@ export default function CreateTemplateExportPage() {
         description="Step 3: Export your schema as an Excel file with optional settings."
         bottomActions={bottomActions}
       >
-        <div className="space-y-6">
-          <section>
-            <h2 className="text-lg font-semibold text-neutral-900">Export Studio</h2>
-            <p className="text-sm text-muted-foreground">
-              Configure options and export your template as Excel (.xlsx). Headers will be styled and the first row frozen.
-            </p>
-          </section>
+        <Card className="border-border bg-neutral-50/50 shadow-sm">
+          <CardContent className="p-6 space-y-6">
+            <section>
+              <h2 className="text-lg font-semibold text-neutral-900">Export Studio</h2>
+              <p className="text-sm text-muted-foreground mt-1">
+                Configure options and export your template as Excel (.xlsx). Headers will be styled and the first row frozen.
+              </p>
+            </section>
 
-          <div className="grid gap-4 sm:grid-cols-3">
+            <div className="grid gap-4 sm:grid-cols-3">
             <Card>
               <CardContent className="pt-4">
                 <p className="text-2xl font-semibold text-neutral-900">{stats.tablesCount}</p>
@@ -260,10 +233,6 @@ export default function CreateTemplateExportPage() {
                 <label className="flex items-center gap-2 rounded-lg border border-neutral-200 p-3 hover:bg-neutral-50 cursor-pointer">
                   <input type="checkbox" checked={includeValidationRules} onChange={(e) => setIncludeValidationRules(e.target.checked)} />
                   <span className="text-sm">Include Data Validation Rules</span>
-                </label>
-                <label className="flex items-center gap-2 rounded-lg border border-neutral-200 p-3 hover:bg-neutral-50 cursor-pointer">
-                  <input type="checkbox" checked={protectSheets} onChange={(e) => setProtectSheets(e.target.checked)} />
-                  <span className="text-sm">Protect Sheets from Editing</span>
                 </label>
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -352,7 +321,8 @@ export default function CreateTemplateExportPage() {
               </div>
             </CardContent>
           </Card>
-        </div>
+        </CardContent>
+        </Card>
       </TemplateWizardLayout>
     </TooltipProvider>
   );
