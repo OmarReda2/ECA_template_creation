@@ -226,6 +226,12 @@ public class SchemaValidatorImpl implements SchemaValidator {
                 errors.add(new SchemaValidationException.SchemaValidationError(fieldPrefix + ".validations.enum", "enum is only allowed for type TEXT"));
             }
         }
+        JsonNode enumValuesNode = v.get("enumValues");
+        if (enumValuesNode != null && enumValuesNode.isArray() && enumValuesNode.size() > 0) {
+            if (!TYPES_ALLOWING_ENUM.contains(type)) {
+                errors.add(new SchemaValidationException.SchemaValidationError(fieldPrefix + ".validations.enumValues", "enumValues is only allowed for type TEXT"));
+            }
+        }
         JsonNode minNode = v.get("min");
         JsonNode maxNode = v.get("max");
         if ((minNode != null && minNode.isNumber()) || (maxNode != null && maxNode.isNumber())) {

@@ -40,7 +40,7 @@ export function sanitizeValidationsByType(
     if (validations.max != null && typeof validations.max === 'number') out.max = validations.max;
     // enum not allowed — omit
   }
-  // DATE, BOOLEAN: no validations allowed
+  // DATE, BOOLEAN: no validations allowed (enum and min/max omitted)
 
   if (Object.keys(out).length === 0) return undefined;
   return out;

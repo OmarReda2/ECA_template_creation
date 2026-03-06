@@ -1073,50 +1073,57 @@ function FieldModal({
           {autoCleanHint && (
             <p className="mb-1 text-xs text-muted-foreground" role="status">{autoCleanHint}</p>
           )}
+          {normalizedType === 'BOOLEAN' && (
+            <p className="text-sm text-neutral-600">This field will export as a Yes/No dropdown.</p>
+          )}
           <div className="space-y-2 text-sm">
-            <div>
-              <label className="text-neutral-600">Enum (comma-separated, TEXT only)</label>
-              <Input
-                type="text"
-                value={enumStr}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                  setEnumStr(e.target.value);
-                  setTouched((t) => ({ ...t, 'validations.enum': true }));
-                  clearAutoCleanHint();
-                }}
-                onFocus={clearAutoCleanHint}
-                className="mt-0.5"
-                placeholder="A, B, C"
-              />
-            </div>
-            <div className="flex gap-2">
+            {normalizedType === 'TEXT' && (
               <div>
-                <label className="text-neutral-600">Min (NUMBER/CURRENCY only)</label>
+                <label className="text-neutral-600">Enum (comma-separated)</label>
                 <Input
-                  type="number"
-                  value={min}
+                  type="text"
+                  value={enumStr}
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                    setMin(e.target.value);
-                    setTouched((t) => ({ ...t, 'validations.min': true }));
+                    setEnumStr(e.target.value);
+                    setTouched((t) => ({ ...t, 'validations.enum': true }));
                     clearAutoCleanHint();
                   }}
+                  onFocus={clearAutoCleanHint}
                   className="mt-0.5"
+                  placeholder="A, B, C"
                 />
               </div>
-              <div>
-                <label className="text-neutral-600">Max (NUMBER/CURRENCY only)</label>
-                <Input
-                  type="number"
-                  value={max}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                    setMax(e.target.value);
-                    setTouched((t) => ({ ...t, 'validations.max': true }));
-                    clearAutoCleanHint();
-                  }}
-                  className="mt-0.5"
-                />
+            )}
+            {(normalizedType === 'NUMBER' || normalizedType === 'CURRENCY') && (
+              <div className="flex gap-2">
+                <div>
+                  <label className="text-neutral-600">Min</label>
+                  <Input
+                    type="number"
+                    value={min}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                      setMin(e.target.value);
+                      setTouched((t) => ({ ...t, 'validations.min': true }));
+                      clearAutoCleanHint();
+                    }}
+                    className="mt-0.5"
+                  />
+                </div>
+                <div>
+                  <label className="text-neutral-600">Max</label>
+                  <Input
+                    type="number"
+                    value={max}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                      setMax(e.target.value);
+                      setTouched((t) => ({ ...t, 'validations.max': true }));
+                      clearAutoCleanHint();
+                    }}
+                    className="mt-0.5"
+                  />
+                </div>
               </div>
-            </div>
+            )}
             {showValidationsError && validationsError && <p className="text-xs text-red-600">{validationsError}</p>}
           </div>
         </div>

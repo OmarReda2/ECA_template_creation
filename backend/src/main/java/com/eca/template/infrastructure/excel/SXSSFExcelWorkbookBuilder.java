@@ -273,6 +273,31 @@ public class SXSSFExcelWorkbookBuilder implements ExcelWorkbookBuilder {
         if (options.protectSheets()) {
             protectSheetWithUnlockedDataRange(sheet, numCols);
         }
+        applyCurrencyColumnFormats(workbook, sheet, fields, numCols, options.protectSheets());
+    }
+
+    /** Applies numeric/currency format (#,##0.00) to CURRENCY columns for data rows 1..VALIDATION_ROW_END. */
+    private void applyCurrencyColumnFormats(Workbook workbook, Sheet sheet, JsonNode fields, int numCols, boolean sheetProtected) {
+        if (fields == null || !fields.isArray()) return;
+        short currencyFormat = workbook.createDataFormat().getFormat("#,##0.00");
+        CellStyle currencyStyle = workbook.createCellStyle();
+        currencyStyle.setDataFormat(currencyFormat);
+        if (sheetProtected) currencyStyle.setLocked(false);
+        int colIndex = 0;
+        for (JsonNode field : fields) {
+            String type = field.has("type") && field.get("type").isTextual() ? field.get("type").asText().trim().toUpperCase() : "";
+            if ("CURRENCY".equals(type)) {
+                for (int r = 1; r <= VALIDATION_ROW_END; r++) {
+                    Row row = sheet.getRow(r);
+                    if (row == null) row = sheet.createRow(r);
+                    Cell cell = row.getCell(colIndex);
+                    if (cell == null) cell = row.createCell(colIndex);
+                    cell.setCellStyle(currencyStyle);
+                }
+            }
+            colIndex++;
+            if (colIndex >= numCols) break;
+        }
     }
 
     private void protectSheetWithUnlockedDataRange(Sheet sheet, int numCols) {
@@ -379,27 +404,64 @@ public class SXSSFExcelWorkbookBuilder implements ExcelWorkbookBuilder {
             if (validations != null && validations.isObject() && ("NUMBER".equals(type) || "CURRENCY".equals(type))) {
                 JsonNode minNode = validations.get("min");
                 JsonNode maxNode = validations.get("max");
-                if (minNode != null && minNode.isNumber() && maxNode != null && maxNode.isNumber()) {
+                double minVal = minNode != null && minNode.isNumber() ? minNode.asDouble() : Double.NaN;
+                double maxVal = maxNode != null && maxNode.isNumber() ? maxNode.asDouble() : Double.NaN;
+                boolean hasMin = !Double.isNaN(minVal);
+                boolean hasMax = !Double.isNaN(maxVal);
+                if (hasMin || hasMax) {
                     try {
-                        double min = minNode.asDouble();
-                        double max = maxNode.asDouble();
-                        DataValidationConstraint constraint = helper.createNumericConstraint(
-                                DataValidationConstraint.ValidationType.DECIMAL,
-                                DataValidationConstraint.OperatorType.BETWEEN,
-                                String.valueOf(min),
-                                String.valueOf(max)
-                        );
-                        CellRangeAddressList addressList = new CellRangeAddressList(1, VALIDATION_ROW_END, colIndex, colIndex);DataValidation validation = helper.createValidation(constraint, addressList);
-
+                        DataValidationConstraint constraint;
+                        if (hasMin && hasMax && minVal <= maxVal) {
+                            constraint = helper.createNumericConstraint(
+                                    DataValidationConstraint.ValidationType.DECIMAL,
+                                    DataValidationConstraint.OperatorType.BETWEEN,
+                                    String.valueOf(minVal),
+                                    String.valueOf(maxVal)
+                            );
+                        } else if (hasMin) {
+                            constraint = helper.createNumericConstraint(
+                                    DataValidationConstraint.ValidationType.DECIMAL,
+                                    DataValidationConstraint.OperatorType.GREATER_OR_EQUAL,
+                                    String.valueOf(minVal),
+                                    null
+                            );
+                        } else {
+                            constraint = helper.createNumericConstraint(
+                                    DataValidationConstraint.ValidationType.DECIMAL,
+                                    DataValidationConstraint.OperatorType.LESS_OR_EQUAL,
+                                    String.valueOf(maxVal),
+                                    null
+                            );
+                        }
+                        CellRangeAddressList addressList = new CellRangeAddressList(1, VALIDATION_ROW_END, colIndex, colIndex);
+                        DataValidation validation = helper.createValidation(constraint, addressList);
                         validation.setErrorStyle(DataValidation.ErrorStyle.STOP);
                         validation.setShowErrorBox(true);
                         validation.setEmptyCellAllowed(true);
                         validation.setSuppressDropDownArrow(false);
-
                         sheet.addValidationData(validation);
                     } catch (Exception ignored) {
                         // skip if unsupported
                     }
+                }
+            }
+
+            if ("BOOLEAN".equals(type)) {
+                try {
+                    DataValidationConstraint constraint = helper.createExplicitListConstraint(new String[]{"Yes", "No"});
+                    CellRangeAddressList addressList = new CellRangeAddressList(1, VALIDATION_ROW_END, colIndex, colIndex);
+                    DataValidation validation = helper.createValidation(constraint, addressList);
+                    validation.setErrorStyle(DataValidation.ErrorStyle.STOP);
+                    validation.setShowErrorBox(true);
+                    validation.setEmptyCellAllowed(true);
+                    if (validation instanceof XSSFDataValidation) {
+                        validation.setSuppressDropDownArrow(true);
+                    } else {
+                        validation.setSuppressDropDownArrow(false);
+                    }
+                    sheet.addValidationData(validation);
+                } catch (Exception ignored) {
+                    // skip if unsupported
                 }
             }
             colIndex++;
