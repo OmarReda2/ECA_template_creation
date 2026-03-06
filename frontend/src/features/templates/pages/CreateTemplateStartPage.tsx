@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus } from 'lucide-react';
+import { BarChart3, ClipboardList, DollarSign, Plus } from 'lucide-react';
 import { templatesApi } from '../api';
 import { TemplateWizardLayout } from '../components/TemplateWizardLayout';
 import { Button } from '@/shared/ui/Button';
@@ -14,9 +14,11 @@ import {
   getErrorMessage,
 } from '@/shared/errors/errorTypes';
 
+/** Preset-style cards: design placeholders only, non-clickable. */
 const PRESET_CARDS = [
-  { title: 'Industry Template', description: 'Start from a pre-built industry schema.', badge: 'Coming soon' },
-  { title: 'Sector Template', description: 'Use a sector-specific template.', badge: 'Coming soon' },
+  { title: 'Sales Data Template', description: 'Pre-built schema for sales and pipeline data.', badge: 'Coming later', Icon: BarChart3 },
+  { title: 'Product Pricing Template', description: 'Starter layout for product and pricing fields.', badge: 'Coming later', Icon: DollarSign },
+  { title: 'Market Survey Template', description: 'Template for surveys and market research.', badge: 'Coming later', Icon: ClipboardList },
 ] as const;
 
 export default function CreateTemplateStartPage() {
@@ -66,40 +68,48 @@ export default function CreateTemplateStartPage() {
   return (
     <TemplateWizardLayout
       title="Create Template"
-      description="Step 1: Choose how you want to create your template."
+      description="Step 1: Choose how you want to start your template."
     >
       <Card className="border-border bg-neutral-50/50 shadow-sm">
-        <CardContent className="p-6">
+        <CardContent className="p-6 md:p-8">
           <p className="text-sm text-muted-foreground mb-6">
-            Start from a preset or create a custom template with your own name and sector.
+            Use a starter layout or create a custom template from scratch.
           </p>
           <div
             className="grid gap-4"
             style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 240px), 1fr))' }}
           >
-            {PRESET_CARDS.map((preset) => (
-              <div
-                key={preset.title}
-                className="flex flex-col rounded-lg border border-neutral-200 bg-white p-4 opacity-60 cursor-not-allowed select-none"
-                aria-disabled="true"
-              >
-                <span className="text-xs font-medium text-neutral-500 uppercase tracking-wide">
-                  {preset.badge}
-                </span>
-                <h3 className="mt-2 text-sm font-semibold text-neutral-900">{preset.title}</h3>
-                <p className="mt-1 text-xs text-neutral-600">{preset.description}</p>
-              </div>
-            ))}
+            {PRESET_CARDS.map((preset) => {
+              const Icon = preset.Icon;
+              return (
+                <div
+                  key={preset.title}
+                  role="presentation"
+                  className="flex flex-col rounded-lg border border-neutral-200 bg-neutral-100/80 p-4 opacity-75 cursor-not-allowed select-none pointer-events-none"
+                  aria-disabled="true"
+                  aria-label={`${preset.title} (${preset.badge})`}
+                >
+                  <span className="text-xs font-medium text-neutral-500 uppercase tracking-wide">
+                    {preset.badge}
+                  </span>
+                  <span className="mt-2 flex h-9 w-9 items-center justify-center rounded-md bg-neutral-200/80 text-neutral-500" aria-hidden>
+                    <Icon className="h-4 w-4" />
+                  </span>
+                  <h3 className="mt-2 text-sm font-semibold text-neutral-700">{preset.title}</h3>
+                  <p className="mt-1 text-xs text-neutral-500">{preset.description}</p>
+                </div>
+              );
+            })}
             <button
               type="button"
               onClick={openCreateModal}
-              className="flex flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-neutral-300 bg-white p-6 text-left transition-colors hover:border-primary hover:bg-primary/5 hover:border-solid focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
+              className="flex flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-neutral-300 bg-white p-6 text-left transition-[border-color,background-color,box-shadow] hover:border-primary hover:bg-primary/5 hover:border-solid hover:shadow focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
             >
-              <span className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary">
-                <Plus className="h-5 w-5" aria-hidden />
+              <span className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary" aria-hidden>
+                <Plus className="h-5 w-5" />
               </span>
               <span className="text-sm font-semibold text-neutral-900">Custom Template</span>
-              <span className="text-xs text-neutral-600">Name and sector code</span>
+              <span className="text-xs text-neutral-600">Create a new template from scratch</span>
             </button>
           </div>
         </CardContent>
