@@ -410,10 +410,10 @@ export function SchemaEditorView({
   const topBar =
     variant === 'wizard' ? null : (
       <div className="space-y-2">
-        <ActionLink to={backPath}>
+        {/* <ActionLink to={backPath}>
           <IconArrowLeft />
           {backLabel}
-        </ActionLink>
+        </ActionLink> */}
         <PageHeader
           title="Schema Editor"
           rightActions={

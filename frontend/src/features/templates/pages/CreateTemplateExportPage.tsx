@@ -62,23 +62,23 @@ export default function CreateTemplateExportPage() {
     setError(null);
     try {
       const data = await templatesApi.getById(templateId);
-      setTemplate(data);
       const versions = data.versions ?? [];
       const latest = versions.length > 0
         ? versions.reduce((a, b) => (b.versionNumber ?? 0) > (a.versionNumber ?? 0) ? b : a)
         : null;
-      if (latest) {
-        const versionDetail = await versionsApi.getById(latest.id);
-        const parsed = parseSchema(versionDetail.schemaJson);
-        setSchema(parsed);
-        const ep = parsed.exportProfile;
-        setIncludeInstructionsSheet(ep?.includeInstructionsSheet ?? false);
-        setIncludeValidationRules(ep?.includeValidationRules ?? true);
-        setFileName(`${(parsed.templateName || data.name || 'template')}_v${latest.versionNumber}.xlsx`);
-      } else {
-        setSchema({ sectorCode: data.sectorCode ?? '', tables: [] });
-        setFileName(`${data.name ?? 'template'}_v1.xlsx`);
+      if (!latest) {
+        setLoading(false);
+        navigate(`/templates/create/${templateId}`, { replace: true });
+        return;
       }
+      setTemplate(data);
+      const versionDetail = await versionsApi.getById(latest.id);
+      const parsed = parseSchema(versionDetail.schemaJson);
+      setSchema(parsed);
+      const ep = parsed.exportProfile;
+      setIncludeInstructionsSheet(ep?.includeInstructionsSheet ?? false);
+      setIncludeValidationRules(ep?.includeValidationRules ?? true);
+      setFileName(`${(parsed.templateName || data.name || 'template')}_v${latest.versionNumber}.xlsx`);
     } catch (e) {
       const err = normalizeHttpError(e);
       setError(err);
@@ -87,12 +87,12 @@ export default function CreateTemplateExportPage() {
       showErrorToast(getErrorMessage(err, true), {
         status: err.status,
         details: getErrorMessage(err, true),
-        onRetry: loadTemplate,
       });
+      navigate(templateId ? `/templates/create/${templateId}` : '/templates/create', { replace: true });
     } finally {
       setLoading(false);
     }
-  }, [templateId, showErrorToast]);
+  }, [templateId, showErrorToast, navigate]);
 
   useEffect(() => {
     if (!templateId) {
@@ -103,7 +103,7 @@ export default function CreateTemplateExportPage() {
   }, [templateId, navigate, loadTemplate]);
 
   const goToStep2 = () => navigate(`/templates/create/${templateId}`);
-  const goToTemplates = () => navigate('/templates');
+  const goToTemplateDetails = () => templateId && navigate(`/templates/${templateId}`);
 
   const stats = useMemo(() => {
     const tablesCount = schema?.tables?.length ?? 0;
@@ -155,7 +155,7 @@ export default function CreateTemplateExportPage() {
         <Button onClick={handleExport} disabled={!canExport || exporting}>
           {exporting ? <><Spinner className="h-4 w-4" /> Exporting…</> : 'Export Excel File'}
         </Button>
-        <Button variant="secondary" onClick={goToTemplates}>Finish</Button>
+        <Button variant="secondary" onClick={goToTemplateDetails}>Finish</Button>
       </div>
     </>
   );
@@ -171,14 +171,7 @@ export default function CreateTemplateExportPage() {
   }
 
   if (error) {
-    return (
-      <TemplateWizardLayout title="Export Excel Template" bottomActions={bottomActions}>
-        <div className="flex flex-col gap-2">
-          <p className="text-sm text-muted-foreground">Failed to load template.</p>
-          <Button variant="secondary" onClick={loadTemplate}>Retry</Button>
-        </div>
-      </TemplateWizardLayout>
-    );
+    return null;
   }
 
   if (!template) {

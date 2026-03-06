@@ -36,12 +36,12 @@ export default function CreateTemplateStepPage() {
       showErrorToast(getErrorMessage(err, true), {
         status: err.status,
         details: getErrorMessage(err, true),
-        onRetry: loadTemplate,
       });
+      navigate('/templates/create', { replace: true });
     } finally {
       setLoading(false);
     }
-  }, [templateId, showErrorToast]);
+  }, [templateId, showErrorToast, navigate]);
 
   useEffect(() => {
     if (!templateId) {
@@ -79,31 +79,7 @@ export default function CreateTemplateStepPage() {
     );
   }
 
-  if (error) {
-    return (
-      <TemplateWizardLayout
-        title="Create Template"
-        description="Step 2: Define schema."
-        bottomActions={
-          <>
-            <Button variant="secondary" onClick={goToStep1}>
-              <ArrowLeft className="h-4 w-4" />
-              Back to Step 1
-            </Button>
-            <Button variant="secondary" onClick={loadTemplate}>
-              Retry
-            </Button>
-          </>
-        }
-      >
-        <div className="flex flex-col gap-2">
-          <p className="text-sm text-muted-foreground">Failed to load template.</p>
-        </div>
-      </TemplateWizardLayout>
-    );
-  }
-
-  if (!template) {
+  if (error || !template) {
     return null;
   }
 
