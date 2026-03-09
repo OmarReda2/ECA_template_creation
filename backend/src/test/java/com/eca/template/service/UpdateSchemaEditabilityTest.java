@@ -1,15 +1,22 @@
-package com.eca.template.infrastructure.persistence.repository;
+package com.eca.template.service;
 
-import com.eca.template.repository.TemplateJpaRepository;
-import com.eca.template.repository.TemplateVersionJpaRepository;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.eca.template.exception.VersionNotEditableException;
 import com.eca.template.entity.TemplateEntity;
 import com.eca.template.entity.TemplateVersionEntity;
+import com.eca.template.repository.TemplateJpaRepository;
+import com.eca.template.repository.TemplateVersionJpaRepository;
+import com.eca.template.validation.SchemaValidatorImpl;
+import com.eca.template.hashing.JsonCanonicalizerImpl;
+import com.eca.template.hashing.SchemaHasherImpl;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Import;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.containers.PostgreSQLContainer;
@@ -17,20 +24,31 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
 
-import java.util.List;
-import java.util.Optional;
-
-import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
- * Minimal repository integration test: create Template, create TemplateVersion v1
- * with schema_json placeholder and schema_hash 'PENDING_HASH', persist and read back.
- * Uses Testcontainers Postgres for JSONB correctness.
+ * Editability rule: only the latest version is editable.
+ * Create v1 and v2; PUT schema on v1 throws VersionNotEditableException (409).
  */
 @DataJpaTest
 @Testcontainers
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
-class TemplatePersistenceTest {
+@Import({
+        VersionService.class,
+        SchemaValidatorImpl.class,
+        JsonCanonicalizerImpl.class,
+        SchemaHasherImpl.class,
+        UpdateSchemaEditabilityTest.TestConfig.class
+})
+class UpdateSchemaEditabilityTest {
+
+    @Configuration
+    static class TestConfig {
+        @Bean
+        ObjectMapper objectMapper() {
+            return new ObjectMapper();
+        }
+    }
 
     private static final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -50,45 +68,44 @@ class TemplatePersistenceTest {
     }
 
     @Autowired
+    VersionService versionService;
+    @Autowired
     TemplateJpaRepository templateRepository;
-
     @Autowired
     TemplateVersionJpaRepository versionRepository;
 
     @Test
-    void persistTemplateAndVersionThenReadBack() throws Exception {
+    void updateNonLatestVersion_returns409() throws Exception {
         TemplateEntity template = new TemplateEntity();
-        template.setName("Test Template");
+        template.setName("T");
         template.setSectorCode("S1");
         template.setStatus("DRAFT");
-        template.setCreatedBy("system@test");
+        template.setCreatedBy("u");
         template = templateRepository.saveAndFlush(template);
-        assertThat(template.getId()).isNotNull();
 
-        JsonNode minimalSchema = objectMapper.readTree("{\"fields\":[],\"version\":1}");
         TemplateVersionEntity v1 = new TemplateVersionEntity();
         v1.setTemplate(template);
         v1.setVersionNumber(1);
-        v1.setStatus("DRAFT");
-        v1.setSchemaJson(minimalSchema);
-        v1.setSchemaHash("PENDING_HASH");
-        v1.setCreatedBy("system@test");
+        v1.setStatus("READ_ONLY");
+        v1.setSchemaJson(objectMapper.readTree("{\"sectorCode\":\"S1\",\"tables\":[]}"));
+        v1.setSchemaHash("h1");
+        v1.setCreatedBy("u");
         v1 = versionRepository.saveAndFlush(v1);
-        assertThat(v1.getId()).isNotNull();
-        assertThat(v1.getSchemaHash()).isEqualTo("PENDING_HASH");
 
-        Optional<TemplateEntity> foundTemplate = templateRepository.findById(template.getId());
-        assertThat(foundTemplate).isPresent();
-        assertThat(foundTemplate.get().getName()).isEqualTo("Test Template");
+        TemplateVersionEntity v2 = new TemplateVersionEntity();
+        v2.setTemplate(template);
+        v2.setVersionNumber(2);
+        v2.setStatus("DRAFT");
+        v2.setSchemaJson(objectMapper.readTree("{\"sectorCode\":\"S1\",\"tables\":[]}"));
+        v2.setSchemaHash("h2");
+        v2.setCreatedBy("u");
+        v2 = versionRepository.saveAndFlush(v2);
 
-        List<TemplateVersionEntity> versions = versionRepository.findByTemplate_IdOrderByVersionNumberDesc(template.getId());
-        assertThat(versions).hasSize(1);
-        assertThat(versions.get(0).getVersionNumber()).isEqualTo(1);
-        assertThat(versions.get(0).getSchemaJson()).isEqualTo(minimalSchema);
-        assertThat(versions.get(0).getSchemaHash()).isEqualTo("PENDING_HASH");
+        JsonNode newSchema = objectMapper.readTree("{\"sectorCode\":\"S1\",\"tables\":[]}");
+        java.util.UUID v1Id = v1.getId();
 
-        Optional<TemplateVersionEntity> latest = versionRepository.findTopByTemplate_IdOrderByVersionNumberDesc(template.getId());
-        assertThat(latest).isPresent();
-        assertThat(latest.get().getVersionNumber()).isEqualTo(1);
+        assertThatThrownBy(() -> versionService.updateSchema(v1Id, newSchema))
+                .isInstanceOf(VersionNotEditableException.class)
+                .hasMessageContaining("not the latest");
     }
 }

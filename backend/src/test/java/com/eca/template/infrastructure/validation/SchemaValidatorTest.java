@@ -1,8 +1,10 @@
 package com.eca.template.infrastructure.validation;
 
+import com.eca.template.validation.SchemaValidator;
+import com.eca.template.validation.SchemaValidatorImpl;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.eca.template.domain.exception.SchemaValidationException;
+import com.eca.template.exception.SchemaValidationException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 

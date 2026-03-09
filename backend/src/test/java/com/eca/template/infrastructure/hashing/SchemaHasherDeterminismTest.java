@@ -1,5 +1,9 @@
 package com.eca.template.infrastructure.hashing;
 
+import com.eca.template.hashing.JsonCanonicalizer;
+import com.eca.template.hashing.JsonCanonicalizerImpl;
+import com.eca.template.hashing.SchemaHasher;
+import com.eca.template.hashing.SchemaHasherImpl;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
