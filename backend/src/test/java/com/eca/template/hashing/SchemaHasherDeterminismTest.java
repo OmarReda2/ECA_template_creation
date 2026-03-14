@@ -1,4 +1,4 @@
-package com.eca.template.infrastructure.hashing;
+package com.eca.template.hashing;
 
 import com.eca.template.hashing.JsonCanonicalizer;
 import com.eca.template.hashing.JsonCanonicalizerImpl;

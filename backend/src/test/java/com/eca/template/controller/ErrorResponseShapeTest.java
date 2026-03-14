@@ -1,4 +1,4 @@
-package com.eca.template.api.controller;
+package com.eca.template.controller;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;

@@ -1,4 +1,4 @@
-package com.eca.template.infrastructure.persistence.repository;
+package com.eca.template.persistence.repository;
 
 import com.eca.template.repository.TemplateJpaRepository;
 import com.eca.template.repository.TemplateVersionJpaRepository;

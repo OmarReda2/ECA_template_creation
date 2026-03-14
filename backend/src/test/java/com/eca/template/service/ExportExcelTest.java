@@ -47,7 +47,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @Testcontainers
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @Import({
-        TemplateApplicationService.class,
+        ExportService.class,
         SchemaValidatorImpl.class,
         JsonCanonicalizerImpl.class,
         SchemaHasherImpl.class,
@@ -82,7 +82,7 @@ class ExportExcelTest {
     }
 
     @Autowired
-    TemplateApplicationService templateService;
+    ExportService exportService;
     @Autowired
     TemplateJpaRepository templateRepository;
     @Autowired
@@ -132,7 +132,7 @@ class ExportExcelTest {
         version = versionRepository.saveAndFlush(version);
 
         ByteArrayOutputStream out = new ByteArrayOutputStream();
-        templateService.writeExportWorkbook(version.getId(), out, null);
+        exportService.writeExportWorkbook(version.getId(), out, null);
         byte[] bytes = out.toByteArray();
         assertThat(bytes.length).isGreaterThan(0);
 
@@ -163,7 +163,7 @@ class ExportExcelTest {
 
         ExportRequest request = new ExportRequest("XLSX", null, true, false, false);
         ByteArrayOutputStream out = new ByteArrayOutputStream();
-        templateService.writeExportWorkbook(version.getId(), out, request);
+        exportService.writeExportWorkbook(version.getId(), out, request);
         byte[] bytes = out.toByteArray();
 
         try (Workbook wb = new XSSFWorkbook(new ByteArrayInputStream(bytes))) {
@@ -180,7 +180,7 @@ class ExportExcelTest {
         TemplateVersionEntity version = saveVersion(template, schema);
 
         ByteArrayOutputStream out = new ByteArrayOutputStream();
-        templateService.writeExportWorkbook(version.getId(), out, null);
+        exportService.writeExportWorkbook(version.getId(), out, null);
         byte[] bytes = out.toByteArray();
 
         try (Workbook wb = new XSSFWorkbook(new ByteArrayInputStream(bytes))) {
@@ -204,7 +204,7 @@ class ExportExcelTest {
 
         ExportRequest request = new ExportRequest("XLSX", null, false, false, true);
         ByteArrayOutputStream out = new ByteArrayOutputStream();
-        templateService.writeExportWorkbook(version.getId(), out, request);
+        exportService.writeExportWorkbook(version.getId(), out, request);
         byte[] bytes = out.toByteArray();
 
         try (Workbook wb = new XSSFWorkbook(new ByteArrayInputStream(bytes))) {
@@ -228,7 +228,7 @@ class ExportExcelTest {
 
         ExportRequest request = new ExportRequest("XLSX", null, false, true, false);
         ByteArrayOutputStream out = new ByteArrayOutputStream();
-        templateService.writeExportWorkbook(version.getId(), out, request);
+        exportService.writeExportWorkbook(version.getId(), out, request);
         byte[] bytes = out.toByteArray();
 
         try (Workbook wb = new XSSFWorkbook(new ByteArrayInputStream(bytes))) {

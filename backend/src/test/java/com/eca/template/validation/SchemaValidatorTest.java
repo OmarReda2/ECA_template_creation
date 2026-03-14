@@ -1,4 +1,4 @@
-package com.eca.template.infrastructure.validation;
+package com.eca.template.validation;
 
 import com.eca.template.validation.SchemaValidator;
 import com.eca.template.validation.SchemaValidatorImpl;
