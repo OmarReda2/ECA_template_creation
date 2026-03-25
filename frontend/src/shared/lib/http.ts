@@ -9,14 +9,14 @@ const baseURL = import.meta.env.VITE_API_BASE_URL ?? '';
  */
 export const http = axios.create({
   baseURL,
-  headers: {
-    'Content-Type': 'application/json',
-  },
 });
 
 const ACCESS_TOKEN_KEY = 'access_token';
 
 http.interceptors.request.use((config) => {
+  if (!(config.data instanceof FormData) && !config.headers.get('Content-Type')) {
+    config.headers.set('Content-Type', 'application/json');
+  }
   const token = typeof localStorage !== 'undefined' ? localStorage.getItem(ACCESS_TOKEN_KEY) : null;
   if (token) {
     config.headers.set('Authorization', `Bearer ${token}`);

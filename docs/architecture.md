@@ -1,0 +1,93 @@
+# Architecture (v1 — Verified)
+
+## Architecture Style
+
+The system follows a **Layered (N-Tier) Architecture**.
+
+Structure:
+
+Controller → Service → Repository → Database
+
+- Controllers handle HTTP requests and responses
+- Services contain business logic
+- Repositories use Spring Data JPA
+- Entities represent database tables
+
+There is **no strict domain layer separation**.
+
+---
+
+## Modules (Observed)
+
+### Template Module
+- TemplateEntity
+- TemplateController
+- TemplateService
+- TemplateRepository
+
+### Template Version Module
+- TemplateVersionEntity
+- VersionController
+- VersionService
+- VersionRepository
+
+---
+
+## Data Model (Observed)
+
+### TemplateEntity
+Represents template identity:
+- id
+- name
+- sectorCode
+- status
+- createdAt
+- createdBy
+
+### TemplateVersionEntity
+Represents version snapshot:
+- id
+- template (relation)
+- versionNumber
+- status
+- schemaJson (JSONB)
+- schemaHash
+- createdAt
+- createdBy
+
+---
+
+## Key Observations
+
+- Version is created immediately when template is created
+- Schema is stored as JSON (JSONB)
+- Services directly use repositories (no domain abstraction layer)
+
+
+---
+
+## Submission Module (New — MVP Slice 1)
+
+### Purpose
+Handles workbook upload and identity resolution (no persistence yet).
+
+### Components
+
+- SubmissionController
+- SubmissionService
+- SubmissionWorkbookParser
+
+### Responsibilities
+
+- Read uploaded Excel workbook
+- Extract metadata from `__metadata__` sheet
+- Resolve template version using `version_id`
+- Compare `schema_hash`
+- Return identification result
+
+### Notes
+
+- No validation logic yet (Slice 2)
+- No submission persistence
+- No modification of template module
+- Uses TemplateVersion as source of truth

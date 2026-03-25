@@ -21,8 +21,38 @@ function AppTopbarBreadcrumbs() {
   const { templateName, versionNumber } = useBreadcrumb() ?? {};
   const pathname = location.pathname;
 
+  if (pathname === '/') {
+    return (
+      <Breadcrumb>
+        <BreadcrumbList>
+          <BreadcrumbItem>
+            <BreadcrumbPage>Home</BreadcrumbPage>
+          </BreadcrumbItem>
+        </BreadcrumbList>
+      </Breadcrumb>
+    );
+  }
+
   if (pathname.startsWith('/templates/create')) {
     return null;
+  }
+
+  if (pathname.startsWith('/submissions')) {
+    return (
+      <Breadcrumb>
+        <BreadcrumbList>
+          <BreadcrumbItem>
+            <BreadcrumbLink asChild>
+              <Link to="/">Home</Link>
+            </BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>
+            <BreadcrumbPage>Data Submission</BreadcrumbPage>
+          </BreadcrumbItem>
+        </BreadcrumbList>
+      </Breadcrumb>
+    );
   }
 
   const isSchema = pathname.includes('/versions/') && pathname.includes('/schema');
