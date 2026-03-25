@@ -32,13 +32,21 @@ There is no strict domain layer separation.
 - `VersionRepository`
 
 ### Submission Module
+- Backend package root: `com.eca.submission`
+- Frontend feature root: `frontend/src/features/submission`
+
+Backend components:
 - `SubmissionController`
 - `SubmissionService`
 - `SubmissionStructureValidationService`
 - `SubmissionWorkbookParser`
 
-Submission package root:
-- `com.eca.submission`
+Frontend components:
+- `SubmissionWizardPage`
+- `UploadIdentifyStep`
+- `IdentityResultCard`
+- validation summary / issue rendering components
+- lightweight review / restart component
 
 Notes:
 - Submission is a sibling feature area, not nested under template
@@ -46,49 +54,18 @@ Notes:
 
 ---
 
-## Data Model (Observed)
-
-### TemplateEntity
-Represents template identity:
-- id
-- name
-- sectorCode
-- status
-- createdAt
-- createdBy
-
-### TemplateVersionEntity
-Represents version snapshot:
-- id
-- template (relation)
-- versionNumber
-- status
-- schemaJson (JSONB)
-- schemaHash
-- createdAt
-- createdBy
-
----
-
-## Key Observations
-
-- Version is created immediately when template is created
-- Schema is stored as JSON (JSONB)
-- Services directly use repositories (no domain abstraction layer)
-
----
-
 ## Submission Module (Current MVP State)
 
 ### Purpose
 
-Handles workbook upload, identity resolution, and backend validation against the resolved schema.
+Handles workbook upload, identity resolution, backend validation, and frontend validation results rendering.
 
 ### Current Support
 
 - Slice 1: upload + identify
 - Slice 2A: workbook structure validation
 - Slice 2B: row / cell validation
+- Slice 3: frontend validation UI and results rendering
 
 ### Current Responsibilities
 
@@ -98,7 +75,8 @@ Handles workbook upload, identity resolution, and backend validation against the
 - Compare `schema_hash`
 - Validate expected business sheets and headers
 - Validate row / cell content against schema field rules
-- Return compact validation reports
+- Render identify and validation results in the frontend
+- Allow restart / re-upload without persistence
 
 ### Not Yet Supported
 
@@ -106,3 +84,4 @@ Handles workbook upload, identity resolution, and backend validation against the
 - approval workflow
 - correction UI
 - submission lifecycle management
+- final submit behavior

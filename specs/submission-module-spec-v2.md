@@ -10,6 +10,7 @@ This module allows a user to:
 2. read workbook metadata
 3. identify the intended template/version
 4. validate workbook structure and row/cell content against the resolved schema
+5. review validation results and re-upload when needed
 
 ---
 
@@ -18,10 +19,11 @@ This module allows a user to:
 - Slice 1 (Upload and Identify Template) is implemented
 - Slice 2A (Backend Workbook Structure Validation) is implemented
 - Slice 2B (Backend Row / Cell Validation) is implemented
+- Slice 3 (Frontend Validation UI and Results Rendering) is implemented
 - Submission persistence is not implemented
 
 This document includes both:
-- implemented behavior (Slice 1 + Slice 2A + Slice 2B)
+- implemented behavior (Slice 1 + Slice 2A + Slice 2B + Slice 3)
 - planned behavior (future slices)
 
 ---
@@ -61,9 +63,9 @@ User can choose between:
 ### Frontend
 
 - Extend existing structure
-- Add submission feature/module
-- Add landing page routing
+- Keep submission UI inside the current app
 - Reuse current UI patterns
+- Keep state local to the submission feature
 
 ### General
 
@@ -137,14 +139,21 @@ Submission must reuse:
 - validate min/max rules where schema supports them
 - report row-level issues with sheet/row/header location
 
+#### Slice 3
+- frontend upload + identify flow
+- frontend validation trigger after `EXACT_MATCH`
+- validation summary rendering
+- error/warning list rendering
+- lightweight review / re-upload flow
+
 ### Out of Scope (Current State)
 
-- validation UI polish
 - submission persistence
 - approval workflow
 - correction grid
 - duplicate detection
 - data storage
+- final submit action
 
 ---
 
@@ -163,11 +172,17 @@ System:
 5. compares `schema_hash`
 6. returns identification result
 
+Frontend:
+
+- renders identify status
+- renders resolved version details
+- renders manual fallback UI only for supported non-resolved states
+
 ---
 
-### Step 2 - Validation and Review (Backend Implemented)
+### Step 2 - Validate and Review Results (Implemented)
 
-#### Implemented in Slice 2A + Slice 2B
+Backend:
 
 - workbook structure validation
 - expected business-sheet checks
@@ -179,19 +194,27 @@ System:
 - min/max validation where schema supports those rules
 - compact backend validation report
 
-#### Not Implemented Yet
+Frontend:
 
-- full validation review UI
-- inline correction behavior
+- shows `Validate Workbook` only after `EXACT_MATCH`
+- calls the current backend validation endpoint
+- renders summary counts and issue list
+- differentiates warnings from errors
 
 ---
 
-### Step 3 - Review (Not Implemented)
+### Step 3 - Review / Restart (Lightweight)
 
-Planned:
+Implemented:
 
-- summary view
-- re-upload option
+- lightweight summary panel
+- re-upload / restart action
+
+Not implemented:
+
+- persistence
+- final submit
+- correction workflow
 
 ---
 
@@ -203,27 +226,6 @@ Planned:
 - `schema_hash` -> required (match check)
 - `template_id` -> advisory only
 - `version_number` -> advisory only
-
----
-
-### Resolution Logic
-
-1. Metadata missing
--> `METADATA_MISSING`
-
-2. Required fields invalid
--> `METADATA_INVALID`
-
-3. Version not found
--> `VERSION_NOT_FOUND`
-
-4. Schema hash mismatch
--> `HASH_MISMATCH`
-
-5. Schema hash matches
--> `EXACT_MATCH`
-
----
 
 ### Important Rules
 
@@ -240,21 +242,6 @@ Planned:
 ### Source
 
 - Sheet: `__metadata__`
-
----
-
-### Fields
-
-| Field | Type | Role |
-|------|------|------|
-| template_id | string | advisory |
-| version_id | string (UUID) | required |
-| version_number | string/int | advisory |
-| schema_hash | string | required |
-| generated_at | string | informational |
-| generator_version | string | informational |
-
----
 
 ### Rules
 
@@ -286,8 +273,6 @@ Subpackages:
 - `model`
 - `exception`
 
----
-
 ### Responsibilities
 
 controller:
@@ -308,53 +293,18 @@ parser:
 
 ## 11. Backend API
 
-### Slice 1 - Identify Endpoint
+### Identify Endpoint
 
 `POST /api/submissions/identify`
 
-Multipart:
-- file
-
-Response:
-- status
-- metadata
-- resolved version (if found)
-- messages
-
-Status values:
-- EXACT_MATCH
-- METADATA_MISSING
-- METADATA_INVALID
-- VERSION_NOT_FOUND
-- HASH_MISMATCH
-- UNSUPPORTED_FILE
-
----
-
-### Validation Endpoint (Slice 2A + Slice 2B)
+### Validation Endpoint
 
 `POST /api/submissions/validate-structure`
 
-Multipart:
-- file
-
-Behavior:
-- validation proceeds only after `EXACT_MATCH`
-- reads schema from resolved template version
-- validates required business sheets and headers first
-- validates row / cell content only when structure errors do not block the sheet/workbook
-
-Response includes:
-- target version info
-- sheets checked
-- rows checked
-- errors
-- warnings
-- issue location:
-  - sheet name
-  - row number
-  - header name
-- per-sheet header issues
+Note:
+- the endpoint name still says `validate-structure`
+- current behavior includes full backend workbook validation
+- frontend must present this as “Validate Workbook” rather than exposing raw endpoint naming
 
 ---
 
@@ -366,13 +316,19 @@ Response includes:
 - `types.ts`
 - `pages/SubmissionWizardPage.tsx`
 - `components/UploadIdentifyStep.tsx`
+- `components/IdentityResultCard.tsx`
+- `components/ValidationSummaryCard.tsx`
+- `components/ValidationIssueList.tsx`
+- `components/SubmissionReviewCard.tsx`
 
 ### Rules
 
 - Step 1 is functional
-- Step 2/3 are still mostly placeholders
-- show clear result state
+- Step 2 is functional
+- Step 3 is lightweight only
+- no fake submit workflow
 - no fallback automation
+- no correction editing
 
 ---
 
@@ -385,14 +341,10 @@ Response includes:
 - identity resolution
 - landing page
 
----
-
 ### Slice 2A (Done)
 
 - backend workbook structure validation
 - workbook/sheet/header checks
-
----
 
 ### Slice 2B (Done)
 
@@ -403,14 +355,11 @@ Response includes:
 - min/max checks
 - compact issue reporting
 
----
-
-### Slice 3
+### Slice 3 (Done)
 
 - frontend validation UI
 - results rendering
-
----
+- restart / re-upload flow
 
 ### Slice 4
 
@@ -419,7 +368,7 @@ Response includes:
 
 ---
 
-## 14. Acceptance Criteria (Current Backend State)
+## 14. Acceptance Criteria (Current State)
 
 System is valid when:
 
@@ -427,10 +376,11 @@ System is valid when:
 2. metadata is read
 3. version is resolved using `version_id`
 4. `schema_hash` is compared
-5. structure validation checks required business sheets and headers
-6. row / cell validation checks required values and supported schema rules
-7. validation response reports compact issue locations
-8. no persistence occurs
+5. frontend clearly renders identify result states
+6. validation runs only after `EXACT_MATCH`
+7. frontend clearly renders validation summary and issue list
+8. user can restart with a new workbook
+9. no persistence occurs
 
 ---
 
@@ -443,6 +393,7 @@ Codex must not:
 - add persistence
 - add workflow engine
 - redesign export
+- fake final submission
 
 ---
 

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Upload } from 'lucide-react';
 import { submissionApi } from '../api';
 import type { SubmissionIdentifyResponse } from '../types';
@@ -9,17 +9,13 @@ import { useToast } from '@/shared/ui/Toast';
 import { normalizeHttpError, getErrorMessage } from '@/shared/errors/errorTypes';
 
 interface UploadIdentifyStepProps {
-  onResult: (result: SubmissionIdentifyResponse | null) => void;
+  onIdentified: (file: File, result: SubmissionIdentifyResponse) => void;
 }
 
-export function UploadIdentifyStep({ onResult }: UploadIdentifyStepProps) {
+export function UploadIdentifyStep({ onIdentified }: UploadIdentifyStepProps) {
   const [file, setFile] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const { showErrorToast } = useToast();
-
-  useEffect(() => {
-    onResult(null);
-  }, [file, onResult]);
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -31,7 +27,7 @@ export function UploadIdentifyStep({ onResult }: UploadIdentifyStepProps) {
     setSubmitting(true);
     try {
       const result = await submissionApi.identify(file);
-      onResult(result);
+      onIdentified(file, result);
     } catch (error) {
       const normalized = normalizeHttpError(error);
       showErrorToast(getErrorMessage(normalized, true));
@@ -59,7 +55,7 @@ export function UploadIdentifyStep({ onResult }: UploadIdentifyStepProps) {
               {file?.name ?? 'Choose an .xlsx workbook'}
             </span>
             <span className="mt-1 text-xs text-muted-foreground">
-              Hidden workbook metadata will be inspected. No validation runs in this slice.
+              Hidden workbook metadata will be inspected first. Validation can be run after an exact identity match.
             </span>
           </label>
 
@@ -76,16 +72,16 @@ export function UploadIdentifyStep({ onResult }: UploadIdentifyStepProps) {
             <Button type="submit" disabled={submitting || file == null}>
               {submitting ? (
                 <>
-                  <Spinner className="h-4 w-4" />
-                  Identifying...
-                </>
-              ) : (
-                'Identify Workbook'
-              )}
-            </Button>
-          </div>
-        </form>
-      </CardContent>
-    </Card>
+                <Spinner className="h-4 w-4" />
+                Identifying...
+              </>
+            ) : (
+              'Identify Workbook'
+            )}
+          </Button>
+        </div>
+      </form>
+    </CardContent>
+  </Card>
   );
 }

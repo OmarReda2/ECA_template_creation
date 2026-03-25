@@ -11,30 +11,19 @@ User inputs:
 Request:
 `POST /api/templates`
 
----
-
 ### Step 2 - Controller
 
 `TemplateController.createTemplate()`
 -> forwards request to service
-
----
 
 ### Step 3 - Service Logic
 
 `TemplateService.createTemplate()`
 
 1. Create `TemplateEntity`
-   - status = `DRAFT`
 2. Persist `TemplateEntity`
 3. Create `TemplateVersionEntity` (version 1)
-   - versionNumber = 1
-   - status = `DRAFT`
-   - schemaJson = initial minimal schema
-   - schemaHash = `PENDING_HASH`
 4. Persist `TemplateVersionEntity`
-
----
 
 ### Step 4 - Response
 
@@ -45,169 +34,81 @@ Return:
 
 ---
 
-### Step 5 - Frontend Navigation
+## Submission Flow - Frontend + Backend (Current)
 
-Navigate to:
-`/templates/create/{templateId}`
-
----
-
-## Template Load Flow (Partial - Verified)
-
-`GET /api/templates/{id}`
-
-Service:
-- Load template
-- Load versions (descending order)
+### Step 1 - Upload and Identify
 
 Frontend:
-- Select latest version
-- Pass versionId to schema editor
 
----
+1. User selects `.xlsx` workbook
+2. Frontend calls `POST /api/submissions/identify`
+3. Frontend renders:
+   - identify status
+   - extracted metadata
+   - resolved version summary
+   - messages from backend
 
-## Schema Update Flow
-
-`PUT /api/versions/{id}/schema`
-
-1. Load version
-2. Validate schema
-3. Canonicalize JSON
-4. Generate schema hash
-5. Overwrite schemaJson and schemaHash
-6. Persist version
-
-Notes:
-- Same version is updated (no new version created)
-- Hash reflects current schema state
-
----
-
-## Submission Flow - Identify (Slice 1 - Verified)
-
-### Step 1 - Upload
-
-User uploads Excel workbook.
-
-### Step 2 - Backend Parsing
-
-`SubmissionService.identify()`
+Backend:
 
 1. Parse workbook using `SubmissionWorkbookParser`
 2. Extract metadata from `__metadata__`
+3. Resolve version using `version_id`
+4. Compare `schema_hash`
+5. Return identify response
 
-### Step 3 - Metadata Check
+### Step 2 - Validation Gate
 
-Cases:
+Frontend:
 
-- Metadata missing -> `METADATA_MISSING`
-- Missing `version_id` or `schema_hash` -> `METADATA_INVALID`
+- show `Validate Workbook` only when identify status is `EXACT_MATCH`
+- block validation UI for all other identify states
+- allow restart / re-upload
 
-### Step 4 - Version Resolution
+### Step 3 - Workbook Validation
 
-- Resolve `TemplateVersion` using `version_id`
-- If not found -> `VERSION_NOT_FOUND`
+Frontend:
 
-### Step 5 - Hash Comparison
+1. User clicks `Validate Workbook`
+2. Frontend calls `POST /api/submissions/validate-structure`
+3. Frontend shows loading state
 
-Compare:
-- `metadata.schema_hash`
-- `version.schemaHash`
+Backend:
 
-If mismatch -> `HASH_MISMATCH`
+1. Re-run identity gate and require `EXACT_MATCH`
+2. Resolve `TemplateVersionEntity`
+3. Read schema JSON
+4. Ignore non-business sheets:
+   - `__metadata__`
+   - `_validation`
+   - `Instructions`
+5. Validate workbook structure
+6. If structure is clean enough, validate row/cell content
 
-If match -> `EXACT_MATCH`
+### Step 4 - Results Rendering
 
-### Step 6 - Response
+Frontend renders:
 
-Return:
-- status
-- metadata
-- resolved version (if any)
-- messages/warnings
-
----
-
-## Submission Flow - Backend Validation (Slice 2A + Slice 2B)
-
-Endpoint:
-`POST /api/submissions/validate-structure`
-
-### Step 1 - Identity Gate
-
-1. Run the existing identify flow
-2. Require `EXACT_MATCH`
-3. If identity fails, return compact validation errors and stop
-
-### Step 2 - Resolve Validation Target
-
-1. Load `TemplateVersionEntity` using resolved `version_id`
-2. Read `schemaJson` as the validation source of truth
-3. Build expected business-sheet and field definitions from schema tables/fields
-
-### Step 3 - Workbook-Level Filtering
-
-Ignore these non-business sheets:
-- `__metadata__`
-- `_validation`
-- `Instructions`
-
-### Step 4 - Structure Validation
-
-For each expected schema table:
-
-1. Check that the expected sheet exists
-2. Read the header row
-3. Check required exported header names
-4. Report:
-   - missing sheets as errors
-   - missing headers as errors
-   - extra sheets as warnings
-   - extra headers as warnings
-
-If blocking structure errors exist:
-- do not pretend row/cell validation succeeded
-- return structure issues with `rowsChecked = 0`
-
-### Step 5 - Row Iteration
-
-For each business sheet that passed required-header checks:
-
-1. Iterate data rows after the header row
-2. Skip fully blank rows
-3. Count validated rows in `rowsChecked`
-
-### Step 6 - Cell Validation
-
-For each schema field in each validated row:
-
-1. Required check
-   - blank required cell -> error
-2. Type check
-   - TEXT
-   - NUMBER
-   - DATE
-   - BOOLEAN
-   - CURRENCY
-3. Enum check
-   - validate against `validations.enumValues` or `validations.enum`
-4. Min/max check
-   - apply where schema provides numeric bounds
-
-### Step 7 - Issue Reporting
-
-Return a compact validation report containing:
 - target version info
 - sheets checked
 - rows checked
-- errors
-- warnings
-- per-sheet header issues
+- error count
+- warning count
+- issue list with:
+  - severity
+  - sheet name
+  - row number when present
+  - header name when present
+  - message
 
-Issue location includes:
-- sheet name
-- row number when applicable
-- header name when applicable
-- code
-- message
-- severity
+### Step 5 - Review / Restart
+
+Frontend provides:
+
+- lightweight review panel
+- re-upload / restart action
+
+Not provided:
+
+- persistence
+- final submit
+- correction editing

@@ -1,230 +1,59 @@
-# Known Gaps / Weaknesses (v1 — Verified)
+# Known Gaps / Weaknesses (v1 - Verified)
 
 This document lists observed issues and weak points in the current system behavior.
-It reflects the system **as implemented**, not intended design.
+It reflects the system as implemented, not intended design.
 
 ---
 
 ## 1. Schema Hash Lifecycle
 
 ### Observation
-- Initial version (v1) is created with:
-  - schemaHash = "PENDING_HASH"
-- Hash is only generated during schema update.
-
-### Issue
-- If the user does not perform a schema update:
-  - schemaHash remains "PENDING_HASH"
-- Export may include this non-final hash in metadata.
+- Initial version (v1) is created with `schemaHash = "PENDING_HASH"`
+- Hash is only generated during schema update
 
 ### Impact
-- Metadata may not accurately represent schema identity.
-- Downstream validation (e.g., submission) may be unreliable.
+- Submission identity may match using a non-final hash
 
 ---
 
-## 2. Missing Enforcement: Latest Version Only Editable
+## 2. Validation Endpoint Naming Debt
 
 ### Observation
-- Schema update endpoint:
-  PUT /api/versions/{id}/schema
-- No clear enforcement that only the latest version can be updated.
-
-### Issue
-- Older versions may be modified if accessed.
+- Backend validation endpoint remains:
+  - `POST /api/submissions/validate-structure`
+- Actual behavior now includes full backend workbook validation, not only structure checks
 
 ### Impact
-- Breaks version immutability expectations.
-- Historical integrity is not guaranteed.
+- Naming is narrower than actual behavior
+- Frontend must hide this mismatch behind user-facing wording like “Validate Workbook”
 
 ---
 
-## 3. Missing Status-Based Edit Restrictions
+## 3. Manual Fallback UX Is Still Partial
 
 ### Observation
-- TemplateVersionEntity has a `status` field (e.g., DRAFT, READ_ONLY).
-- No visible strict check before allowing schema updates.
-
-### Issue
-- Non-editable versions (e.g., READ_ONLY) may still be modified.
+- Manual fallback UI exists for unresolved identify states
+- Fallback does not lead into a real validation path in the current MVP
 
 ### Impact
-- Status does not reliably enforce behavior.
-- Lifecycle control is weak.
+- Users can understand fallback intent, but cannot complete a fallback-driven validation/submission flow yet
 
 ---
 
-## 4. Mutable Version Model (No Snapshot Protection)
+## 4. No Persistence or Final Submit
 
 ### Observation
-- Schema update overwrites:
-  - schemaJson
-  - schemaHash
-- No new version is created during updates.
-
-### Issue
-- Same version is repeatedly mutated.
+- Submission remains in-memory / request-driven only
 
 ### Impact
-- Version does not represent a stable snapshot.
-- Changes are not historically traceable within a version.
+- Users cannot save, resume, or finalize a submission
 
 ---
 
-## 5. Template Status Underutilized
+## 5. No Correction Grid or Inline Editing
 
 ### Observation
-- TemplateEntity has a `status` field.
-- No clear business logic uses this field meaningfully.
-
-### Issue
-- Template status appears redundant or unused.
+- Validation issues are rendered as read-only results
 
 ### Impact
-- Confusion in lifecycle modeling.
-- Potential duplication with version status.
-
----
-
-## 6. Weak Separation Between Template and Version Lifecycle
-
-### Observation
-- Both Template and TemplateVersion have status fields.
-- Version status has partial behavioral meaning.
-- Template status does not drive behavior.
-
-### Issue
-- Responsibilities between template-level and version-level lifecycle are unclear.
-
-### Impact
-- Inconsistent lifecycle modeling.
-- Future features may introduce conflicting logic.
-
----
-
-## 7. No Guard Against Duplicate Template Creation
-
-### Observation
-- Template creation does not enforce uniqueness (e.g., name, sector).
-
-### Issue
-- Duplicate templates may be created.
-
-### Impact
-- Data duplication.
-- Potential confusion in template selection and management.
-
----
-
-## 8. Hardcoded createdBy Value
-
-### Observation
-- Frontend sends:
-  createdBy = "system"
-
-### Issue
-- Audit data is not user-driven.
-
-### Impact
-- No real traceability of actions.
-- Will require refactoring when authentication is introduced.
-
----
-
-## 9. Export Flow Does Not Enforce Hash Validity
-
-### Observation
-- Export uses schemaHash as stored.
-- No validation that hash is final (not "PENDING_HASH").
-
-### Issue
-- Export may proceed with invalid or placeholder hash.
-
-### Impact
-- Inconsistent metadata.
-- Weak contract with downstream consumers.
-
----
-
-## 10. Full Schema Overwrite (No Partial Update)
-
-### Observation
-- Schema update replaces entire schemaJson.
-
-### Issue
-- No support for partial updates or merging.
-
-### Impact
-- Higher risk of accidental data loss.
-- Requires full schema resubmission for small changes.
-
----
-
-## 11. Implicit Canonicalization (Hidden Behavior)
-
-### Observation
-- Canonicalization depends on ObjectMapper configuration.
-
-### Issue
-- No explicit canonicalization step or documentation in code.
-
-### Impact
-- Behavior is implicit and may be misunderstood.
-- Future changes to serialization may break hash consistency.
-
----
-
-
-## 12. Submission Depends on PENDING_HASH (New)
-
-### Observation
-- Some versions may have schemaHash = "PENDING_HASH"
-
-### Issue
-- Submission identity may match using non-final hash
-
-### Impact
-- Weak identity guarantee
-- Potential false-positive matches
-
----
-
-## 13. Metadata Contract Not Strictly Enforced
-
-### Observation
-- Metadata parsing depends on workbook structure
-- No strict validation of metadata sheet format
-
-### Issue
-- Missing or malformed metadata may behave inconsistently
-
-### Impact
-- Unreliable identification results
-
----
-
-## 14. No Backend Fallback Strategy
-
-### Observation
-- System intentionally avoids backend fallback
-
-### Issue
-- User must manually resolve failures
-
-### Impact
-- UX dependency on frontend correctness
-
-
-## Summary
-
-The system is:
-- functionally correct for MVP
-- structurally simple
-- but lacks strong enforcement of:
-  - version immutability
-  - lifecycle control
-  - schema hash consistency
-
-These gaps should be addressed incrementally, not all at once.
-
-
+- Users must correct the workbook offline and re-upload

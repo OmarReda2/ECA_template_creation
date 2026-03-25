@@ -22,6 +22,25 @@ function formatValue(value: string | number | null | undefined) {
   return value == null || value === '' ? 'Not available' : String(value);
 }
 
+function getStatusDescription(status: SubmissionIdentifyStatus) {
+  switch (status) {
+    case 'EXACT_MATCH':
+      return 'Workbook metadata matched a stored template version exactly. Validation can proceed.';
+    case 'HASH_MISMATCH':
+      return 'Workbook metadata resolved a version, but the schema hash did not match. Validation is blocked until the workbook is corrected or replaced.';
+    case 'METADATA_MISSING':
+      return "Workbook metadata sheet '__metadata__' was not found. Validation cannot proceed automatically.";
+    case 'METADATA_INVALID':
+      return 'Workbook metadata is incomplete or malformed. Validation cannot proceed automatically.';
+    case 'VERSION_NOT_FOUND':
+      return 'Workbook metadata referenced a version that is not available in the system. Validation cannot proceed.';
+    case 'UNSUPPORTED_FILE':
+      return 'The uploaded file is not a supported workbook. Upload a valid .xlsx file to continue.';
+    default:
+      return 'Identification result returned by backend.';
+  }
+}
+
 interface IdentityResultCardProps {
   result: SubmissionIdentifyResponse;
 }
@@ -85,6 +104,10 @@ export function IdentityResultCard({ result }: IdentityResultCardProps) {
               </div>
             </dl>
           </div>
+        </div>
+
+        <div className="rounded-md border border-border bg-muted/30 p-4 text-sm text-muted-foreground">
+          {getStatusDescription(status)}
         </div>
 
         {messages.length > 0 && (
