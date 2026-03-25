@@ -27,9 +27,10 @@ This module allows a user to:
 - Slice 5 (Minimal submission persistence) is implemented
 - Slice 6 (Read-only submission history) is implemented
 - Slice 7 (Read-only submission details view) is implemented
+- Slice 8 (Stabilization, regression checks, and small UX cleanup) is implemented
 
 This document includes both:
-- implemented behavior (Slices 1 through 7)
+- implemented behavior (Slices 1 through 8)
 - planned behavior (future slices)
 
 ---
@@ -167,6 +168,12 @@ Submission must reuse:
 - render a read-only submission details page
 - link to details from submission history
 
+#### Slice 8
+- tighten read-only submission UX states
+- improve empty/loading/not-found wording
+- add small null-safety and action-state guards
+- regression-check the current MVP flow without changing business behavior
+
 ### Out of Scope (Current State)
 
 - approval workflow
@@ -219,6 +226,7 @@ Frontend:
 - calls the backend validation endpoint
 - renders summary counts, issue list, and submission save result
 - differentiates warnings from errors
+- disables repeat validation clicks after a completed result is already shown
 
 ### Step 3 - Review / Restart (Lightweight)
 
@@ -241,6 +249,7 @@ Backend:
 Frontend:
 - renders read-only history page
 - shows submission ID, template/version, status, created time, and file name
+- provides a safe empty state back into the submission flow
 - does not expose edit, delete, resubmit, or workflow actions
 
 ### Submission Details (Implemented, Read-only)
@@ -252,6 +261,7 @@ Backend:
 Frontend:
 - renders read-only details page
 - shows loading, not-found, and generic error states
+- provides a clear return path back to history
 - does not expose edit, delete, revalidate, or workflow actions
 
 ---
@@ -387,6 +397,7 @@ Rules:
 - Step 3 is lightweight only
 - history is read-only only
 - details are read-only only
+- loading, empty, and error states should stay readable and safe
 - no fake submit workflow
 - no fallback automation
 - no correction editing
@@ -447,6 +458,12 @@ Rules:
 - read-only submission details page
 - no edit, revalidate, or workflow actions
 
+### Slice 8 (Done)
+
+- small UX cleanup across wizard/history/details screens
+- safer empty/loading/not-found states
+- no behavior change to validation or persistence
+
 ---
 
 ## 14. Acceptance Criteria (Current State)
@@ -468,6 +485,7 @@ System is valid when:
 13. missing submission details return a clean not-found state
 14. user can restart with a new workbook
 15. frontend handles loading and backend error states gracefully
+16. read-only history and details screens remain stable when optional values are missing
 
 ---
 

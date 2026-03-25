@@ -63,6 +63,7 @@ Frontend:
 - show `Validate Workbook` only when identify status is `EXACT_MATCH`
 - block validation UI for all other identify states
 - allow restart / re-upload
+- stop repeat validation clicks after a result is already displayed
 
 ### Step 3 - Workbook Validation
 
@@ -127,6 +128,7 @@ Frontend:
 1. User opens the submission history screen
 2. Frontend calls `GET /api/submissions`
 3. Frontend renders saved submissions newest first
+4. If history is empty, frontend offers a clear path back to start a new submission
 
 Backend:
 
@@ -141,6 +143,7 @@ Frontend:
 1. User opens one saved submission from history
 2. Frontend calls `GET /api/submissions/{id}`
 3. Frontend renders loading, not-found, or read-only details state
+4. Frontend provides a clear path back to submission history
 
 Backend:
 

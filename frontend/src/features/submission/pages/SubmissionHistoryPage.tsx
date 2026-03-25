@@ -86,6 +86,11 @@ export default function SubmissionHistoryPage() {
               Submission history will appear here after a workbook passes validation and is saved.
             </CardDescription>
           </CardHeader>
+          <CardContent>
+            <Button asChild type="button">
+              <Link to="/submissions">Start a Submission</Link>
+            </Button>
+          </CardContent>
         </Card>
       ) : (
         <div className="space-y-4">
@@ -121,9 +126,13 @@ export default function SubmissionHistoryPage() {
                 </div>
               </CardContent>
               <CardContent className="pt-0">
-                <Button asChild type="button" variant="outline" size="sm">
-                  <Link to={`/submissions/${item.id}`}>View details</Link>
-                </Button>
+                {item.id ? (
+                  <Button asChild type="button" variant="outline" size="sm">
+                    <Link to={`/submissions/${item.id}`}>View details</Link>
+                  </Button>
+                ) : (
+                  <p className="text-sm text-muted-foreground">Submission details are not available for this record.</p>
+                )}
               </CardContent>
             </Card>
           ))}

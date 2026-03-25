@@ -101,6 +101,11 @@ export default function SubmissionDetailsPage() {
                 The requested submission does not exist or is no longer available.
               </CardDescription>
             </CardHeader>
+            <CardContent>
+              <Button asChild type="button">
+                <Link to="/submissions/history">Return to Submission History</Link>
+              </Button>
+            </CardContent>
           </Card>
         ) : (
           <ErrorPanel error={getErrorMessage(error, true)} onDismiss={() => setError(null)} />

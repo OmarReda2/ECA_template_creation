@@ -22,6 +22,7 @@
 - Submission must not store row data or validation result blobs
 - Submission history is read-only only
 - Submission details view is read-only only
+- Submission stabilization must not change validation or persistence business rules
 
 ---
 
@@ -56,6 +57,7 @@
 - Successful validation may only show a saved submission confirmation and ID
 - Submission history may only show saved metadata and must not expose edit or workflow actions
 - Submission details may only show saved metadata and must not expose edit, delete, or revalidate actions
+- Submission screens must guard nullable backend fields and render readable empty/not-found states
 
 Still not implemented:
 - correction grid

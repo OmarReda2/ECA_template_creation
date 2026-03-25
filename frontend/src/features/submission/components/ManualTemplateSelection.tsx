@@ -20,21 +20,27 @@ export function ManualTemplateSelection({ templates, value, onChange }: ManualTe
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="space-y-2">
-          <label className="text-sm font-medium text-foreground">Template</label>
-          <Select value={value} onValueChange={onChange}>
-            <SelectTrigger>
-              <SelectValue placeholder="Select a template" />
-            </SelectTrigger>
-            <SelectContent>
-              {templates.map((template) => (
-                <SelectItem key={template.templateId} value={template.templateId}>
-                  {template.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+        {templates.length === 0 ? (
+          <div className="rounded-md border border-border bg-muted/40 p-4 text-sm text-muted-foreground">
+            No templates are currently available for manual fallback.
+          </div>
+        ) : (
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-foreground">Template</label>
+            <Select value={value} onValueChange={onChange}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select a template" />
+              </SelectTrigger>
+              <SelectContent>
+                {templates.map((template) => (
+                  <SelectItem key={template.templateId} value={template.templateId}>
+                    {template.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
 
         {selectedTemplate != null && (
           <div className="rounded-md border border-border bg-muted/40 p-4 text-sm">

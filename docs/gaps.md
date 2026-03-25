@@ -58,3 +58,14 @@ It reflects the system as implemented, not intended design.
 
 ### Impact
 - This keeps Slice 5 intentionally small and reversible, but later slices still need explicit design for review, workflow, and data retention
+
+---
+
+## 6. Submission MVP Still Relies on Re-upload for Corrections
+
+### Observation
+- Slice 8 improves readability and safety of the current screens
+- The user still has to fix workbook issues offline and re-upload to continue
+
+### Impact
+- The MVP is now more stable to use end-to-end, but correction guidance and workflow remain intentionally outside the current scope

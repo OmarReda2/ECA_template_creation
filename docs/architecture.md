@@ -76,6 +76,7 @@ Handles workbook upload, identity resolution, backend validation, minimal submis
 - Slice 5: minimal persistence after successful validation
 - Slice 6: read-only submission history
 - Slice 7: read-only submission details view
+- Slice 8: stabilization and UX polish
 
 ### Current Responsibilities
 
@@ -92,6 +93,7 @@ Handles workbook upload, identity resolution, backend validation, minimal submis
 - Render read-only submission history in the frontend
 - Render read-only submission details in the frontend
 - Handle validation loading and backend error states in the frontend
+- Keep current submission screens stable when backend values are partial or missing
 - Allow restart / re-upload without workflow state
 
 ### Not Yet Supported

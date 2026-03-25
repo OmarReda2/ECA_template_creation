@@ -42,6 +42,7 @@ export default function SubmissionWizardPage() {
 
   const shouldShowFallback = identifyResult != null && FALLBACK_STATES.has(identifyResult.status);
   const canValidate = identifyResult?.status === 'EXACT_MATCH' && uploadedFile != null;
+  const validationCompleted = validationResult != null;
 
   useEffect(() => {
     if (!shouldShowFallback || templates.length > 0) {
@@ -156,12 +157,14 @@ export default function SubmissionWizardPage() {
             <div className="text-sm text-muted-foreground">
               Run backend validation to check workbook structure and row/cell content before any future submission workflow.
             </div>
-            <Button type="button" onClick={handleValidate} disabled={!canValidate || validating}>
+            <Button type="button" onClick={handleValidate} disabled={!canValidate || validating || validationCompleted}>
               {validating ? (
                 <>
                   <Spinner className="h-4 w-4" />
                   Validating...
                 </>
+              ) : validationCompleted ? (
+                'Validation Complete'
               ) : (
                 'Validate Workbook'
               )}
