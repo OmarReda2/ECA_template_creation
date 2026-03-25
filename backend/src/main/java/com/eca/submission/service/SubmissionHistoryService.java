@@ -1,5 +1,6 @@
 package com.eca.submission.service;
 
+import com.eca.submission.dto.SubmissionDetailsDto;
 import com.eca.submission.dto.SubmissionHistoryItemDto;
 import com.eca.submission.entity.SubmissionEntity;
 import com.eca.submission.repository.SubmissionJpaRepository;
@@ -11,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -37,6 +39,15 @@ public class SubmissionHistoryService {
                 .toList();
     }
 
+    @Transactional(readOnly = true)
+    public Optional<SubmissionDetailsDto> getSubmission(UUID submissionId) {
+        return submissionRepository.findById(submissionId)
+                .map(submission -> toDetailsDto(
+                        submission,
+                        versionRepository.findById(submission.getVersionId()).orElse(null)
+                ));
+    }
+
     private Map<UUID, TemplateVersionEntity> loadVersions(List<SubmissionEntity> submissions) {
         List<UUID> versionIds = submissions.stream()
                 .map(SubmissionEntity::getVersionId)
@@ -50,6 +61,38 @@ public class SubmissionHistoryService {
     }
 
     private SubmissionHistoryItemDto toDto(SubmissionEntity submission, TemplateVersionEntity version) {
+        VersionMetadata versionMetadata = toVersionMetadata(version);
+
+        return new SubmissionHistoryItemDto(
+                submission.getId(),
+                submission.getTemplateId(),
+                submission.getVersionId(),
+                submission.getSchemaHash(),
+                submission.getStatus(),
+                submission.getCreatedAt(),
+                submission.getOriginalFileName(),
+                versionMetadata.templateName(),
+                versionMetadata.versionNumber()
+        );
+    }
+
+    private SubmissionDetailsDto toDetailsDto(SubmissionEntity submission, TemplateVersionEntity version) {
+        VersionMetadata versionMetadata = toVersionMetadata(version);
+
+        return new SubmissionDetailsDto(
+                submission.getId(),
+                submission.getTemplateId(),
+                versionMetadata.templateName(),
+                submission.getVersionId(),
+                versionMetadata.versionNumber(),
+                submission.getSchemaHash(),
+                submission.getStatus(),
+                submission.getCreatedAt(),
+                submission.getOriginalFileName()
+        );
+    }
+
+    private VersionMetadata toVersionMetadata(TemplateVersionEntity version) {
         String templateName = null;
         Integer versionNumber = null;
 
@@ -60,16 +103,12 @@ public class SubmissionHistoryService {
             }
         }
 
-        return new SubmissionHistoryItemDto(
-                submission.getId(),
-                submission.getTemplateId(),
-                submission.getVersionId(),
-                submission.getSchemaHash(),
-                submission.getStatus(),
-                submission.getCreatedAt(),
-                submission.getOriginalFileName(),
-                templateName,
-                versionNumber
-        );
+        return new VersionMetadata(templateName, versionNumber);
+    }
+
+    private record VersionMetadata(
+            String templateName,
+            Integer versionNumber
+    ) {
     }
 }

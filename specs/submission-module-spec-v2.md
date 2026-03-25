@@ -12,7 +12,8 @@ This module allows a user to:
 4. validate workbook structure and row/cell content against the resolved schema
 5. persist a minimal validated submission record when validation succeeds
 6. view saved submissions in a read-only history screen
-7. review validation results and re-upload when needed
+7. inspect one saved submission in a read-only details view
+8. review validation results and re-upload when needed
 
 ---
 
@@ -25,9 +26,10 @@ This module allows a user to:
 - Slice 4 (UX Polish, Stability, and Cleanup) is implemented
 - Slice 5 (Minimal submission persistence) is implemented
 - Slice 6 (Read-only submission history) is implemented
+- Slice 7 (Read-only submission details view) is implemented
 
 This document includes both:
-- implemented behavior (Slices 1 through 6)
+- implemented behavior (Slices 1 through 7)
 - planned behavior (future slices)
 
 ---
@@ -160,6 +162,11 @@ Submission must reuse:
 - render submission history newest first in the frontend
 - expose minimal saved metadata only
 
+#### Slice 7
+- return one compact saved submission from a read-only backend details endpoint
+- render a read-only submission details page
+- link to details from submission history
+
 ### Out of Scope (Current State)
 
 - approval workflow
@@ -169,7 +176,7 @@ Submission must reuse:
 - validation result blob storage
 - final submit action
 - editing submissions
-- re-validation from history
+- re-validation from history or details
 - delete functionality
 
 ---
@@ -236,6 +243,17 @@ Frontend:
 - shows submission ID, template/version, status, created time, and file name
 - does not expose edit, delete, resubmit, or workflow actions
 
+### Submission Details (Implemented, Read-only)
+
+Backend:
+- returns one compact saved submission row from `GET /api/submissions/{id}`
+- returns 404 when the submission does not exist
+
+Frontend:
+- renders read-only details page
+- shows loading, not-found, and generic error states
+- does not expose edit, delete, revalidate, or workflow actions
+
 ---
 
 ## 8. Identity Resolution Rules (Implemented)
@@ -289,6 +307,7 @@ controller:
 - expose identify endpoint
 - expose validation endpoint
 - expose read-only history endpoint
+- expose read-only details endpoint
 
 service:
 - orchestrate upload -> parse -> resolve -> compare
@@ -296,6 +315,7 @@ service:
 - perform structure checks before row / cell checks
 - persist minimal validated submission metadata after successful validation
 - list read-only submission history
+- return one read-only submission details view
 
 parser:
 - read workbook
@@ -305,6 +325,7 @@ parser:
 entity / repository:
 - store validated submission metadata only
 - list saved submission metadata for read-only history
+- read one saved submission metadata row for details
 - do not store row data or validation blobs
 
 ---
@@ -334,6 +355,15 @@ Current behavior:
 - history is read-only
 - newest submissions are returned first
 
+### Details Endpoint
+
+`GET /api/submissions/{id}`
+
+Current behavior:
+- returns one compact saved submission item only
+- details are read-only
+- missing submissions return 404
+
 ---
 
 ## 12. Frontend Design
@@ -344,6 +374,7 @@ Current behavior:
 - `types.ts`
 - `pages/SubmissionWizardPage.tsx`
 - `pages/SubmissionHistoryPage.tsx`
+- `pages/SubmissionDetailsPage.tsx`
 - `components/UploadIdentifyStep.tsx`
 - `components/IdentityResultCard.tsx`
 - `components/ValidationSummaryCard.tsx`
@@ -355,6 +386,7 @@ Rules:
 - Step 2 is functional
 - Step 3 is lightweight only
 - history is read-only only
+- details are read-only only
 - no fake submit workflow
 - no fallback automation
 - no correction editing
@@ -409,6 +441,12 @@ Rules:
 - read-only submission history page
 - no details, edit, or workflow actions
 
+### Slice 7 (Done)
+
+- read-only submission details endpoint
+- read-only submission details page
+- no edit, revalidate, or workflow actions
+
 ---
 
 ## 14. Acceptance Criteria (Current State)
@@ -426,8 +464,10 @@ System is valid when:
 9. frontend displays submission save success and the returned ID
 10. user can view saved submissions in a read-only history screen
 11. history shows newest submissions first with compact metadata
-12. user can restart with a new workbook
-13. frontend handles loading and backend error states gracefully
+12. user can open a read-only details view for one saved submission
+13. missing submission details return a clean not-found state
+14. user can restart with a new workbook
+15. frontend handles loading and backend error states gracefully
 
 ---
 
@@ -439,6 +479,7 @@ Codex must not:
 - introduce microservices
 - add persistence beyond the minimal validated submission record
 - add mutable submission history behavior
+- add mutable submission details behavior
 - add workflow engine
 - redesign export
 - fake final submission
@@ -449,4 +490,4 @@ Codex must not:
 
 This spec reflects actual implemented behavior, not theoretical design.
 
-Future slices must build on this identity, validation, minimal persistence, and read-only history contract.
+Future slices must build on this identity, validation, minimal persistence, and read-only history/details contract.

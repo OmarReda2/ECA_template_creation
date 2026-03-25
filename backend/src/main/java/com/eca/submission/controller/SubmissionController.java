@@ -1,5 +1,6 @@
 package com.eca.submission.controller;
 
+import com.eca.submission.dto.SubmissionDetailsDto;
 import com.eca.submission.dto.SubmissionHistoryItemDto;
 import com.eca.submission.dto.SubmissionIdentifyResponse;
 import com.eca.submission.dto.SubmissionStructureValidationResponse;
@@ -12,13 +13,16 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/submissions")
@@ -41,6 +45,12 @@ public class SubmissionController {
     @GetMapping
     public List<SubmissionHistoryItemDto> listSubmissions() {
         return submissionHistoryService.listSubmissions();
+    }
+
+    @GetMapping("/{id}")
+    public SubmissionDetailsDto getSubmission(@PathVariable UUID id) {
+        return submissionHistoryService.getSubmission(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Submission not found."));
     }
 
     @PostMapping("/identify")

@@ -54,6 +54,7 @@ It reflects the system as implemented, not intended design.
 
 ### Observation
 - Submission persistence does not store workbook row data, validation blobs, approval state, or submit lifecycle state
+- Read-only history and read-only details exist, but they expose metadata only
 
 ### Impact
 - This keeps Slice 5 intentionally small and reversible, but later slices still need explicit design for review, workflow, and data retention

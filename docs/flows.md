@@ -134,9 +134,24 @@ Backend:
 2. Enrich compact history rows with template name and version number when available
 3. Return read-only history items only
 
+### Step 8 - Read-only Submission Details
+
+Frontend:
+
+1. User opens one saved submission from history
+2. Frontend calls `GET /api/submissions/{id}`
+3. Frontend renders loading, not-found, or read-only details state
+
+Backend:
+
+1. Read one `SubmissionEntity` by ID
+2. Enrich the compact details row with template name and version number when available
+3. Return 404 when the submission does not exist
+
 Not provided:
 
 - final submit
 - correction editing
+- re-validation from details
 - history actions beyond read-only viewing
 - workflow state changes

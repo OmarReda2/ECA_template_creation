@@ -68,3 +68,15 @@ export interface SubmissionHistoryItem {
   templateName: string | null;
   versionNumber: number | null;
 }
+
+export interface SubmissionDetails {
+  id: string;
+  templateId: string;
+  templateName: string | null;
+  versionId: string;
+  versionNumber: number | null;
+  schemaHash: string;
+  status: string;
+  createdAt: string;
+  originalFileName: string | null;
+}

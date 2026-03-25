@@ -48,6 +48,7 @@ Backend components:
 Frontend components:
 - `SubmissionWizardPage`
 - `SubmissionHistoryPage`
+- `SubmissionDetailsPage`
 - `UploadIdentifyStep`
 - `IdentityResultCard`
 - validation summary / issue rendering components
@@ -74,6 +75,7 @@ Handles workbook upload, identity resolution, backend validation, minimal submis
 - Slice 4: UX polish and stability cleanup
 - Slice 5: minimal persistence after successful validation
 - Slice 6: read-only submission history
+- Slice 7: read-only submission details view
 
 ### Current Responsibilities
 
@@ -85,8 +87,10 @@ Handles workbook upload, identity resolution, backend validation, minimal submis
 - Validate row / cell content against schema field rules
 - Persist a minimal validated submission record after successful validation
 - List saved submission records in read-only history order
+- Read one saved submission record in a read-only details view
 - Render identify and validation results in the frontend
 - Render read-only submission history in the frontend
+- Render read-only submission details in the frontend
 - Handle validation loading and backend error states in the frontend
 - Allow restart / re-upload without workflow state
 

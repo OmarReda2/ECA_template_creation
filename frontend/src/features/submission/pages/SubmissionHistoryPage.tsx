@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { PageHeader } from '@/shared/ui/PageHeader';
+import { Button } from '@/shared/ui/Button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/shared/ui/Card';
 import { Badge } from '@/shared/ui/Badge';
 import { Spinner } from '@/shared/ui/Spinner';
@@ -117,6 +119,11 @@ export default function SubmissionHistoryPage() {
                   <div className="text-muted-foreground">schema_hash</div>
                   <div className="break-all">{formatValue(item.schemaHash)}</div>
                 </div>
+              </CardContent>
+              <CardContent className="pt-0">
+                <Button asChild type="button" variant="outline" size="sm">
+                  <Link to={`/submissions/${item.id}`}>View details</Link>
+                </Button>
               </CardContent>
             </Card>
           ))}

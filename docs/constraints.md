@@ -21,6 +21,7 @@
 - Submission persistence must happen only after validation completes without blocking errors
 - Submission must not store row data or validation result blobs
 - Submission history is read-only only
+- Submission details view is read-only only
 
 ---
 
@@ -54,6 +55,7 @@
 - Unexpected backend errors should surface as user-friendly UI feedback, not a crash
 - Successful validation may only show a saved submission confirmation and ID
 - Submission history may only show saved metadata and must not expose edit or workflow actions
+- Submission details may only show saved metadata and must not expose edit, delete, or revalidate actions
 
 Still not implemented:
 - correction grid
@@ -62,3 +64,4 @@ Still not implemented:
 - inline spreadsheet editing
 - row data persistence
 - editable history actions
+- editable details actions

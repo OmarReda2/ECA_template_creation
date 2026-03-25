@@ -1,9 +1,18 @@
 import { http } from '@/shared/lib/http';
-import type { SubmissionHistoryItem, SubmissionIdentifyResponse, SubmissionValidationResponse } from './types';
+import type {
+  SubmissionDetails,
+  SubmissionHistoryItem,
+  SubmissionIdentifyResponse,
+  SubmissionValidationResponse,
+} from './types';
 
 export const submissionApi = {
   list: async (): Promise<SubmissionHistoryItem[]> => {
     const response = await http.get('/api/submissions');
+    return response.data;
+  },
+  getById: async (submissionId: string): Promise<SubmissionDetails> => {
+    const response = await http.get(`/api/submissions/${submissionId}`);
     return response.data;
   },
   identify: async (file: File): Promise<SubmissionIdentifyResponse> => {
