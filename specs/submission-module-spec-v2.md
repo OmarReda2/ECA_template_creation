@@ -20,10 +20,11 @@ This module allows a user to:
 - Slice 2A (Backend Workbook Structure Validation) is implemented
 - Slice 2B (Backend Row / Cell Validation) is implemented
 - Slice 3 (Frontend Validation UI and Results Rendering) is implemented
+- Slice 4 (UX Polish, Stability, and Cleanup) is implemented
 - Submission persistence is not implemented
 
 This document includes both:
-- implemented behavior (Slice 1 + Slice 2A + Slice 2B + Slice 3)
+- implemented behavior (Slice 1 + Slice 2A + Slice 2B + Slice 3 + Slice 4)
 - planned behavior (future slices)
 
 ---
@@ -299,12 +300,11 @@ parser:
 
 ### Validation Endpoint
 
-`POST /api/submissions/validate-structure`
+`POST /api/submissions/validate`
 
 Note:
-- the endpoint name still says `validate-structure`
 - current behavior includes full backend workbook validation
-- frontend must present this as “Validate Workbook” rather than exposing raw endpoint naming
+- frontend presents this as “Validate Workbook”
 
 ---
 
@@ -361,10 +361,11 @@ Note:
 - results rendering
 - restart / re-upload flow
 
-### Slice 4
+### Slice 4 (Done)
 
-- polish
-- edge cases
+- UX polish
+- stability
+- cleanup
 
 ---
 
@@ -380,7 +381,8 @@ System is valid when:
 6. validation runs only after `EXACT_MATCH`
 7. frontend clearly renders validation summary and issue list
 8. user can restart with a new workbook
-9. no persistence occurs
+9. frontend handles loading and backend error states gracefully
+10. no persistence occurs
 
 ---
 

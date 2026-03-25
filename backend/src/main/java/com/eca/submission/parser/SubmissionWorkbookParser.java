@@ -10,8 +10,6 @@ import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.ss.usermodel.WorkbookFactory;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -24,7 +22,6 @@ import java.util.Map;
 @Component
 public class SubmissionWorkbookParser {
 
-    private static final Logger log = LoggerFactory.getLogger(SubmissionWorkbookParser.class);
     private static final String METADATA_SHEET_NAME = "__metadata__";
     private final DataFormatter dataFormatter = new DataFormatter(Locale.ROOT);
 
@@ -63,7 +60,6 @@ public class SubmissionWorkbookParser {
 
     public Workbook openWorkbook(MultipartFile file) throws IOException {
         validateWorkbookUpload(file);
-        log.info("Opening workbook filename={} size={}", file.getOriginalFilename(), file.getSize());
         InputStream inputStream = file.getInputStream();
         try {
             return WorkbookFactory.create(inputStream);

@@ -76,6 +76,7 @@ Handles workbook upload, identity resolution, backend validation, and frontend v
 - Validate expected business sheets and headers
 - Validate row / cell content against schema field rules
 - Render identify and validation results in the frontend
+- Handle validation loading and backend error states in the frontend
 - Allow restart / re-upload without persistence
 
 ### Not Yet Supported

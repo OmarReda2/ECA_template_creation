@@ -69,7 +69,7 @@ Frontend:
 Frontend:
 
 1. User clicks `Validate Workbook`
-2. Frontend calls `POST /api/submissions/validate-structure`
+2. Frontend calls `POST /api/submissions/validate`
 3. Frontend shows loading state
 
 Backend:
@@ -99,6 +99,7 @@ Frontend renders:
   - row number when present
   - header name when present
   - message
+- grouped for readability, with errors shown ahead of warnings
 
 ### Step 5 - Review / Restart
 
@@ -106,6 +107,7 @@ Frontend provides:
 
 - lightweight review panel
 - re-upload / restart action
+- graceful error display when backend returns an unexpected failure
 
 Not provided:
 

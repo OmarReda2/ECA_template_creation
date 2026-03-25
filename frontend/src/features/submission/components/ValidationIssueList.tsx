@@ -21,6 +21,23 @@ function IssueSection({
     return null;
   }
 
+  const groupedIssues = issues
+    .slice()
+    .sort((left, right) => {
+      const leftSheet = left.sheetName ?? 'Workbook';
+      const rightSheet = right.sheetName ?? 'Workbook';
+      if (leftSheet !== rightSheet) return leftSheet.localeCompare(rightSheet);
+      const leftRow = left.rowNumber ?? 0;
+      const rightRow = right.rowNumber ?? 0;
+      if (leftRow !== rightRow) return leftRow - rightRow;
+      return (left.headerName ?? '').localeCompare(right.headerName ?? '');
+    })
+    .reduce<Record<string, SubmissionValidationIssue[]>>((groups, issue) => {
+      const key = issue.sheetName ?? 'Workbook';
+      groups[key] = [...(groups[key] ?? []), issue];
+      return groups;
+    }, {});
+
   return (
     <Card>
       <CardHeader>
@@ -33,27 +50,42 @@ function IssueSection({
         </div>
       </CardHeader>
       <CardContent className="space-y-3">
-        {issues.map((issue, index) => (
-          <div key={`${issue.code}-${issue.sheetName ?? 'workbook'}-${issue.rowNumber ?? 'na'}-${issue.headerName ?? 'na'}-${index}`} className="rounded-md border border-border p-4">
-            <div className="flex flex-wrap items-center gap-2">
-              <Badge variant={variant}>{issue.severity}</Badge>
-              <Badge variant="outline">{issue.code}</Badge>
+        {Object.entries(groupedIssues).map(([sheetName, grouped]) => (
+          <div key={sheetName} className="space-y-3">
+            <div className="flex items-center justify-between gap-3 rounded-md border border-border bg-muted/30 px-4 py-3">
+              <h3 className="text-sm font-semibold text-foreground">{sheetName}</h3>
+              <Badge variant="outline">{grouped.length}</Badge>
             </div>
-            <p className="mt-3 text-sm text-foreground">{issue.message}</p>
-            <dl className="mt-3 grid gap-2 text-xs text-muted-foreground md:grid-cols-3">
-              <div>
-                <dt className="font-medium">Sheet</dt>
-                <dd>{issue.sheetName ?? 'Workbook'}</dd>
+            {grouped.map((issue, index) => (
+              <div
+                key={`${issue.code}-${sheetName}-${issue.rowNumber ?? 'na'}-${issue.headerName ?? 'na'}-${index}`}
+                className={`rounded-md border p-4 ${
+                  variant === 'destructive'
+                    ? 'border-red-200 bg-red-50/70'
+                    : 'border-amber-200 bg-amber-50/70'
+                }`}
+              >
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge variant={variant}>{issue.severity}</Badge>
+                  <Badge variant="outline">{issue.code}</Badge>
+                </div>
+                <p className="mt-3 text-sm text-foreground">{issue.message}</p>
+                <dl className="mt-3 grid gap-2 text-xs text-muted-foreground md:grid-cols-3">
+                  <div>
+                    <dt className="font-medium">Sheet</dt>
+                    <dd>{issue.sheetName ?? 'Workbook'}</dd>
+                  </div>
+                  <div>
+                    <dt className="font-medium">Row</dt>
+                    <dd>{issue.rowNumber ?? 'Not applicable'}</dd>
+                  </div>
+                  <div>
+                    <dt className="font-medium">Header</dt>
+                    <dd>{issue.headerName ?? 'Not applicable'}</dd>
+                  </div>
+                </dl>
               </div>
-              <div>
-                <dt className="font-medium">Row</dt>
-                <dd>{issue.rowNumber ?? 'Not applicable'}</dd>
-              </div>
-              <div>
-                <dt className="font-medium">Header</dt>
-                <dd>{issue.headerName ?? 'Not applicable'}</dd>
-              </div>
-            </dl>
+            ))}
           </div>
         ))}
       </CardContent>
@@ -110,7 +142,9 @@ interface ValidationIssueListProps {
 }
 
 export function ValidationIssueList({ result }: ValidationIssueListProps) {
-  const { errors, warnings, sheetIssues } = result;
+  const errors = result.errors ?? [];
+  const warnings = result.warnings ?? [];
+  const sheetIssues = result.sheetIssues ?? [];
 
   if (errors.length === 0 && warnings.length === 0 && sheetIssues.length === 0) {
     return (

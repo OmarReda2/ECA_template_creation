@@ -6,13 +6,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/sha
 import { Button } from '@/shared/ui/Button';
 import { Spinner } from '@/shared/ui/Spinner';
 import { useToast } from '@/shared/ui/Toast';
-import { normalizeHttpError, getErrorMessage } from '@/shared/errors/errorTypes';
+import { normalizeHttpError, getErrorMessage, type FrontendError } from '@/shared/errors/errorTypes';
 
 interface UploadIdentifyStepProps {
   onIdentified: (file: File, result: SubmissionIdentifyResponse) => void;
+  onError?: (error: FrontendError | null) => void;
 }
 
-export function UploadIdentifyStep({ onIdentified }: UploadIdentifyStepProps) {
+export function UploadIdentifyStep({ onIdentified, onError }: UploadIdentifyStepProps) {
   const [file, setFile] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const { showErrorToast } = useToast();
@@ -26,10 +27,12 @@ export function UploadIdentifyStep({ onIdentified }: UploadIdentifyStepProps) {
 
     setSubmitting(true);
     try {
+      onError?.(null);
       const result = await submissionApi.identify(file);
       onIdentified(file, result);
     } catch (error) {
       const normalized = normalizeHttpError(error);
+      onError?.(normalized);
       showErrorToast(getErrorMessage(normalized, true));
     } finally {
       setSubmitting(false);

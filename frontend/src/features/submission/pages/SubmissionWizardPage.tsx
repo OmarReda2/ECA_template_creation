@@ -13,7 +13,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/sha
 import { Button } from '@/shared/ui/Button';
 import { Spinner } from '@/shared/ui/Spinner';
 import { useToast } from '@/shared/ui/Toast';
-import { normalizeHttpError, getErrorMessage } from '@/shared/errors/errorTypes';
+import { ErrorPanel } from '@/shared/errors/ErrorPanel';
+import { normalizeHttpError, getErrorMessage, type FrontendError } from '@/shared/errors/errorTypes';
 import { UploadIdentifyStep } from '../components/UploadIdentifyStep';
 import { IdentityResultCard } from '../components/IdentityResultCard';
 import { ManualTemplateSelection } from '../components/ManualTemplateSelection';
@@ -35,6 +36,8 @@ export default function SubmissionWizardPage() {
   const [templates, setTemplates] = useState<TemplateSummary[]>([]);
   const [selectedTemplateId, setSelectedTemplateId] = useState('');
   const [validating, setValidating] = useState(false);
+  const [identifyError, setIdentifyError] = useState<FrontendError | null>(null);
+  const [validationError, setValidationError] = useState<FrontendError | null>(null);
   const { showErrorToast } = useToast();
 
   const shouldShowFallback = identifyResult != null && FALLBACK_STATES.has(identifyResult.status);
@@ -61,6 +64,8 @@ export default function SubmissionWizardPage() {
     setIdentifyResult(result);
     setValidationResult(null);
     setSelectedTemplateId('');
+    setIdentifyError(null);
+    setValidationError(null);
   };
 
   const handleValidate = async () => {
@@ -69,11 +74,13 @@ export default function SubmissionWizardPage() {
     }
 
     setValidating(true);
+    setValidationError(null);
     try {
       const result = await submissionApi.validateWorkbook(uploadedFile);
       setValidationResult(result);
     } catch (error) {
       const normalized = normalizeHttpError(error);
+      setValidationError(normalized);
       showErrorToast(getErrorMessage(normalized, true));
     } finally {
       setValidating(false);
@@ -86,6 +93,8 @@ export default function SubmissionWizardPage() {
     setIdentifyResult(null);
     setValidationResult(null);
     setSelectedTemplateId('');
+    setIdentifyError(null);
+    setValidationError(null);
   };
 
   return (
@@ -120,7 +129,18 @@ export default function SubmissionWizardPage() {
         description="Upload a workbook, confirm identity, then run backend validation to review workbook issues before any future submission slice."
       />
 
-      <UploadIdentifyStep key={uploadKey} onIdentified={handleIdentified} />
+      <UploadIdentifyStep
+        key={uploadKey}
+        onIdentified={handleIdentified}
+        onError={setIdentifyError}
+      />
+
+      {identifyError != null && (
+        <ErrorPanel error={getErrorMessage(identifyError, true)} onDismiss={() => setIdentifyError(null)} />
+      )}
+      {validationError != null && (
+        <ErrorPanel error={getErrorMessage(validationError, true)} onDismiss={() => setValidationError(null)} />
+      )}
 
       {identifyResult != null && <IdentityResultCard result={identifyResult} />}
 
@@ -134,7 +154,7 @@ export default function SubmissionWizardPage() {
           </CardHeader>
           <CardContent className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div className="text-sm text-muted-foreground">
-              The backend endpoint remains <code>/api/submissions/validate-structure</code>, but it now runs full workbook validation.
+              Run backend validation to check workbook structure and row/cell content before any future submission workflow.
             </div>
             <Button type="button" onClick={handleValidate} disabled={!canValidate || validating}>
               {validating ? (
@@ -155,7 +175,7 @@ export default function SubmissionWizardPage() {
           <CardHeader>
             <CardTitle>Validation Not Available Yet</CardTitle>
             <CardDescription>
-              Backend validation is gated by an exact identity match. Review the identification result and re-upload if needed.
+              Backend validation is blocked until the workbook identifies with EXACT_MATCH. Review the identification result, then re-upload or use manual fallback guidance if available.
             </CardDescription>
           </CardHeader>
         </Card>

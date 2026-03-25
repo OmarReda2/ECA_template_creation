@@ -271,11 +271,6 @@ export function SchemaEditorView({
     () => (selectedTableKey != null ? schema.tables.find((t) => t.tableKey === selectedTableKey) ?? null : null),
     [schema.tables, selectedTableKey]
   );
-  const selectedTableIndex = useMemo(
-    () => (selectedTableKey != null ? schema.tables.findIndex((t) => t.tableKey === selectedTableKey) : -1),
-    [schema.tables, selectedTableKey]
-  );
-
   const addTable = useCallback(
     (tableKey: string, sheetName: string, order: number, defaultFields?: { year?: boolean; month?: boolean; productName?: boolean }) => {
       const fields: FieldDefinition[] = [];

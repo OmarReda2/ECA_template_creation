@@ -40,11 +40,12 @@
 ## Frontend Submission UI Constraints
 
 - Keep the current app layout and route structure
-- Frontend must adapt to the existing backend endpoint names
-- UI should say “Validate Workbook” instead of exposing raw endpoint naming
+- Frontend uses `POST /api/submissions/validate`
+- UI should say “Validate Workbook”
 - Validation must not be shown as available unless identify returns `EXACT_MATCH`
 - Warnings and errors must render distinctly
 - Step 3 remains lightweight review / restart only
+- Unexpected backend errors should surface as user-friendly UI feedback, not a crash
 
 Still not implemented:
 - persistence

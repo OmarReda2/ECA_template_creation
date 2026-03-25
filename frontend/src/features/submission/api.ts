@@ -11,7 +11,7 @@ export const submissionApi = {
   validateWorkbook: async (file: File): Promise<SubmissionValidationResponse> => {
     const formData = new FormData();
     formData.append('file', file);
-    const response = await http.post('/api/submissions/validate-structure', formData);
+    const response = await http.post('/api/submissions/validate', formData);
     return response.data;
   },
 };

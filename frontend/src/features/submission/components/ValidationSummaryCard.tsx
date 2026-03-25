@@ -11,8 +11,10 @@ interface ValidationSummaryCardProps {
 }
 
 export function ValidationSummaryCard({ result }: ValidationSummaryCardProps) {
-  const errorCount = result.errors.length;
-  const warningCount = result.warnings.length;
+  const errors = result.errors ?? [];
+  const warnings = result.warnings ?? [];
+  const errorCount = errors.length;
+  const warningCount = warnings.length;
   const hasIssues = errorCount > 0 || warningCount > 0;
 
   return (
@@ -76,6 +78,15 @@ export function ValidationSummaryCard({ result }: ValidationSummaryCardProps) {
             </div>
           </dl>
         </div>
+
+        {!hasIssues && (
+          <div className="space-y-2 rounded-md border border-green-200 bg-green-50 p-4 xl:col-span-3">
+            <h3 className="text-sm font-semibold text-green-900">Workbook passed backend validation</h3>
+            <p className="text-sm text-green-800">
+              No errors or warnings were returned for the uploaded workbook.
+            </p>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
