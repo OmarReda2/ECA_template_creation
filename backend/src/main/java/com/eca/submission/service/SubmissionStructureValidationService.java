@@ -18,6 +18,8 @@ import org.apache.poi.ss.usermodel.DateUtil;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -40,6 +42,7 @@ import java.util.Set;
 @Service
 public class SubmissionStructureValidationService {
 
+    private static final Logger log = LoggerFactory.getLogger(SubmissionStructureValidationService.class);
     private static final String METADATA_SHEET_NAME = "__metadata__";
     private static final String VALIDATION_SHEET_NAME = "_validation";
     private static final String INSTRUCTIONS_SHEET_NAME = "Instructions";
@@ -74,6 +77,7 @@ public class SubmissionStructureValidationService {
 
     @Transactional(readOnly = true)
     public SubmissionStructureValidationResponse validateStructure(MultipartFile file) {
+        log.info("Starting workbook validation filename={}", file != null ? file.getOriginalFilename() : null);
         SubmissionIdentifyResponse identifyResponse;
         try {
             identifyResponse = submissionService.identify(file);
@@ -93,6 +97,7 @@ public class SubmissionStructureValidationService {
         }
 
         TemplateVersionEntity version = versionRepository.findById(identifyResponse.resolvedVersion().versionId()).orElse(null);
+        log.info("Validation identity status={} versionId={}", identifyResponse.status(), identifyResponse.resolvedVersion().versionId());
         if (version == null) {
             return response(
                     null,
@@ -105,6 +110,7 @@ public class SubmissionStructureValidationService {
         }
 
         List<SheetSpec> expectedSheets = extractSheetSpecs(version.getSchemaJson());
+        log.info("Resolved {} expected sheets for validation", expectedSheets.size());
         if (expectedSheets.isEmpty()) {
             return response(
                     identifyResponse.resolvedVersion(),
@@ -117,6 +123,7 @@ public class SubmissionStructureValidationService {
         }
 
         try (Workbook workbook = workbookParser.openWorkbook(file)) {
+            log.info("Workbook opened successfully for validation");
             return validateWorkbookAgainstSchema(workbook, identifyResponse.resolvedVersion(), expectedSheets, identifyResponse.messages());
         } catch (SubmissionWorkbookException ex) {
             return response(

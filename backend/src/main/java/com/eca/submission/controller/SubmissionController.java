@@ -6,6 +6,8 @@ import com.eca.submission.exception.SubmissionWorkbookException;
 import com.eca.submission.model.SubmissionIdentifyStatus;
 import com.eca.submission.service.SubmissionService;
 import com.eca.submission.service.SubmissionStructureValidationService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -21,6 +23,7 @@ import java.util.List;
 @RequestMapping("/api/submissions")
 public class SubmissionController {
 
+    private static final Logger log = LoggerFactory.getLogger(SubmissionController.class);
     private final SubmissionService submissionService;
     private final SubmissionStructureValidationService structureValidationService;
 
@@ -39,6 +42,7 @@ public class SubmissionController {
 
     @PostMapping("/validate-structure")
     public SubmissionStructureValidationResponse validateStructure(@RequestPart("file") MultipartFile file) {
+        log.info("validateStructure called filename={} size={}", file != null ? file.getOriginalFilename() : null, file != null ? file.getSize() : null);
         return structureValidationService.validateStructure(file);
     }
 
