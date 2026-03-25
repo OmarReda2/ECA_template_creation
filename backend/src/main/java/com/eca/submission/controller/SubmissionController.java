@@ -1,9 +1,9 @@
-package com.eca.template.submission.controller;
+package com.eca.submission.controller;
 
-import com.eca.template.submission.dto.SubmissionIdentifyResponse;
-import com.eca.template.submission.exception.SubmissionWorkbookException;
-import com.eca.template.submission.model.SubmissionIdentifyStatus;
-import com.eca.template.submission.service.SubmissionService;
+import com.eca.submission.dto.SubmissionIdentifyResponse;
+import com.eca.submission.exception.SubmissionWorkbookException;
+import com.eca.submission.model.SubmissionIdentifyStatus;
+import com.eca.submission.service.SubmissionService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;

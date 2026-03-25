@@ -1,13 +1,13 @@
-package com.eca.template.submission.service;
+package com.eca.submission.service;
 
 import com.eca.template.entity.TemplateVersionEntity;
 import com.eca.template.repository.TemplateVersionJpaRepository;
-import com.eca.template.submission.dto.SubmissionIdentifyResponse;
-import com.eca.template.submission.dto.SubmissionMetadataDto;
-import com.eca.template.submission.dto.SubmissionResolvedVersionDto;
-import com.eca.template.submission.model.ParsedSubmissionMetadata;
-import com.eca.template.submission.model.SubmissionIdentifyStatus;
-import com.eca.template.submission.parser.SubmissionWorkbookParser;
+import com.eca.submission.dto.SubmissionIdentifyResponse;
+import com.eca.submission.dto.SubmissionMetadataDto;
+import com.eca.submission.dto.SubmissionResolvedVersionDto;
+import com.eca.submission.model.ParsedSubmissionMetadata;
+import com.eca.submission.model.SubmissionIdentifyStatus;
+import com.eca.submission.parser.SubmissionWorkbookParser;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;

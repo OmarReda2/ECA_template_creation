@@ -1,4 +1,4 @@
-package com.eca.template.submission.model;
+package com.eca.submission.model;
 
 public record ParsedSubmissionMetadata(
         String templateId,

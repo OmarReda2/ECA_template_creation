@@ -1,6 +1,6 @@
-package com.eca.template.submission.dto;
+package com.eca.submission.dto;
 
-import com.eca.template.submission.model.SubmissionIdentifyStatus;
+import com.eca.submission.model.SubmissionIdentifyStatus;
 
 import java.util.List;
 

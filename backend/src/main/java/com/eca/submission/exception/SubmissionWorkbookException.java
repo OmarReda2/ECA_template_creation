@@ -1,6 +1,6 @@
-package com.eca.template.submission.exception;
+package com.eca.submission.exception;
 
-import com.eca.template.submission.model.SubmissionIdentifyStatus;
+import com.eca.submission.model.SubmissionIdentifyStatus;
 
 public class SubmissionWorkbookException extends RuntimeException {
 

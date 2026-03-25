@@ -1,13 +1,13 @@
-package com.eca.template.submission;
+package com.eca.submission;
 
 import com.eca.template.entity.TemplateEntity;
 import com.eca.template.entity.TemplateVersionEntity;
 import com.eca.template.repository.TemplateJpaRepository;
 import com.eca.template.repository.TemplateVersionJpaRepository;
-import com.eca.template.submission.controller.SubmissionController;
-import com.eca.template.submission.model.SubmissionIdentifyStatus;
-import com.eca.template.submission.parser.SubmissionWorkbookParser;
-import com.eca.template.submission.service.SubmissionService;
+import com.eca.submission.controller.SubmissionController;
+import com.eca.submission.model.SubmissionIdentifyStatus;
+import com.eca.submission.parser.SubmissionWorkbookParser;
+import com.eca.submission.service.SubmissionService;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;

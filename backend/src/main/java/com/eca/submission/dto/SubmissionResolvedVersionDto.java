@@ -1,4 +1,4 @@
-package com.eca.template.submission.dto;
+package com.eca.submission.dto;
 
 import java.util.UUID;
 

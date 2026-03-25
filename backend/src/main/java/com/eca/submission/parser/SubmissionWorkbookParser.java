@@ -1,8 +1,8 @@
-package com.eca.template.submission.parser;
+package com.eca.submission.parser;
 
-import com.eca.template.submission.exception.SubmissionWorkbookException;
-import com.eca.template.submission.model.ParsedSubmissionMetadata;
-import com.eca.template.submission.model.SubmissionIdentifyStatus;
+import com.eca.submission.exception.SubmissionWorkbookException;
+import com.eca.submission.model.ParsedSubmissionMetadata;
+import com.eca.submission.model.SubmissionIdentifyStatus;
 import org.apache.poi.openxml4j.exceptions.OLE2NotOfficeXmlFileException;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.DataFormatter;
