@@ -27,13 +27,15 @@ It reflects the system as implemented, not intended design.
 
 ---
 
-## 3. No Persistence or Final Submit
+## 3. Persistence Is Minimal Only
 
 ### Observation
-- Submission remains in-memory / request-driven only
+- Successful validation now creates a minimal `SubmissionEntity`
+- The saved record contains template/version/hash/status/timestamp metadata only
 
 ### Impact
-- Users cannot save, resume, or finalize a submission
+- Users get a durable reference ID for a validated upload
+- The system still does not support listing, resuming, editing, or workflow progression
 
 ---
 
@@ -44,3 +46,13 @@ It reflects the system as implemented, not intended design.
 
 ### Impact
 - Users must correct the workbook offline and re-upload
+
+---
+
+## 5. No Submission Workflow or Row Data Storage
+
+### Observation
+- Submission persistence does not store workbook row data, validation blobs, approval state, or submit lifecycle state
+
+### Impact
+- This keeps Slice 5 intentionally small and reversible, but later slices still need explicit design for review, workflow, and data retention

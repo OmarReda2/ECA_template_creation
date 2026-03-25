@@ -58,32 +58,36 @@ public class SubmissionStructureValidationService {
     );
 
     private final SubmissionService submissionService;
+    private final SubmissionPersistenceService submissionPersistenceService;
     private final SubmissionWorkbookParser workbookParser;
     private final TemplateVersionJpaRepository versionRepository;
     private final DataFormatter dataFormatter = new DataFormatter(Locale.ROOT);
 
     public SubmissionStructureValidationService(
             SubmissionService submissionService,
+            SubmissionPersistenceService submissionPersistenceService,
             SubmissionWorkbookParser workbookParser,
             TemplateVersionJpaRepository versionRepository
     ) {
         this.submissionService = submissionService;
+        this.submissionPersistenceService = submissionPersistenceService;
         this.workbookParser = workbookParser;
         this.versionRepository = versionRepository;
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public SubmissionStructureValidationResponse validateStructure(MultipartFile file) {
         SubmissionIdentifyResponse identifyResponse;
         try {
             identifyResponse = submissionService.identify(file);
         } catch (SubmissionWorkbookException ex) {
-            return response(null, 0, 0, List.of(error(ex.getStatus().name(), null, null, null, ex.getMessage())), List.of(), List.of());
+            return response(null, null, 0, 0, List.of(error(ex.getStatus().name(), null, null, null, ex.getMessage())), List.of(), List.of());
         }
 
         if (identifyResponse.status() != SubmissionIdentifyStatus.EXACT_MATCH || identifyResponse.resolvedVersion() == null) {
             return response(
                     identifyResponse.resolvedVersion(),
+                    null,
                     0,
                     0,
                     toErrorIssues(identifyResponse.status(), identifyResponse.messages()),
@@ -95,6 +99,7 @@ public class SubmissionStructureValidationService {
         TemplateVersionEntity version = versionRepository.findById(identifyResponse.resolvedVersion().versionId()).orElse(null);
         if (version == null) {
             return response(
+                    null,
                     null,
                     0,
                     0,
@@ -108,6 +113,7 @@ public class SubmissionStructureValidationService {
         if (expectedSheets.isEmpty()) {
             return response(
                     identifyResponse.resolvedVersion(),
+                    null,
                     0,
                     0,
                     List.of(error("SCHEMA_TABLES_MISSING", null, null, null, "Resolved template version schema does not define business sheets.")),
@@ -117,10 +123,17 @@ public class SubmissionStructureValidationService {
         }
 
         try (Workbook workbook = workbookParser.openWorkbook(file)) {
-            return validateWorkbookAgainstSchema(workbook, identifyResponse.resolvedVersion(), expectedSheets, identifyResponse.messages());
+            return validateWorkbookAgainstSchema(
+                    workbook,
+                    identifyResponse.resolvedVersion(),
+                    expectedSheets,
+                    identifyResponse.messages(),
+                    file.getOriginalFilename()
+            );
         } catch (SubmissionWorkbookException ex) {
             return response(
                     identifyResponse.resolvedVersion(),
+                    null,
                     0,
                     0,
                     List.of(error(ex.getStatus().name(), null, null, null, ex.getMessage())),
@@ -130,6 +143,7 @@ public class SubmissionStructureValidationService {
         } catch (IOException e) {
             return response(
                     identifyResponse.resolvedVersion(),
+                    null,
                     0,
                     0,
                     List.of(error("UNSUPPORTED_FILE", null, null, null, "The uploaded workbook could not be read.")),
@@ -139,6 +153,7 @@ public class SubmissionStructureValidationService {
         } catch (RuntimeException e) {
             return response(
                     identifyResponse.resolvedVersion(),
+                    null,
                     0,
                     0,
                     List.of(error("UNSUPPORTED_FILE", null, null, null, "The uploaded workbook is corrupt or unsupported.")),
@@ -152,7 +167,8 @@ public class SubmissionStructureValidationService {
             Workbook workbook,
             SubmissionResolvedVersionDto resolvedVersion,
             List<SheetSpec> expectedSheets,
-            List<String> identifyMessages
+            List<String> identifyMessages,
+            String originalFileName
     ) {
         List<SubmissionValidationIssueDto> errors = new ArrayList<>();
         List<SubmissionValidationIssueDto> warnings = new ArrayList<>(toWarningIssues(identifyMessages));
@@ -201,6 +217,7 @@ public class SubmissionStructureValidationService {
         if (!errors.isEmpty()) {
             return response(
                     resolvedVersion,
+                    null,
                     expectedSheets.size(),
                     0,
                     List.copyOf(errors),
@@ -214,8 +231,14 @@ public class SubmissionStructureValidationService {
             rowsChecked += validateRows(validatedSheet, errors);
         }
 
+        java.util.UUID submissionId = null;
+        if (errors.isEmpty()) {
+            submissionId = submissionPersistenceService.createValidatedSubmission(resolvedVersion, originalFileName);
+        }
+
         return response(
                 resolvedVersion,
+                submissionId,
                 expectedSheets.size(),
                 rowsChecked,
                 List.copyOf(errors),
@@ -609,13 +632,14 @@ public class SubmissionStructureValidationService {
 
     private SubmissionStructureValidationResponse response(
             SubmissionResolvedVersionDto targetVersion,
+            java.util.UUID submissionId,
             int sheetsChecked,
             int rowsChecked,
             List<SubmissionValidationIssueDto> errors,
             List<SubmissionValidationIssueDto> warnings,
             List<SubmissionStructureValidationSheetDto> sheetIssues
     ) {
-        return new SubmissionStructureValidationResponse(targetVersion, sheetsChecked, rowsChecked, errors, warnings, sheetIssues);
+        return new SubmissionStructureValidationResponse(targetVersion, submissionId, sheetsChecked, rowsChecked, errors, warnings, sheetIssues);
     }
 
     private String readCell(Cell cell) {

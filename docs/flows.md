@@ -84,11 +84,21 @@ Backend:
 5. Validate workbook structure
 6. If structure is clean enough, validate row/cell content
 
-### Step 4 - Results Rendering
+### Step 4 - Persist Validated Submission
+
+Backend:
+
+1. Check for blocking validation errors
+2. If errors exist, do not persist and return `submissionId = null`
+3. If no blocking errors exist, create a minimal `SubmissionEntity`
+4. Return validation response with `submissionId`
+
+### Step 5 - Results Rendering
 
 Frontend renders:
 
 - target version info
+- submission ID when persistence succeeds
 - sheets checked
 - rows checked
 - error count
@@ -100,8 +110,9 @@ Frontend renders:
   - header name when present
   - message
 - grouped for readability, with errors shown ahead of warnings
+- success feedback when a submission record is saved
 
-### Step 5 - Review / Restart
+### Step 6 - Review / Restart
 
 Frontend provides:
 
@@ -111,6 +122,7 @@ Frontend provides:
 
 Not provided:
 
-- persistence
+- submission list
 - final submit
 - correction editing
+- workflow state changes

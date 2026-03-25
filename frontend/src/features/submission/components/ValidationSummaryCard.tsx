@@ -16,6 +16,7 @@ export function ValidationSummaryCard({ result }: ValidationSummaryCardProps) {
   const errorCount = errors.length;
   const warningCount = warnings.length;
   const hasIssues = errorCount > 0 || warningCount > 0;
+  const submissionSaved = result.submissionId != null;
 
   return (
     <Card>
@@ -62,6 +63,10 @@ export function ValidationSummaryCard({ result }: ValidationSummaryCardProps) {
               <dt className="text-muted-foreground">Rows checked</dt>
               <dd>{result.rowsChecked}</dd>
             </div>
+            <div className="flex justify-between gap-4">
+              <dt className="text-muted-foreground">Submission ID</dt>
+              <dd className="text-right break-all">{formatValue(result.submissionId)}</dd>
+            </div>
           </dl>
         </div>
 
@@ -79,11 +84,13 @@ export function ValidationSummaryCard({ result }: ValidationSummaryCardProps) {
           </dl>
         </div>
 
-        {!hasIssues && (
+        {submissionSaved && (
           <div className="space-y-2 rounded-md border border-green-200 bg-green-50 p-4 xl:col-span-3">
-            <h3 className="text-sm font-semibold text-green-900">Workbook passed backend validation</h3>
+            <h3 className="text-sm font-semibold text-green-900">Submission saved successfully</h3>
             <p className="text-sm text-green-800">
-              No errors or warnings were returned for the uploaded workbook.
+              {hasIssues
+                ? 'The workbook completed validation without blocking errors, and a validated submission record was created.'
+                : 'No errors or warnings were returned for the uploaded workbook. A validated submission record was created.'}
             </p>
           </div>
         )}

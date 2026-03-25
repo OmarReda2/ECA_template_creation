@@ -49,6 +49,7 @@ export interface SubmissionValidationSheetIssue {
 
 export interface SubmissionValidationResponse {
   targetVersion: SubmissionResolvedVersion | null;
+  submissionId: string | null;
   sheetsChecked: number;
   rowsChecked: number;
   errors: SubmissionValidationIssue[];

@@ -39,7 +39,10 @@ Backend components:
 - `SubmissionController`
 - `SubmissionService`
 - `SubmissionStructureValidationService`
+- `SubmissionPersistenceService`
 - `SubmissionWorkbookParser`
+- `SubmissionEntity`
+- `SubmissionJpaRepository`
 
 Frontend components:
 - `SubmissionWizardPage`
@@ -58,7 +61,7 @@ Notes:
 
 ### Purpose
 
-Handles workbook upload, identity resolution, backend validation, and frontend validation results rendering.
+Handles workbook upload, identity resolution, backend validation, minimal submission persistence, and frontend validation results rendering.
 
 ### Current Support
 
@@ -66,6 +69,8 @@ Handles workbook upload, identity resolution, backend validation, and frontend v
 - Slice 2A: workbook structure validation
 - Slice 2B: row / cell validation
 - Slice 3: frontend validation UI and results rendering
+- Slice 4: UX polish and stability cleanup
+- Slice 5: minimal persistence after successful validation
 
 ### Current Responsibilities
 
@@ -75,14 +80,17 @@ Handles workbook upload, identity resolution, backend validation, and frontend v
 - Compare `schema_hash`
 - Validate expected business sheets and headers
 - Validate row / cell content against schema field rules
+- Persist a minimal validated submission record after successful validation
 - Render identify and validation results in the frontend
 - Handle validation loading and backend error states in the frontend
-- Allow restart / re-upload without persistence
+- Allow restart / re-upload without workflow state
 
 ### Not Yet Supported
 
-- persistence
+- submission list
 - approval workflow
 - correction UI
 - submission lifecycle management
 - final submit behavior
+- row data storage
+- validation result blob storage

@@ -1,6 +1,8 @@
 package com.eca.submission;
 
 import com.eca.submission.controller.SubmissionController;
+import com.eca.submission.repository.SubmissionJpaRepository;
+import com.eca.submission.service.SubmissionPersistenceService;
 import com.eca.submission.service.SubmissionService;
 import com.eca.submission.service.SubmissionStructureValidationService;
 import com.eca.submission.parser.SubmissionWorkbookParser;
@@ -43,6 +45,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @ContextConfiguration(classes = TemplateCreationServiceApplication.class)
 @Import({
         SubmissionService.class,
+        SubmissionPersistenceService.class,
         SubmissionStructureValidationService.class,
         SubmissionWorkbookParser.class,
         SubmissionController.class
@@ -72,6 +75,9 @@ class SubmissionStructureValidationIntegrationTest {
 
     @Autowired
     private TemplateVersionJpaRepository versionRepository;
+
+    @Autowired
+    private SubmissionJpaRepository submissionRepository;
 
     @Test
     void validateStructure_returnsCompactSuccessForMatchingWorkbook() throws Exception {
@@ -104,6 +110,8 @@ class SubmissionStructureValidationIntegrationTest {
         assertThat(response.errors()).isEmpty();
         assertThat(response.warnings()).isEmpty();
         assertThat(response.sheetIssues()).isEmpty();
+        assertThat(response.submissionId()).isNotNull();
+        assertThat(submissionRepository.findById(response.submissionId())).isPresent();
     }
 
     @Test
@@ -123,6 +131,7 @@ class SubmissionStructureValidationIntegrationTest {
 
         assertThat(response.sheetsChecked()).isEqualTo(2);
         assertThat(response.rowsChecked()).isZero();
+        assertThat(response.submissionId()).isNull();
         assertThat(response.errors().stream().map(issue -> issue.code()).toList()).contains("MISSING_SHEET", "MISSING_HEADER");
         assertThat(response.warnings().stream().map(issue -> issue.code()).toList()).contains("EXTRA_SHEET", "EXTRA_HEADER");
         assertThat(response.sheetIssues())
@@ -158,6 +167,7 @@ class SubmissionStructureValidationIntegrationTest {
 
         assertThat(response.sheetsChecked()).isEqualTo(2);
         assertThat(response.rowsChecked()).isEqualTo(3);
+        assertThat(response.submissionId()).isNull();
         assertThat(response.errors().stream().map(issue -> issue.code()).toList()).contains(
                 "REQUIRED_VALUE_MISSING",
                 "INVALID_TYPE",
@@ -188,6 +198,7 @@ class SubmissionStructureValidationIntegrationTest {
         assertThat(response.targetVersion()).isNotNull();
         assertThat(response.sheetsChecked()).isZero();
         assertThat(response.rowsChecked()).isZero();
+        assertThat(response.submissionId()).isNull();
         assertThat(response.errors().stream().map(issue -> issue.code()).toList()).contains("HASH_MISMATCH");
         assertThat(response.sheetIssues()).isEmpty();
     }

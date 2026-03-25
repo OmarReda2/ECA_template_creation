@@ -1,6 +1,7 @@
 # System Constraints (v1 - Verified)
 
 ## Architecture Constraints
+
 - System uses layered architecture
 - Controllers remain thin
 - Services contain business logic
@@ -16,7 +17,9 @@
 - `schema_hash` is required for match validation
 - No backend fallback to latest version is allowed
 - Manual fallback remains frontend-driven only
-- No submission persistence in MVP
+- Submission persistence is limited to a minimal validated record only
+- Submission persistence must happen only after validation completes without blocking errors
+- Submission must not store row data or validation result blobs
 
 ---
 
@@ -34,6 +37,8 @@
   - basic type checks
   - enum checks
   - numeric min/max checks
+- Persistence is blocked when validation errors exist
+- Warnings do not block persistence
 
 ---
 
@@ -41,15 +46,17 @@
 
 - Keep the current app layout and route structure
 - Frontend uses `POST /api/submissions/validate`
-- UI should say “Validate Workbook”
+- UI should say "Validate Workbook"
 - Validation must not be shown as available unless identify returns `EXACT_MATCH`
 - Warnings and errors must render distinctly
 - Step 3 remains lightweight review / restart only
 - Unexpected backend errors should surface as user-friendly UI feedback, not a crash
+- Successful validation may only show a saved submission confirmation and ID
 
 Still not implemented:
-- persistence
+- submission list
 - correction grid
 - approval workflow
 - final submit workflow
 - inline spreadsheet editing
+- row data persistence

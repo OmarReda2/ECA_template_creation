@@ -10,63 +10,61 @@ This module allows a user to:
 2. read workbook metadata
 3. identify the intended template/version
 4. validate workbook structure and row/cell content against the resolved schema
-5. review validation results and re-upload when needed
+5. persist a minimal validated submission record when validation succeeds
+6. review validation results and re-upload when needed
 
 ---
 
-### Current Implementation Status
+## 2. Current Implementation Status
 
 - Slice 1 (Upload and Identify Template) is implemented
 - Slice 2A (Backend Workbook Structure Validation) is implemented
 - Slice 2B (Backend Row / Cell Validation) is implemented
 - Slice 3 (Frontend Validation UI and Results Rendering) is implemented
 - Slice 4 (UX Polish, Stability, and Cleanup) is implemented
-- Submission persistence is not implemented
+- Slice 5 (Minimal submission persistence) is implemented
 
 This document includes both:
-- implemented behavior (Slice 1 + Slice 2A + Slice 2B + Slice 3 + Slice 4)
+- implemented behavior (Slices 1 through 5)
 - planned behavior (future slices)
 
 ---
 
-## 2. Application Entry (Landing Page)
+## 3. Application Entry (Landing Page)
 
-The application includes a **simple landing page** as the entry point.
+The application includes a simple landing page as the entry point.
 
 User can choose between:
-
 - **Template Creation and Export**
 - **Data Submission**
 
-### Navigation Behavior
-
+Navigation behavior:
 - `Create Template` -> Template Creation Flow
 - `Submit Data` -> Submission Flow
 
-### Rules
-
-- Landing page is not a business feature
-- No authentication logic yet
-- Must remain minimal and neutral
+Rules:
+- landing page is not a business feature
+- no authentication logic yet
+- must remain minimal and neutral
 
 ---
 
-## 3. Architecture Constraints
+## 4. Architecture Constraints
 
 ### Backend
 
-- Modular monolith
-- Layered / n-tier architecture
-- Submission is a separate module
-- Reuse Template + Version as source of truth
-- No forced shared module
+- modular monolith
+- layered / n-tier architecture
+- submission is a separate module
+- reuse Template + Version as source of truth
+- no forced shared module
 
 ### Frontend
 
-- Extend existing structure
-- Keep submission UI inside the current app
-- Reuse current UI patterns
-- Keep state local to the submission feature
+- extend existing structure
+- keep submission UI inside the current app
+- reuse current UI patterns
+- keep state local to the submission feature
 
 ### General
 
@@ -82,10 +80,9 @@ Avoid:
 
 ---
 
-## 4. Existing System Assumptions
+## 5. Existing System Assumptions
 
 System already supports:
-
 - template creation
 - versioning
 - Excel export
@@ -93,7 +90,6 @@ System already supports:
 - schema hash
 
 Submission must reuse:
-
 - Template identity
 - Version identity
 - Schema JSON
@@ -101,7 +97,7 @@ Submission must reuse:
 
 ---
 
-## 5. MVP Scope
+## 6. MVP Scope
 
 ### In Scope (Implemented so far)
 
@@ -147,25 +143,36 @@ Submission must reuse:
 - error/warning list rendering
 - lightweight review / re-upload flow
 
+#### Slice 4
+- UX polish
+- stability improvements
+- backend/frontend cleanup
+
+#### Slice 5
+- persist a minimal `SubmissionEntity` after successful validation
+- return nullable `submissionId` from the validation response
+- show submission save confirmation and `submissionId` in the frontend
+
 ### Out of Scope (Current State)
 
-- submission persistence
 - approval workflow
 - correction grid
 - duplicate detection
-- data storage
+- row data storage
+- validation result blob storage
 - final submit action
+- submission list
+- editing submissions
 
 ---
 
-## 6. Submission Wizard (Planned vs Implemented)
+## 7. Submission Wizard (Current State)
 
 ### Step 1 - Upload and Identify Template (Implemented)
 
 User uploads Excel workbook.
 
 System:
-
 1. reads workbook
 2. reads `__metadata__`
 3. extracts metadata
@@ -174,17 +181,13 @@ System:
 6. returns identification result
 
 Frontend:
-
 - renders identify status
 - renders resolved version details
 - renders manual fallback UI only for supported non-resolved states
 
----
-
 ### Step 2 - Validate and Review Results (Implemented)
 
 Backend:
-
 - workbook structure validation
 - expected business-sheet checks
 - required header checks
@@ -193,70 +196,54 @@ Backend:
 - type checks for supported field types
 - enum validation
 - min/max validation where schema supports those rules
-- compact backend validation report
+- minimal submission persistence after successful validation
+- compact backend validation report including nullable `submissionId`
 
 Frontend:
-
 - shows `Validate Workbook` only after `EXACT_MATCH`
-- calls the current backend validation endpoint
-- renders summary counts and issue list
+- calls the backend validation endpoint
+- renders summary counts, issue list, and submission save result
 - differentiates warnings from errors
-
----
 
 ### Step 3 - Review / Restart (Lightweight)
 
 Implemented:
-
 - lightweight summary panel
 - re-upload / restart action
 
 Not implemented:
-
-- persistence
-- final submit
+- workflow
 - correction workflow
+- final submit
 
 ---
 
-## 7. Identity Resolution Rules (Implemented)
+## 8. Identity Resolution Rules (Implemented)
 
-### Metadata Fields
-
+Metadata fields:
 - `version_id` -> required (primary resolver)
 - `schema_hash` -> required (match check)
 - `template_id` -> advisory only
 - `version_number` -> advisory only
 
-### Important Rules
-
+Important rules:
 - `version_id` is the only resolver
 - `schema_hash` is the required identity check
-- No backend fallback to latest version
-- Manual fallback is frontend only
-- Advisory fields do not override identity result
+- no backend fallback to latest version
+- manual fallback is frontend only
+- advisory fields do not override identity result
 
 ---
 
-## 8. Metadata Contract
+## 9. Metadata Contract
 
-### Source
+Source:
+- sheet: `__metadata__`
 
-- Sheet: `__metadata__`
-
-### Rules
-
+Rules:
 - `Instructions` sheet is ignored for identity and validation
 - `_validation` sheet is ignored for identity and validation
-- Only `__metadata__` is used for identity
-
----
-
-## 9. Hashing Decision
-
-- Use only `schema_hash`
-- No `layout_hash`
-- Use existing hashing logic as-is
+- only `__metadata__` is used for identity
 
 ---
 
@@ -273,8 +260,10 @@ Subpackages:
 - `dto`
 - `model`
 - `exception`
+- `entity`
+- `repository`
 
-### Responsibilities
+Responsibilities:
 
 controller:
 - expose identify endpoint
@@ -284,11 +273,16 @@ service:
 - orchestrate upload -> parse -> resolve -> compare
 - validate workbook against resolved schema
 - perform structure checks before row / cell checks
+- persist minimal validated submission metadata after successful validation
 
 parser:
 - read workbook
 - extract metadata
 - provide workbook access for validation
+
+entity / repository:
+- store validated submission metadata only
+- do not store row data or validation blobs
 
 ---
 
@@ -302,9 +296,11 @@ parser:
 
 `POST /api/submissions/validate`
 
-Note:
-- current behavior includes full backend workbook validation
-- frontend presents this as “Validate Workbook”
+Current behavior:
+- includes full backend workbook validation
+- persists a minimal submission record only when validation returns no blocking errors
+- returns `submissionId` when persistence succeeds, otherwise `null`
+- frontend presents this action as "Validate Workbook"
 
 ---
 
@@ -321,14 +317,14 @@ Note:
 - `components/ValidationIssueList.tsx`
 - `components/SubmissionReviewCard.tsx`
 
-### Rules
-
+Rules:
 - Step 1 is functional
 - Step 2 is functional
 - Step 3 is lightweight only
 - no fake submit workflow
 - no fallback automation
 - no correction editing
+- validation success shows the saved submission record ID only
 
 ---
 
@@ -367,6 +363,12 @@ Note:
 - stability
 - cleanup
 
+### Slice 5 (Done)
+
+- minimal submission persistence
+- nullable `submissionId` in validation response
+- frontend success display for saved submission
+
 ---
 
 ## 14. Acceptance Criteria (Current State)
@@ -380,9 +382,10 @@ System is valid when:
 5. frontend clearly renders identify result states
 6. validation runs only after `EXACT_MATCH`
 7. frontend clearly renders validation summary and issue list
-8. user can restart with a new workbook
-9. frontend handles loading and backend error states gracefully
-10. no persistence occurs
+8. successful validation persists a minimal submission record and returns `submissionId`
+9. frontend displays submission save success and the returned ID
+10. user can restart with a new workbook
+11. frontend handles loading and backend error states gracefully
 
 ---
 
@@ -392,7 +395,7 @@ Codex must not:
 
 - refactor template module broadly
 - introduce microservices
-- add persistence
+- add persistence beyond the minimal validated submission record
 - add workflow engine
 - redesign export
 - fake final submission
@@ -403,4 +406,4 @@ Codex must not:
 
 This spec reflects actual implemented behavior, not theoretical design.
 
-Future slices must build on this identity and validation contract.
+Future slices must build on this identity, validation, and minimal persistence contract.
