@@ -40,12 +40,14 @@ Backend components:
 - `SubmissionService`
 - `SubmissionStructureValidationService`
 - `SubmissionPersistenceService`
+- `SubmissionHistoryService`
 - `SubmissionWorkbookParser`
 - `SubmissionEntity`
 - `SubmissionJpaRepository`
 
 Frontend components:
 - `SubmissionWizardPage`
+- `SubmissionHistoryPage`
 - `UploadIdentifyStep`
 - `IdentityResultCard`
 - validation summary / issue rendering components
@@ -71,6 +73,7 @@ Handles workbook upload, identity resolution, backend validation, minimal submis
 - Slice 3: frontend validation UI and results rendering
 - Slice 4: UX polish and stability cleanup
 - Slice 5: minimal persistence after successful validation
+- Slice 6: read-only submission history
 
 ### Current Responsibilities
 
@@ -81,13 +84,14 @@ Handles workbook upload, identity resolution, backend validation, minimal submis
 - Validate expected business sheets and headers
 - Validate row / cell content against schema field rules
 - Persist a minimal validated submission record after successful validation
+- List saved submission records in read-only history order
 - Render identify and validation results in the frontend
+- Render read-only submission history in the frontend
 - Handle validation loading and backend error states in the frontend
 - Allow restart / re-upload without workflow state
 
 ### Not Yet Supported
 
-- submission list
 - approval workflow
 - correction UI
 - submission lifecycle management

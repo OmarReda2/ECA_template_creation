@@ -1,5 +1,5 @@
 import { NavLink, useLocation } from 'react-router-dom';
-import { FilePlus, FileText, Upload } from 'lucide-react';
+import { FilePlus, FileText, History, Upload } from 'lucide-react';
 import {
   Sidebar as SidebarRoot,
   SidebarContent,
@@ -17,7 +17,8 @@ import {
 export default function AppSidebar() {
   const location = useLocation();
   const isCreateActive = location.pathname.startsWith('/templates/create');
-  const isSubmissionActive = location.pathname.startsWith('/submissions');
+  const isSubmissionHistoryActive = location.pathname.startsWith('/submissions/history');
+  const isSubmissionActive = location.pathname === '/submissions';
   const isTemplatesActive =
     (location.pathname === '/templates' || location.pathname.startsWith('/templates/')) &&
     !isCreateActive;
@@ -50,6 +51,14 @@ export default function AppSidebar() {
                   <NavLink to="/submissions">
                     <Upload className="h-4 w-4 shrink-0" />
                     <span>Submit Data</span>
+                  </NavLink>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild tooltip="Submission History" isActive={isSubmissionHistoryActive}>
+                  <NavLink to="/submissions/history">
+                    <History className="h-4 w-4 shrink-0" />
+                    <span>Submission History</span>
                   </NavLink>
                 </SidebarMenuButton>
               </SidebarMenuItem>

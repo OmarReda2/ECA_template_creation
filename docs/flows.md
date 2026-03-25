@@ -120,9 +120,23 @@ Frontend provides:
 - re-upload / restart action
 - graceful error display when backend returns an unexpected failure
 
+### Step 7 - Read-only Submission History
+
+Frontend:
+
+1. User opens the submission history screen
+2. Frontend calls `GET /api/submissions`
+3. Frontend renders saved submissions newest first
+
+Backend:
+
+1. Read saved `SubmissionEntity` rows ordered by `createdAt` descending
+2. Enrich compact history rows with template name and version number when available
+3. Return read-only history items only
+
 Not provided:
 
-- submission list
 - final submit
 - correction editing
+- history actions beyond read-only viewing
 - workflow state changes

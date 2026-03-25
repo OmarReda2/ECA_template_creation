@@ -20,6 +20,7 @@
 - Submission persistence is limited to a minimal validated record only
 - Submission persistence must happen only after validation completes without blocking errors
 - Submission must not store row data or validation result blobs
+- Submission history is read-only only
 
 ---
 
@@ -52,11 +53,12 @@
 - Step 3 remains lightweight review / restart only
 - Unexpected backend errors should surface as user-friendly UI feedback, not a crash
 - Successful validation may only show a saved submission confirmation and ID
+- Submission history may only show saved metadata and must not expose edit or workflow actions
 
 Still not implemented:
-- submission list
 - correction grid
 - approval workflow
 - final submit workflow
 - inline spreadsheet editing
 - row data persistence
+- editable history actions

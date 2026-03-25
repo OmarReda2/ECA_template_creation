@@ -32,10 +32,11 @@ It reflects the system as implemented, not intended design.
 ### Observation
 - Successful validation now creates a minimal `SubmissionEntity`
 - The saved record contains template/version/hash/status/timestamp metadata only
+- Saved submissions are visible through a read-only history screen
 
 ### Impact
 - Users get a durable reference ID for a validated upload
-- The system still does not support listing, resuming, editing, or workflow progression
+- The system still does not support resuming, editing, or workflow progression
 
 ---
 

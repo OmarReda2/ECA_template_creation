@@ -1,7 +1,11 @@
 import { http } from '@/shared/lib/http';
-import type { SubmissionIdentifyResponse, SubmissionValidationResponse } from './types';
+import type { SubmissionHistoryItem, SubmissionIdentifyResponse, SubmissionValidationResponse } from './types';
 
 export const submissionApi = {
+  list: async (): Promise<SubmissionHistoryItem[]> => {
+    const response = await http.get('/api/submissions');
+    return response.data;
+  },
   identify: async (file: File): Promise<SubmissionIdentifyResponse> => {
     const formData = new FormData();
     formData.append('file', file);

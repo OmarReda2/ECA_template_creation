@@ -1,14 +1,17 @@
 package com.eca.submission.controller;
 
+import com.eca.submission.dto.SubmissionHistoryItemDto;
 import com.eca.submission.dto.SubmissionIdentifyResponse;
 import com.eca.submission.dto.SubmissionStructureValidationResponse;
 import com.eca.submission.exception.SubmissionWorkbookException;
 import com.eca.submission.model.SubmissionIdentifyStatus;
+import com.eca.submission.service.SubmissionHistoryService;
 import com.eca.submission.service.SubmissionService;
 import com.eca.submission.service.SubmissionStructureValidationService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestPart;
@@ -23,13 +26,21 @@ public class SubmissionController {
 
     private final SubmissionService submissionService;
     private final SubmissionStructureValidationService structureValidationService;
+    private final SubmissionHistoryService submissionHistoryService;
 
     public SubmissionController(
             SubmissionService submissionService,
-            SubmissionStructureValidationService structureValidationService
+            SubmissionStructureValidationService structureValidationService,
+            SubmissionHistoryService submissionHistoryService
     ) {
         this.submissionService = submissionService;
         this.structureValidationService = structureValidationService;
+        this.submissionHistoryService = submissionHistoryService;
+    }
+
+    @GetMapping
+    public List<SubmissionHistoryItemDto> listSubmissions() {
+        return submissionHistoryService.listSubmissions();
     }
 
     @PostMapping("/identify")

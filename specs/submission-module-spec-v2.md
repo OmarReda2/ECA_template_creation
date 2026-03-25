@@ -11,7 +11,8 @@ This module allows a user to:
 3. identify the intended template/version
 4. validate workbook structure and row/cell content against the resolved schema
 5. persist a minimal validated submission record when validation succeeds
-6. review validation results and re-upload when needed
+6. view saved submissions in a read-only history screen
+7. review validation results and re-upload when needed
 
 ---
 
@@ -23,9 +24,10 @@ This module allows a user to:
 - Slice 3 (Frontend Validation UI and Results Rendering) is implemented
 - Slice 4 (UX Polish, Stability, and Cleanup) is implemented
 - Slice 5 (Minimal submission persistence) is implemented
+- Slice 6 (Read-only submission history) is implemented
 
 This document includes both:
-- implemented behavior (Slices 1 through 5)
+- implemented behavior (Slices 1 through 6)
 - planned behavior (future slices)
 
 ---
@@ -153,6 +155,11 @@ Submission must reuse:
 - return nullable `submissionId` from the validation response
 - show submission save confirmation and `submissionId` in the frontend
 
+#### Slice 6
+- list saved submissions through a read-only backend endpoint
+- render submission history newest first in the frontend
+- expose minimal saved metadata only
+
 ### Out of Scope (Current State)
 
 - approval workflow
@@ -161,12 +168,13 @@ Submission must reuse:
 - row data storage
 - validation result blob storage
 - final submit action
-- submission list
 - editing submissions
+- re-validation from history
+- delete functionality
 
 ---
 
-## 7. Submission Wizard (Current State)
+## 7. Submission Wizard and Read Visibility (Current State)
 
 ### Step 1 - Upload and Identify Template (Implemented)
 
@@ -215,6 +223,18 @@ Not implemented:
 - workflow
 - correction workflow
 - final submit
+
+### Submission History (Implemented, Read-only)
+
+Backend:
+- returns compact saved submission rows from `GET /api/submissions`
+- orders history newest first
+- may include template name and version number when available
+
+Frontend:
+- renders read-only history page
+- shows submission ID, template/version, status, created time, and file name
+- does not expose edit, delete, resubmit, or workflow actions
 
 ---
 
@@ -268,12 +288,14 @@ Responsibilities:
 controller:
 - expose identify endpoint
 - expose validation endpoint
+- expose read-only history endpoint
 
 service:
 - orchestrate upload -> parse -> resolve -> compare
 - validate workbook against resolved schema
 - perform structure checks before row / cell checks
 - persist minimal validated submission metadata after successful validation
+- list read-only submission history
 
 parser:
 - read workbook
@@ -282,6 +304,7 @@ parser:
 
 entity / repository:
 - store validated submission metadata only
+- list saved submission metadata for read-only history
 - do not store row data or validation blobs
 
 ---
@@ -302,6 +325,15 @@ Current behavior:
 - returns `submissionId` when persistence succeeds, otherwise `null`
 - frontend presents this action as "Validate Workbook"
 
+### History Endpoint
+
+`GET /api/submissions`
+
+Current behavior:
+- returns compact saved submission items only
+- history is read-only
+- newest submissions are returned first
+
 ---
 
 ## 12. Frontend Design
@@ -311,6 +343,7 @@ Current behavior:
 - `api.ts`
 - `types.ts`
 - `pages/SubmissionWizardPage.tsx`
+- `pages/SubmissionHistoryPage.tsx`
 - `components/UploadIdentifyStep.tsx`
 - `components/IdentityResultCard.tsx`
 - `components/ValidationSummaryCard.tsx`
@@ -321,6 +354,7 @@ Rules:
 - Step 1 is functional
 - Step 2 is functional
 - Step 3 is lightweight only
+- history is read-only only
 - no fake submit workflow
 - no fallback automation
 - no correction editing
@@ -369,6 +403,12 @@ Rules:
 - nullable `submissionId` in validation response
 - frontend success display for saved submission
 
+### Slice 6 (Done)
+
+- read-only submission history endpoint
+- read-only submission history page
+- no details, edit, or workflow actions
+
 ---
 
 ## 14. Acceptance Criteria (Current State)
@@ -384,8 +424,10 @@ System is valid when:
 7. frontend clearly renders validation summary and issue list
 8. successful validation persists a minimal submission record and returns `submissionId`
 9. frontend displays submission save success and the returned ID
-10. user can restart with a new workbook
-11. frontend handles loading and backend error states gracefully
+10. user can view saved submissions in a read-only history screen
+11. history shows newest submissions first with compact metadata
+12. user can restart with a new workbook
+13. frontend handles loading and backend error states gracefully
 
 ---
 
@@ -396,6 +438,7 @@ Codex must not:
 - refactor template module broadly
 - introduce microservices
 - add persistence beyond the minimal validated submission record
+- add mutable submission history behavior
 - add workflow engine
 - redesign export
 - fake final submission
@@ -406,4 +449,4 @@ Codex must not:
 
 This spec reflects actual implemented behavior, not theoretical design.
 
-Future slices must build on this identity, validation, and minimal persistence contract.
+Future slices must build on this identity, validation, minimal persistence, and read-only history contract.

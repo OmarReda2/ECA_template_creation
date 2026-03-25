@@ -8,6 +8,7 @@ import CreateTemplateStartPage from '../features/templates/pages/CreateTemplateS
 import CreateTemplateStepPage from '../features/templates/pages/CreateTemplateStepPage';
 import CreateTemplateExportPage from '../features/templates/pages/CreateTemplateExportPage';
 import SubmissionWizardPage from '../features/submission/pages/SubmissionWizardPage';
+import SubmissionHistoryPage from '../features/submission/pages/SubmissionHistoryPage';
 
 export function AppRouter() {
   return (
@@ -21,6 +22,7 @@ export function AppRouter() {
         <Route path="templates/:templateId" element={<TemplateDetailsPage />} />
         <Route path="templates/:templateId/versions/:versionId/schema" element={<SchemaEditorPage />} />
         <Route path="submissions" element={<SubmissionWizardPage />} />
+        <Route path="submissions/history" element={<SubmissionHistoryPage />} />
       </Route>
     </Routes>
   );

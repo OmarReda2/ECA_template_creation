@@ -56,3 +56,15 @@ export interface SubmissionValidationResponse {
   warnings: SubmissionValidationIssue[];
   sheetIssues: SubmissionValidationSheetIssue[];
 }
+
+export interface SubmissionHistoryItem {
+  id: string;
+  templateId: string;
+  versionId: string;
+  schemaHash: string;
+  status: string;
+  createdAt: string;
+  originalFileName: string | null;
+  templateName: string | null;
+  versionNumber: number | null;
+}
