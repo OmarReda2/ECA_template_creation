@@ -87,7 +87,31 @@ Handles workbook upload and identity resolution (no persistence yet).
 
 ### Notes
 
-- No validation logic yet (Slice 2)
-- No submission persistence
-- No modification of template module
-- Uses TemplateVersion as source of truth
+- Slice 1: identify
+- Slice 2A: backend structure validation
+- no row/cell validation yet
+- no persistence
+
+---
+
+## Submission Module (MVP)
+
+Package root:
+- `com.eca.submission`
+
+Current components:
+- SubmissionController
+- SubmissionService
+- SubmissionStructureValidationService
+- SubmissionWorkbookParser
+
+Notes:
+- Submission is a **sibling feature area**, not nested under template
+- Submission reuses template/version data as the source of truth
+- Submission currently supports:
+  - Slice 1: upload + identify
+  - Slice 2A: backend workbook structure validation
+- Submission does **not** yet support:
+  - row / cell validation
+  - persistence
+  - approval workflow

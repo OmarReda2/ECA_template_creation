@@ -7,7 +7,9 @@ import com.eca.template.repository.TemplateVersionJpaRepository;
 import com.eca.submission.controller.SubmissionController;
 import com.eca.submission.model.SubmissionIdentifyStatus;
 import com.eca.submission.parser.SubmissionWorkbookParser;
+import com.eca.submission.service.SubmissionStructureValidationService;
 import com.eca.submission.service.SubmissionService;
+import com.eca.template.TemplateCreationServiceApplication;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
@@ -17,6 +19,7 @@ import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabas
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.containers.PostgreSQLContainer;
@@ -32,8 +35,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 @DataJpaTest
 @Testcontainers
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
+@ContextConfiguration(classes = TemplateCreationServiceApplication.class)
 @Import({
         SubmissionService.class,
+        SubmissionStructureValidationService.class,
         SubmissionWorkbookParser.class,
         SubmissionController.class
 })

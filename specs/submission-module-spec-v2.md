@@ -15,11 +15,12 @@ This module allows a user to:
 ### Current Implementation Status
 
 - ✅ Slice 1 (Upload & Identify Template) is implemented
-- ⛔ Validation (Slice 2) is NOT implemented yet
+- ✅ Slice 2A (Backend Workbook Structure Validation) is implemented
+- ⛔ Slice 2B (Row / Cell Validation) is NOT implemented yet
 - ⛔ Submission persistence is NOT implemented
 
 This document includes both:
-- implemented behavior (Slice 1)
+- implemented behavior (Slice 1 + Slice 2A)
 - planned behavior (future slices)
 
 ---
@@ -98,26 +99,37 @@ Submission MUST reuse:
 
 ## 5. MVP Scope
 
-### In Scope (Slice 1)
+### In Scope (Implemented so far)
 
+#### Slice 1
 - upload Excel workbook
 - read `__metadata__`
 - extract:
-  - template_id
-  - version_id
-  - version_number
-  - schema_hash
+  - `template_id`
+  - `version_id`
+  - `version_number`
+  - `schema_hash`
 - resolve template version using `version_id`
 - compare schema hash
 - return identification result
 - landing page routing
 
----
+#### Slice 2A
+- validate workbook structure only
+- require `EXACT_MATCH` before structure validation proceeds
+- ignore `__metadata__`, `_validation`, and `Instructions` as business sheets
+- check expected business sheets against schema tables
+- check expected headers against schema fields
+- report extra sheets and extra headers as warnings
+- return compact structure-validation report
 
-### Out of Scope (Current Slice)
+### Out of Scope (Current State)
 
-- validation engine
-- validation report
+- row / cell content validation
+- enum validation
+- type validation
+- min/max validation
+- validation UI polish
 - submission persistence
 - approval workflow
 - correction grid
@@ -143,13 +155,20 @@ System:
 
 ---
 
-### Step 2 — Validation & Review ⛔ (Not Implemented)
+### Step 2 — Validation & Review ⚠️ (Partially Implemented)
 
-Planned in Slice 2:
+#### Implemented in Slice 2A (Backend Only)
 
-- workbook validation
-- schema validation
-- validation report
+- workbook structure validation
+- expected business-sheet checks
+- required header checks
+- compact backend validation report
+
+#### Not Implemented Yet
+
+- row / cell validation
+- full validation review UI
+- inline correction behavior
 
 ---
 
@@ -243,12 +262,13 @@ Planned:
 
 Module:
 
-com.eca.template.submission
+com.eca.submission
   ├── controller
   ├── service
   ├── parser
   ├── dto
   ├── model
+  ├── exception
 
 ---
 
@@ -256,42 +276,63 @@ com.eca.template.submission
 
 controller:
 - expose identify endpoint
+- expose structure-validation endpoint
 
 service:
-- orchestrate upload → parse → resolve → compare
+- orchestrate:
+upload → parse → resolve → compare
+- structure validation against resolved schema
 
 parser:
 - read workbook
 - extract metadata
+- provide workbook access for structure validation
 
 ---
 
-## 11. Backend API (Slice 1)
+## 11. Backend API
 
-POST /api/submissions/identify
+### Slice 1 — Identify Endpoint
+
+`POST /api/submissions/identify`
 
 Multipart:
 - file
 
----
-
-### Response
-
+Response:
 - status
 - metadata
 - resolved version (if found)
 - messages
 
----
-
-### Status Values
-
+Status Values:
 - EXACT_MATCH
 - METADATA_MISSING
 - METADATA_INVALID
 - VERSION_NOT_FOUND
 - HASH_MISMATCH
 - UNSUPPORTED_FILE
+
+---
+
+### Slice 2A — Structure Validation Endpoint
+
+`POST /api/submissions/validate-structure`
+
+Multipart:
+- file
+
+Behavior:
+- validation proceeds only after `EXACT_MATCH`
+- reads schema from resolved template version
+- validates required business sheets and headers
+
+Response includes:
+- target version info
+- sheets checked
+- errors
+- warnings
+- per-sheet header issues
 
 ---
 

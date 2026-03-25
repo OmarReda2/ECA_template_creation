@@ -1,9 +1,11 @@
 package com.eca.submission.controller;
 
 import com.eca.submission.dto.SubmissionIdentifyResponse;
+import com.eca.submission.dto.SubmissionStructureValidationResponse;
 import com.eca.submission.exception.SubmissionWorkbookException;
 import com.eca.submission.model.SubmissionIdentifyStatus;
 import com.eca.submission.service.SubmissionService;
+import com.eca.submission.service.SubmissionStructureValidationService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -20,14 +22,24 @@ import java.util.List;
 public class SubmissionController {
 
     private final SubmissionService submissionService;
+    private final SubmissionStructureValidationService structureValidationService;
 
-    public SubmissionController(SubmissionService submissionService) {
+    public SubmissionController(
+            SubmissionService submissionService,
+            SubmissionStructureValidationService structureValidationService
+    ) {
         this.submissionService = submissionService;
+        this.structureValidationService = structureValidationService;
     }
 
     @PostMapping("/identify")
     public SubmissionIdentifyResponse identify(@RequestPart("file") MultipartFile file) {
         return submissionService.identify(file);
+    }
+
+    @PostMapping("/validate-structure")
+    public SubmissionStructureValidationResponse validateStructure(@RequestPart("file") MultipartFile file) {
+        return structureValidationService.validateStructure(file);
     }
 
     @ExceptionHandler(SubmissionWorkbookException.class)

@@ -26,16 +26,7 @@ public class SubmissionWorkbookParser {
     private final DataFormatter dataFormatter = new DataFormatter(Locale.ROOT);
 
     public ParsedSubmissionMetadata parse(MultipartFile file) {
-        if (file == null || file.isEmpty()) {
-            throw new SubmissionWorkbookException(SubmissionIdentifyStatus.UNSUPPORTED_FILE, "Please upload an Excel workbook.");
-        }
-
-        if (!hasSupportedFilename(file.getOriginalFilename())) {
-            throw new SubmissionWorkbookException(SubmissionIdentifyStatus.UNSUPPORTED_FILE, "Only .xlsx workbooks are supported.");
-        }
-
-        try (InputStream inputStream = file.getInputStream();
-             Workbook workbook = WorkbookFactory.create(inputStream)) {
+        try (Workbook workbook = openWorkbook(file)) {
             Sheet metadataSheet = workbook.getSheet(METADATA_SHEET_NAME);
             if (metadataSheet == null) {
                 return new ParsedSubmissionMetadata(null, null, null, null, null, null);
@@ -64,6 +55,41 @@ public class SubmissionWorkbookParser {
             throw new SubmissionWorkbookException(SubmissionIdentifyStatus.UNSUPPORTED_FILE, "The uploaded workbook could not be read.");
         } catch (RuntimeException e) {
             throw new SubmissionWorkbookException(SubmissionIdentifyStatus.UNSUPPORTED_FILE, "The uploaded workbook is corrupt or unsupported.");
+        }
+    }
+
+    public Workbook openWorkbook(MultipartFile file) throws IOException {
+        validateWorkbookUpload(file);
+        InputStream inputStream = file.getInputStream();
+        try {
+            return WorkbookFactory.create(inputStream);
+        } catch (OLE2NotOfficeXmlFileException e) {
+            try {
+                inputStream.close();
+            } catch (IOException ignored) {
+                // ignore close failure
+            }
+            throw new SubmissionWorkbookException(SubmissionIdentifyStatus.UNSUPPORTED_FILE, "Only .xlsx workbooks are supported.");
+        } catch (IOException | RuntimeException e) {
+            try {
+                inputStream.close();
+            } catch (IOException ignored) {
+                // ignore close failure
+            }
+            if (e instanceof IOException ioException) {
+                throw ioException;
+            }
+            throw new SubmissionWorkbookException(SubmissionIdentifyStatus.UNSUPPORTED_FILE, "The uploaded workbook is corrupt or unsupported.");
+        }
+    }
+
+    private void validateWorkbookUpload(MultipartFile file) {
+        if (file == null || file.isEmpty()) {
+            throw new SubmissionWorkbookException(SubmissionIdentifyStatus.UNSUPPORTED_FILE, "Please upload an Excel workbook.");
+        }
+
+        if (!hasSupportedFilename(file.getOriginalFilename())) {
+            throw new SubmissionWorkbookException(SubmissionIdentifyStatus.UNSUPPORTED_FILE, "Only .xlsx workbooks are supported.");
         }
     }
 
