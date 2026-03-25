@@ -1,4 +1,4 @@
-# Architecture (v1 — Verified)
+# Architecture (v1 - Verified)
 
 ## Architecture Style
 
@@ -6,30 +6,43 @@ The system follows a **Layered (N-Tier) Architecture**.
 
 Structure:
 
-Controller → Service → Repository → Database
+Controller -> Service -> Repository -> Database
 
 - Controllers handle HTTP requests and responses
 - Services contain business logic
 - Repositories use Spring Data JPA
 - Entities represent database tables
 
-There is **no strict domain layer separation**.
+There is no strict domain layer separation.
 
 ---
 
 ## Modules (Observed)
 
 ### Template Module
-- TemplateEntity
-- TemplateController
-- TemplateService
-- TemplateRepository
+- `TemplateEntity`
+- `TemplateController`
+- `TemplateService`
+- `TemplateRepository`
 
 ### Template Version Module
-- TemplateVersionEntity
-- VersionController
-- VersionService
-- VersionRepository
+- `TemplateVersionEntity`
+- `VersionController`
+- `VersionService`
+- `VersionRepository`
+
+### Submission Module
+- `SubmissionController`
+- `SubmissionService`
+- `SubmissionStructureValidationService`
+- `SubmissionWorkbookParser`
+
+Submission package root:
+- `com.eca.submission`
+
+Notes:
+- Submission is a sibling feature area, not nested under template
+- Submission depends on template/version persistence data as the source of truth
 
 ---
 
@@ -63,55 +76,33 @@ Represents version snapshot:
 - Schema is stored as JSON (JSONB)
 - Services directly use repositories (no domain abstraction layer)
 
-
 ---
 
-## Submission Module (New — MVP Slice 1)
+## Submission Module (Current MVP State)
 
 ### Purpose
-Handles workbook upload and identity resolution (no persistence yet).
 
-### Components
+Handles workbook upload, identity resolution, and backend validation against the resolved schema.
 
-- SubmissionController
-- SubmissionService
-- SubmissionWorkbookParser
+### Current Support
 
-### Responsibilities
+- Slice 1: upload + identify
+- Slice 2A: workbook structure validation
+- Slice 2B: row / cell validation
+
+### Current Responsibilities
 
 - Read uploaded Excel workbook
-- Extract metadata from `__metadata__` sheet
+- Extract metadata from `__metadata__`
 - Resolve template version using `version_id`
 - Compare `schema_hash`
-- Return identification result
+- Validate expected business sheets and headers
+- Validate row / cell content against schema field rules
+- Return compact validation reports
 
-### Notes
+### Not Yet Supported
 
-- Slice 1: identify
-- Slice 2A: backend structure validation
-- no row/cell validation yet
-- no persistence
-
----
-
-## Submission Module (MVP)
-
-Package root:
-- `com.eca.submission`
-
-Current components:
-- SubmissionController
-- SubmissionService
-- SubmissionStructureValidationService
-- SubmissionWorkbookParser
-
-Notes:
-- Submission is a **sibling feature area**, not nested under template
-- Submission reuses template/version data as the source of truth
-- Submission currently supports:
-  - Slice 1: upload + identify
-  - Slice 2A: backend workbook structure validation
-- Submission does **not** yet support:
-  - row / cell validation
-  - persistence
-  - approval workflow
+- persistence
+- approval workflow
+- correction UI
+- submission lifecycle management

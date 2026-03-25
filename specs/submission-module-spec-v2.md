@@ -1,4 +1,4 @@
-# Submission Module Spec (MVP — Updated & Aligned)
+# Submission Module Spec (MVP - Updated and Aligned)
 
 ## 1. Purpose
 
@@ -9,18 +9,19 @@ This module allows a user to:
 1. upload a filled Excel workbook
 2. read workbook metadata
 3. identify the intended template/version
+4. validate workbook structure and row/cell content against the resolved schema
 
 ---
 
 ### Current Implementation Status
 
-- ✅ Slice 1 (Upload & Identify Template) is implemented
-- ✅ Slice 2A (Backend Workbook Structure Validation) is implemented
-- ⛔ Slice 2B (Row / Cell Validation) is NOT implemented yet
-- ⛔ Submission persistence is NOT implemented
+- Slice 1 (Upload and Identify Template) is implemented
+- Slice 2A (Backend Workbook Structure Validation) is implemented
+- Slice 2B (Backend Row / Cell Validation) is implemented
+- Submission persistence is not implemented
 
 This document includes both:
-- implemented behavior (Slice 1 + Slice 2A)
+- implemented behavior (Slice 1 + Slice 2A + Slice 2B)
 - planned behavior (future slices)
 
 ---
@@ -31,18 +32,18 @@ The application includes a **simple landing page** as the entry point.
 
 User can choose between:
 
-- **Template Creation & Export**
+- **Template Creation and Export**
 - **Data Submission**
 
 ### Navigation Behavior
 
-- `Create Template` → Template Creation Flow
-- `Submit Data` → Submission Flow
+- `Create Template` -> Template Creation Flow
+- `Submit Data` -> Submission Flow
 
 ### Rules
 
-- Landing page is NOT a business feature
-- No authentication logic (yet)
+- Landing page is not a business feature
+- No authentication logic yet
 - Must remain minimal and neutral
 
 ---
@@ -52,7 +53,7 @@ User can choose between:
 ### Backend
 
 - Modular monolith
-- Layered / N-tier architecture
+- Layered / n-tier architecture
 - Submission is a separate module
 - Reuse Template + Version as source of truth
 - No forced shared module
@@ -88,7 +89,7 @@ System already supports:
 - metadata sheet (`__metadata__`)
 - schema hash
 
-Submission MUST reuse:
+Submission must reuse:
 
 - Template identity
 - Version identity
@@ -116,19 +117,28 @@ Submission MUST reuse:
 
 #### Slice 2A
 - validate workbook structure only
-- require `EXACT_MATCH` before structure validation proceeds
+- require `EXACT_MATCH` before validation proceeds
 - ignore `__metadata__`, `_validation`, and `Instructions` as business sheets
 - check expected business sheets against schema tables
 - check expected headers against schema fields
 - report extra sheets and extra headers as warnings
-- return compact structure-validation report
+- return compact validation report
+
+#### Slice 2B
+- extend backend validation to row / cell content
+- validate required fields
+- validate supported types:
+  - TEXT
+  - NUMBER
+  - DATE
+  - BOOLEAN
+  - CURRENCY
+- validate enum rules
+- validate min/max rules where schema supports them
+- report row-level issues with sheet/row/header location
 
 ### Out of Scope (Current State)
 
-- row / cell content validation
-- enum validation
-- type validation
-- min/max validation
 - validation UI polish
 - submission persistence
 - approval workflow
@@ -140,7 +150,7 @@ Submission MUST reuse:
 
 ## 6. Submission Wizard (Planned vs Implemented)
 
-### Step 1 — Upload & Identify Template ✅ (Implemented)
+### Step 1 - Upload and Identify Template (Implemented)
 
 User uploads Excel workbook.
 
@@ -155,24 +165,28 @@ System:
 
 ---
 
-### Step 2 — Validation & Review ⚠️ (Partially Implemented)
+### Step 2 - Validation and Review (Backend Implemented)
 
-#### Implemented in Slice 2A (Backend Only)
+#### Implemented in Slice 2A + Slice 2B
 
 - workbook structure validation
 - expected business-sheet checks
 - required header checks
+- row iteration across business sheets
+- required-field checks
+- type checks for supported field types
+- enum validation
+- min/max validation where schema supports those rules
 - compact backend validation report
 
 #### Not Implemented Yet
 
-- row / cell validation
 - full validation review UI
 - inline correction behavior
 
 ---
 
-### Step 3 — Review ⛔ (Not Implemented)
+### Step 3 - Review (Not Implemented)
 
 Planned:
 
@@ -185,39 +199,39 @@ Planned:
 
 ### Metadata Fields
 
-- `version_id` → required (primary resolver)
-- `schema_hash` → required (match check)
-- `template_id` → advisory only
-- `version_number` → advisory only
+- `version_id` -> required (primary resolver)
+- `schema_hash` -> required (match check)
+- `template_id` -> advisory only
+- `version_number` -> advisory only
 
 ---
 
 ### Resolution Logic
 
 1. Metadata missing
-→ `METADATA_MISSING`
+-> `METADATA_MISSING`
 
 2. Required fields invalid
-→ `METADATA_INVALID`
+-> `METADATA_INVALID`
 
 3. Version not found
-→ `VERSION_NOT_FOUND`
+-> `VERSION_NOT_FOUND`
 
 4. Schema hash mismatch
-→ `HASH_MISMATCH`
+-> `HASH_MISMATCH`
 
 5. Schema hash matches
-→ `EXACT_MATCH`
+-> `EXACT_MATCH`
 
 ---
 
 ### Important Rules
 
-- `version_id` is the **only resolver**
-- `schema_hash` is the **required identity check**
+- `version_id` is the only resolver
+- `schema_hash` is the required identity check
 - No backend fallback to latest version
-- Manual fallback is **frontend only**
-- Advisory fields do NOT override identity result
+- Manual fallback is frontend only
+- Advisory fields do not override identity result
 
 ---
 
@@ -244,8 +258,8 @@ Planned:
 
 ### Rules
 
-- `Instructions` sheet is ignored
-- `_validation` sheet is ignored
+- `Instructions` sheet is ignored for identity and validation
+- `_validation` sheet is ignored for identity and validation
 - Only `__metadata__` is used for identity
 
 ---
@@ -262,13 +276,15 @@ Planned:
 
 Module:
 
-com.eca.submission
-  ├── controller
-  ├── service
-  ├── parser
-  ├── dto
-  ├── model
-  ├── exception
+`com.eca.submission`
+
+Subpackages:
+- `controller`
+- `service`
+- `parser`
+- `dto`
+- `model`
+- `exception`
 
 ---
 
@@ -276,23 +292,23 @@ com.eca.submission
 
 controller:
 - expose identify endpoint
-- expose structure-validation endpoint
+- expose validation endpoint
 
 service:
-- orchestrate:
-upload → parse → resolve → compare
-- structure validation against resolved schema
+- orchestrate upload -> parse -> resolve -> compare
+- validate workbook against resolved schema
+- perform structure checks before row / cell checks
 
 parser:
 - read workbook
 - extract metadata
-- provide workbook access for structure validation
+- provide workbook access for validation
 
 ---
 
 ## 11. Backend API
 
-### Slice 1 — Identify Endpoint
+### Slice 1 - Identify Endpoint
 
 `POST /api/submissions/identify`
 
@@ -305,7 +321,7 @@ Response:
 - resolved version (if found)
 - messages
 
-Status Values:
+Status values:
 - EXACT_MATCH
 - METADATA_MISSING
 - METADATA_INVALID
@@ -315,7 +331,7 @@ Status Values:
 
 ---
 
-### Slice 2A — Structure Validation Endpoint
+### Validation Endpoint (Slice 2A + Slice 2B)
 
 `POST /api/submissions/validate-structure`
 
@@ -325,42 +341,44 @@ Multipart:
 Behavior:
 - validation proceeds only after `EXACT_MATCH`
 - reads schema from resolved template version
-- validates required business sheets and headers
+- validates required business sheets and headers first
+- validates row / cell content only when structure errors do not block the sheet/workbook
 
 Response includes:
 - target version info
 - sheets checked
+- rows checked
 - errors
 - warnings
+- issue location:
+  - sheet name
+  - row number
+  - header name
 - per-sheet header issues
 
 ---
 
 ## 12. Frontend Design
 
-features/submission
- ├ api.ts
- ├ types.ts
- ├ pages
- │   SubmissionWizardPage.tsx
- └ components
-     UploadIdentifyStep.tsx
+`features/submission`
 
----
+- `api.ts`
+- `types.ts`
+- `pages/SubmissionWizardPage.tsx`
+- `components/UploadIdentifyStep.tsx`
 
 ### Rules
 
 - Step 1 is functional
-- Step 2/3 are placeholders
+- Step 2/3 are still mostly placeholders
 - show clear result state
-- no fake validation UI
 - no fallback automation
 
 ---
 
 ## 13. Implementation Slices
 
-### Slice 1 (DONE)
+### Slice 1 (Done)
 
 - backend identify flow
 - metadata parsing
@@ -369,10 +387,21 @@ features/submission
 
 ---
 
-### Slice 2 (NEXT)
+### Slice 2A (Done)
 
-- validation engine
+- backend workbook structure validation
 - workbook/sheet/header checks
+
+---
+
+### Slice 2B (Done)
+
+- backend row / cell validation
+- required checks
+- type checks
+- enum checks
+- min/max checks
+- compact issue reporting
 
 ---
 
@@ -390,28 +419,28 @@ features/submission
 
 ---
 
-## 14. Acceptance Criteria (Slice 1)
+## 14. Acceptance Criteria (Current Backend State)
 
 System is valid when:
 
 1. user uploads workbook
 2. metadata is read
-3. version is resolved using version_id
-4. schema_hash is compared
-5. correct status is returned
-6. no persistence occurs
-7. no validation occurs
+3. version is resolved using `version_id`
+4. `schema_hash` is compared
+5. structure validation checks required business sheets and headers
+6. row / cell validation checks required values and supported schema rules
+7. validation response reports compact issue locations
+8. no persistence occurs
 
 ---
 
 ## 15. Non-Negotiable Constraints
 
-Codex MUST NOT:
+Codex must not:
 
-- refactor template module
+- refactor template module broadly
 - introduce microservices
 - add persistence
-- add validation logic
 - add workflow engine
 - redesign export
 
@@ -419,6 +448,6 @@ Codex MUST NOT:
 
 ## Final Note
 
-This spec reflects **actual implemented behavior**, not theoretical design.
+This spec reflects actual implemented behavior, not theoretical design.
 
-Future slices must build on this identity contract.
+Future slices must build on this identity and validation contract.

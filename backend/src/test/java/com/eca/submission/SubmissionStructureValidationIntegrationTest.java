@@ -12,6 +12,7 @@ import com.eca.template.repository.TemplateVersionJpaRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import org.apache.poi.ss.usermodel.CellType;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
@@ -82,13 +83,24 @@ class SubmissionStructureValidationIntegrationTest {
                 version.getVersionNumber(),
                 "hash-1",
                 List.of(
-                        new SheetSpec("Employees", List.of("Employee ID *", "Employee Name")),
-                        new SheetSpec("Departments", List.of("Department Code *"))
+                        new SheetSpec(
+                                "Employees",
+                                List.of("Employee ID *", "Employee Name", "Active", "Salary", "Category", "Start Date"),
+                                List.of(
+                                        List.of(new CellSpec("E001"), new CellSpec("Alice"), new CellSpec("Yes"), new CellSpec(1000.50), new CellSpec("A"), new CellSpec("2026-03-01"))
+                                )
+                        ),
+                        new SheetSpec(
+                                "Departments",
+                                List.of("Department Code *"),
+                                List.of(List.of(new CellSpec("D01")))
+                        )
                 )
         ));
 
         assertThat(response.targetVersion()).isNotNull();
         assertThat(response.sheetsChecked()).isEqualTo(2);
+        assertThat(response.rowsChecked()).isEqualTo(2);
         assertThat(response.errors()).isEmpty();
         assertThat(response.warnings()).isEmpty();
         assertThat(response.sheetIssues()).isEmpty();
@@ -104,17 +116,61 @@ class SubmissionStructureValidationIntegrationTest {
                 version.getVersionNumber(),
                 "hash-1",
                 List.of(
-                        new SheetSpec("Employees", List.of("Employee Name", "Legacy Header")),
-                        new SheetSpec("Notes", List.of("Comment"))
+                        new SheetSpec("Employees", List.of("Employee Name", "Legacy Header"), List.of()),
+                        new SheetSpec("Notes", List.of("Comment"), List.of())
                 )
         ));
 
         assertThat(response.sheetsChecked()).isEqualTo(2);
+        assertThat(response.rowsChecked()).isZero();
         assertThat(response.errors().stream().map(issue -> issue.code()).toList()).contains("MISSING_SHEET", "MISSING_HEADER");
         assertThat(response.warnings().stream().map(issue -> issue.code()).toList()).contains("EXTRA_SHEET", "EXTRA_HEADER");
         assertThat(response.sheetIssues())
                 .anyMatch(issue -> issue.sheetName().equals("Employees") && issue.missingHeaders().contains("Employee ID *"))
                 .anyMatch(issue -> issue.sheetName().equals("Departments") && issue.missingHeaders().contains("Department Code *"));
+    }
+
+    @Test
+    void validateStructure_reportsRowAndCellValidationIssues() throws Exception {
+        TemplateVersionEntity version = saveVersion("hash-1");
+
+        var response = structureValidationService.validateStructure(workbookWithSheets(
+                version.getTemplate().getId(),
+                version.getId(),
+                version.getVersionNumber(),
+                "hash-1",
+                List.of(
+                        new SheetSpec(
+                                "Employees",
+                                List.of("Employee ID *", "Employee Name", "Active", "Salary", "Category", "Start Date"),
+                                List.of(
+                                        List.of(new CellSpec(""), new CellSpec("Alice"), new CellSpec("maybe"), new CellSpec("abc"), new CellSpec("Z"), new CellSpec("not-a-date")),
+                                        List.of(new CellSpec("E002"), new CellSpec("Bob"), new CellSpec("No"), new CellSpec(50), new CellSpec("A"), new CellSpec("2026-03-02"))
+                                )
+                        ),
+                        new SheetSpec(
+                                "Departments",
+                                List.of("Department Code *"),
+                                List.of(List.of(new CellSpec("")))
+                        )
+                )
+        ));
+
+        assertThat(response.sheetsChecked()).isEqualTo(2);
+        assertThat(response.rowsChecked()).isEqualTo(3);
+        assertThat(response.errors().stream().map(issue -> issue.code()).toList()).contains(
+                "REQUIRED_VALUE_MISSING",
+                "INVALID_TYPE",
+                "INVALID_ENUM_VALUE",
+                "VALUE_BELOW_MIN"
+        );
+        assertThat(response.errors())
+                .anyMatch(issue -> issue.rowNumber() != null && issue.rowNumber() == 2 && "Employee ID *".equals(issue.headerName()))
+                .anyMatch(issue -> issue.rowNumber() != null && issue.rowNumber() == 2 && "Active".equals(issue.headerName()))
+                .anyMatch(issue -> issue.rowNumber() != null && issue.rowNumber() == 2 && "Salary".equals(issue.headerName()))
+                .anyMatch(issue -> issue.rowNumber() != null && issue.rowNumber() == 2 && "Category".equals(issue.headerName()))
+                .anyMatch(issue -> issue.rowNumber() != null && issue.rowNumber() == 2 && "Start Date".equals(issue.headerName()))
+                .anyMatch(issue -> issue.rowNumber() != null && issue.rowNumber() == 2 && "Department Code *".equals(issue.headerName()));
     }
 
     @Test
@@ -126,11 +182,12 @@ class SubmissionStructureValidationIntegrationTest {
                 version.getId(),
                 version.getVersionNumber(),
                 "hash-2",
-                List.of(new SheetSpec("Employees", List.of("Employee ID *", "Employee Name")))
+                List.of(new SheetSpec("Employees", List.of("Employee ID *"), List.of()))
         ));
 
         assertThat(response.targetVersion()).isNotNull();
         assertThat(response.sheetsChecked()).isZero();
+        assertThat(response.rowsChecked()).isZero();
         assertThat(response.errors().stream().map(issue -> issue.code()).toList()).contains("HASH_MISMATCH");
         assertThat(response.sheetIssues()).isEmpty();
     }
@@ -161,13 +218,25 @@ class SubmissionStructureValidationIntegrationTest {
         ObjectNode employees = tables.addObject();
         employees.put("sheetName", "Employees");
         ArrayNode employeeFields = employees.putArray("fields");
-        employeeFields.addObject().put("headerName", "Employee ID").put("required", true);
-        employeeFields.addObject().put("headerName", "Employee Name").put("required", false);
+        employeeFields.addObject().put("headerName", "Employee ID").put("required", true).put("type", "TEXT");
+        employeeFields.addObject().put("headerName", "Employee Name").put("required", false).put("type", "TEXT");
+        employeeFields.addObject().put("headerName", "Active").put("required", false).put("type", "BOOLEAN");
+        ObjectNode salary = employeeFields.addObject();
+        salary.put("headerName", "Salary");
+        salary.put("required", false);
+        salary.put("type", "CURRENCY");
+        salary.putObject("validations").put("min", 100).put("max", 5000);
+        ObjectNode category = employeeFields.addObject();
+        category.put("headerName", "Category");
+        category.put("required", false);
+        category.put("type", "TEXT");
+        category.putObject("validations").putArray("enumValues").add("A").add("B");
+        employeeFields.addObject().put("headerName", "Start Date").put("required", false).put("type", "DATE");
 
         ObjectNode departments = tables.addObject();
         departments.put("sheetName", "Departments");
         ArrayNode departmentFields = departments.putArray("fields");
-        departmentFields.addObject().put("headerName", "Department Code").put("required", true);
+        departmentFields.addObject().put("headerName", "Department Code").put("required", true).put("type", "TEXT");
 
         return root;
     }
@@ -195,6 +264,13 @@ class SubmissionStructureValidationIntegrationTest {
                 for (int i = 0; i < spec.headers().size(); i++) {
                     headerRow.createCell(i).setCellValue(spec.headers().get(i));
                 }
+                for (int rowIndex = 0; rowIndex < spec.rows().size(); rowIndex++) {
+                    Row row = sheet.createRow(rowIndex + 1);
+                    List<CellSpec> rowValues = spec.rows().get(rowIndex);
+                    for (int columnIndex = 0; columnIndex < rowValues.size(); columnIndex++) {
+                        writeCell(row, columnIndex, rowValues.get(columnIndex));
+                    }
+                }
             }
 
             workbook.write(out);
@@ -207,12 +283,39 @@ class SubmissionStructureValidationIntegrationTest {
         }
     }
 
+    private void writeCell(Row row, int columnIndex, CellSpec cellSpec) {
+        var cell = row.createCell(columnIndex);
+        if (cellSpec.value() == null) {
+            cell.setBlank();
+            return;
+        }
+        if (cellSpec.type() == CellType.NUMERIC && cellSpec.value() instanceof Number number) {
+            cell.setCellValue(number.doubleValue());
+            return;
+        }
+        if (cellSpec.type() == CellType.BOOLEAN && cellSpec.value() instanceof Boolean bool) {
+            cell.setCellValue(bool);
+            return;
+        }
+        cell.setCellValue(String.valueOf(cellSpec.value()));
+    }
+
     private void setMetadataRow(Sheet sheet, int rowIndex, String key, String value) {
         Row row = sheet.createRow(rowIndex);
         row.createCell(0).setCellValue(key);
         row.createCell(1).setCellValue(value);
     }
 
-    private record SheetSpec(String name, List<String> headers) {
+    private record SheetSpec(String name, List<String> headers, List<List<CellSpec>> rows) {
+    }
+
+    private record CellSpec(Object value, CellType type) {
+        private CellSpec(String value) {
+            this(value, CellType.STRING);
+        }
+
+        private CellSpec(double value) {
+            this(value, CellType.NUMERIC);
+        }
     }
 }
