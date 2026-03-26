@@ -17,6 +17,7 @@ interface SubmissionStepOneViewProps {
   selectedTemplateId: string;
   shouldShowFallback: boolean;
   canContinue: boolean;
+  onIdentifyStart: (file: File) => void;
   onIdentified: (file: File, result: SubmissionIdentifyResponse) => void;
   onIdentifyError: (error: FrontendError | null) => void;
   onSelectTemplate: (templateId: string) => void;
@@ -31,6 +32,7 @@ export function SubmissionStepOneView({
   selectedTemplateId,
   shouldShowFallback,
   canContinue,
+  onIdentifyStart,
   onIdentified,
   onIdentifyError,
   onSelectTemplate,
@@ -42,6 +44,7 @@ export function SubmissionStepOneView({
     <div className="space-y-6">
       <UploadIdentifyStep
         key={uploadKey}
+        onIdentifyStart={onIdentifyStart}
         onIdentified={onIdentified}
         onError={onIdentifyError}
       />
@@ -73,9 +76,14 @@ export function SubmissionStepOneView({
               <Badge variant="warning">Manual fallback</Badge>
             </div>
           </CardHeader>
-          <CardContent className="rounded-md border border-amber-200 bg-amber-50/70 text-sm text-amber-900">
-            {selectedTemplate.name} is ready for manual fallback validation using latest version v
-            {selectedTemplate.latestVersion?.versionNumber ?? 'Not available'}.
+          <CardContent>
+            <div className="rounded-md border border-amber-200 bg-amber-50/70 px-4 py-3 text-sm text-amber-900">
+              <p className="font-medium">{selectedTemplate.name}</p>
+              <p className="mt-1">
+                Manual fallback is ready. Step 2 will validate against latest version v
+                {selectedTemplate.latestVersion?.versionNumber ?? 'Not available'}.
+              </p>
+            </div>
           </CardContent>
         </Card>
       )}

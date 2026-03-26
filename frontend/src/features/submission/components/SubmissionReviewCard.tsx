@@ -1,5 +1,6 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/shared/ui/Card';
 import { Button } from '@/shared/ui/Button';
+import { Badge } from '@/shared/ui/Badge';
 import type { SubmissionIdentifyResponse, SubmissionValidationResponse } from '../types';
 
 interface SubmissionReviewCardProps {
@@ -21,10 +22,17 @@ export function SubmissionReviewCard({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Review &amp; Restart</CardTitle>
-        <CardDescription>
-          This slice stops after validation results. You can review the outcome and restart with a new workbook.
-        </CardDescription>
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <CardTitle>Review &amp; Restart</CardTitle>
+            <CardDescription>
+              This slice stops after validation results. You can review the outcome and restart with a new workbook.
+            </CardDescription>
+          </div>
+          <Badge variant={submissionSaved ? 'success' : validationFinished ? 'warning' : 'neutral'}>
+            {submissionSaved ? 'Saved' : validationFinished ? 'Needs attention' : 'Not started'}
+          </Badge>
+        </div>
       </CardHeader>
       <CardContent className="space-y-4">
         <div

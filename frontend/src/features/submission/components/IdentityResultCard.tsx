@@ -22,6 +22,13 @@ function formatValue(value: string | number | null | undefined) {
   return value == null || value === '' ? 'Not available' : String(value);
 }
 
+function valueClassName(value?: string | number | null) {
+  const isLong = typeof value === 'string' && value.length > 24;
+  return isLong
+    ? 'max-w-[18rem] break-all text-right font-mono text-xs leading-5'
+    : 'text-right';
+}
+
 function getStatusDescription(status: SubmissionIdentifyStatus) {
   switch (status) {
     case 'EXACT_MATCH':
@@ -61,46 +68,46 @@ export function IdentityResultCard({ result }: IdentityResultCardProps) {
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="grid gap-4 md:grid-cols-2">
-          <div className="space-y-2 rounded-md border border-border p-4">
+          <div className="space-y-2 rounded-md border border-border bg-muted/20 p-4">
             <h3 className="text-sm font-semibold text-foreground">Extracted metadata</h3>
             <dl className="space-y-2 text-sm">
               <div className="flex justify-between gap-4">
                 <dt className="text-muted-foreground">template_id</dt>
-                <dd className="text-right">{formatValue(metadata?.templateId)}</dd>
+                <dd className={valueClassName(metadata?.templateId)}>{formatValue(metadata?.templateId)}</dd>
               </div>
               <div className="flex justify-between gap-4">
                 <dt className="text-muted-foreground">version_id</dt>
-                <dd className="text-right">{formatValue(metadata?.versionId)}</dd>
+                <dd className={valueClassName(metadata?.versionId)}>{formatValue(metadata?.versionId)}</dd>
               </div>
               <div className="flex justify-between gap-4">
                 <dt className="text-muted-foreground">version_number</dt>
-                <dd className="text-right">{formatValue(metadata?.versionNumber)}</dd>
+                <dd className={valueClassName(metadata?.versionNumber)}>{formatValue(metadata?.versionNumber)}</dd>
               </div>
               <div className="flex justify-between gap-4">
                 <dt className="text-muted-foreground">schema_hash</dt>
-                <dd className="text-right">{formatValue(metadata?.schemaHash)}</dd>
+                <dd className={valueClassName(metadata?.schemaHash)}>{formatValue(metadata?.schemaHash)}</dd>
               </div>
             </dl>
           </div>
 
-          <div className="space-y-2 rounded-md border border-border p-4">
+          <div className="space-y-2 rounded-md border border-border bg-muted/20 p-4">
             <h3 className="text-sm font-semibold text-foreground">Resolved system version</h3>
             <dl className="space-y-2 text-sm">
               <div className="flex justify-between gap-4">
                 <dt className="text-muted-foreground">Template</dt>
-                <dd className="text-right">{formatValue(resolvedVersion?.templateName)}</dd>
+                <dd className={valueClassName(resolvedVersion?.templateName)}>{formatValue(resolvedVersion?.templateName)}</dd>
               </div>
               <div className="flex justify-between gap-4">
                 <dt className="text-muted-foreground">Version</dt>
-                <dd className="text-right">{formatValue(resolvedVersion?.versionNumber)}</dd>
+                <dd className={valueClassName(resolvedVersion?.versionNumber)}>{formatValue(resolvedVersion?.versionNumber)}</dd>
               </div>
               <div className="flex justify-between gap-4">
                 <dt className="text-muted-foreground">version_id</dt>
-                <dd className="text-right">{formatValue(resolvedVersion?.versionId)}</dd>
+                <dd className={valueClassName(resolvedVersion?.versionId)}>{formatValue(resolvedVersion?.versionId)}</dd>
               </div>
               <div className="flex justify-between gap-4">
                 <dt className="text-muted-foreground">schema_hash</dt>
-                <dd className="text-right">{formatValue(resolvedVersion?.schemaHash)}</dd>
+                <dd className={valueClassName(resolvedVersion?.schemaHash)}>{formatValue(resolvedVersion?.schemaHash)}</dd>
               </div>
             </dl>
           </div>

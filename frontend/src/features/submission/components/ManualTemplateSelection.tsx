@@ -2,6 +2,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/sha
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/ui/Select';
 import { Button } from '@/shared/ui/Button';
 import { Spinner } from '@/shared/ui/Spinner';
+import { EmptyState } from '@/shared/ui/EmptyState';
+import { Badge } from '@/shared/ui/Badge';
 import type { TemplateSummary } from '@/features/templates/types';
 
 interface ManualTemplateSelectionProps {
@@ -26,16 +28,22 @@ export function ManualTemplateSelection({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Manual fallback</CardTitle>
-        <CardDescription>
-          Metadata could not be resolved. Select a template manually. This does not count as auto-identification.
-        </CardDescription>
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <CardTitle>Manual fallback</CardTitle>
+            <CardDescription>
+              Metadata could not be resolved. Select a template manually. This does not count as auto-identification.
+            </CardDescription>
+          </div>
+          <Badge variant="warning">Fallback</Badge>
+        </div>
       </CardHeader>
       <CardContent className="space-y-4">
         {templates.length === 0 ? (
-          <div className="rounded-md border border-border bg-muted/40 p-4 text-sm text-muted-foreground">
-            No templates are currently available for manual fallback.
-          </div>
+          <EmptyState
+            title="No templates available"
+            description="Manual fallback cannot continue until at least one template exists in the system."
+          />
         ) : (
           <div className="space-y-2">
             <label className="text-sm font-medium text-foreground">Template</label>
@@ -55,13 +63,13 @@ export function ManualTemplateSelection({
         )}
 
         {selectedTemplate != null && (
-          <div className="rounded-md border border-border bg-muted/40 p-4 text-sm">
-            <p className="font-medium text-foreground">{selectedTemplate.name}</p>
-            <p className="mt-1 text-muted-foreground">
+          <div className="rounded-md border border-amber-200 bg-amber-50/60 px-4 py-3 text-sm">
+            <p className="font-medium text-amber-950">{selectedTemplate.name}</p>
+            <p className="mt-1 text-amber-900">
               Latest version that would be used: v
               {selectedTemplate.latestVersion?.versionNumber ?? 'Not available'}
             </p>
-            <p className="mt-1 text-muted-foreground">
+            <p className="mt-1 text-amber-900">
               This continues validation using the selected template&apos;s latest version as a manual fallback.
             </p>
           </div>

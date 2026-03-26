@@ -8,6 +8,7 @@ import type { SubmissionIdentifyResponse, SubmissionValidationResponse } from '.
 import { ValidationIssueList } from './ValidationIssueList';
 import { ValidationSummaryCard } from './ValidationSummaryCard';
 import { Badge } from '@/shared/ui/Badge';
+import { Skeleton } from '@/shared/ui/skeleton';
 
 interface SubmissionStepTwoViewProps {
   identifyResult: SubmissionIdentifyResponse | null;
@@ -48,7 +49,32 @@ export function SubmissionStepTwoView({
         <ErrorPanel error={getErrorMessage(validationError, true)} onDismiss={onValidationErrorDismiss} />
       )}
 
-      {validationResult == null ? (
+      {validating && validationResult == null ? (
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <CardTitle>Validation in progress</CardTitle>
+                <CardDescription>
+                  Step 2 is validating workbook structure and row content against the selected schema.
+                </CardDescription>
+              </div>
+              <Badge variant="outline">Running</Badge>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+              <Spinner className="h-4 w-4" />
+              Validation is running. Results will appear here when the backend response returns.
+            </div>
+            <div className="space-y-3 rounded-md border border-border bg-muted/20 p-4">
+              <Skeleton className="h-4 w-2/3" />
+              <Skeleton className="h-4 w-5/6" />
+              <Skeleton className="h-24 w-full" />
+            </div>
+          </CardContent>
+        </Card>
+      ) : validationResult == null ? (
         <>
           {canValidate && identifyResult?.resolvedVersion != null && (
             <Card>
@@ -136,10 +162,10 @@ export function SubmissionStepTwoView({
       )}
 
       <div className="flex flex-col gap-3 sm:flex-row sm:justify-between">
-        <Button type="button" variant="outline" onClick={onBack}>
+        <Button type="button" variant="outline" onClick={onBack} disabled={validating}>
           Back to Step 1
         </Button>
-        <Button type="button" onClick={onContinue} disabled={validationResult == null}>
+        <Button type="button" onClick={onContinue} disabled={validationResult == null || validating}>
           Continue to Review
         </Button>
       </div>

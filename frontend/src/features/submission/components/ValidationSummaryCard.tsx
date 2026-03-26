@@ -6,6 +6,13 @@ function formatValue(value: string | number | null | undefined) {
   return value == null || value === '' ? 'Not available' : String(value);
 }
 
+function technicalValueClassName(value?: string | number | null) {
+  const isLong = typeof value === 'string' && value.length > 24;
+  return isLong
+    ? 'max-w-[18rem] break-all text-right font-mono text-xs leading-5'
+    : 'text-right';
+}
+
 interface ValidationSummaryCardProps {
   result: SubmissionValidationResponse;
 }
@@ -37,20 +44,26 @@ export function ValidationSummaryCard({ result }: ValidationSummaryCardProps) {
         </div>
       </CardHeader>
       <CardContent className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        <div className="space-y-2 rounded-md border border-border p-4">
+        <div className="space-y-2 rounded-md border border-border bg-muted/20 p-4">
           <h3 className="text-sm font-semibold text-foreground">Validation target</h3>
           <dl className="space-y-2 text-sm">
             <div className="flex justify-between gap-4">
               <dt className="text-muted-foreground">Template</dt>
-              <dd className="text-right">{formatValue(result.targetVersion?.templateName)}</dd>
+              <dd className={technicalValueClassName(result.targetVersion?.templateName)}>
+                {formatValue(result.targetVersion?.templateName)}
+              </dd>
             </div>
             <div className="flex justify-between gap-4">
               <dt className="text-muted-foreground">Version</dt>
-              <dd className="text-right">{formatValue(result.targetVersion?.versionNumber)}</dd>
+              <dd className={technicalValueClassName(result.targetVersion?.versionNumber)}>
+                {formatValue(result.targetVersion?.versionNumber)}
+              </dd>
             </div>
             <div className="flex justify-between gap-4">
               <dt className="text-muted-foreground">schema_hash</dt>
-              <dd className="text-right">{formatValue(result.targetVersion?.schemaHash)}</dd>
+              <dd className={technicalValueClassName(result.targetVersion?.schemaHash)}>
+                {formatValue(result.targetVersion?.schemaHash)}
+              </dd>
             </div>
             <div className="flex justify-between gap-4">
               <dt className="text-muted-foreground">Validation source</dt>
@@ -61,7 +74,7 @@ export function ValidationSummaryCard({ result }: ValidationSummaryCardProps) {
           </dl>
         </div>
 
-        <div className="space-y-2 rounded-md border border-border p-4">
+        <div className="space-y-2 rounded-md border border-border bg-muted/20 p-4">
           <h3 className="text-sm font-semibold text-foreground">Coverage</h3>
           <dl className="space-y-2 text-sm">
             <div className="flex justify-between gap-4">
@@ -74,12 +87,12 @@ export function ValidationSummaryCard({ result }: ValidationSummaryCardProps) {
             </div>
             <div className="flex justify-between gap-4">
               <dt className="text-muted-foreground">Submission ID</dt>
-              <dd className="text-right break-all">{formatValue(result.submissionId)}</dd>
+              <dd className={technicalValueClassName(result.submissionId)}>{formatValue(result.submissionId)}</dd>
             </div>
           </dl>
         </div>
 
-        <div className="space-y-2 rounded-md border border-border p-4">
+        <div className="space-y-2 rounded-md border border-border bg-muted/20 p-4">
           <h3 className="text-sm font-semibold text-foreground">Issue counts</h3>
           <dl className="space-y-2 text-sm">
             <div className="flex justify-between gap-4">

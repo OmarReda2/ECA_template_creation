@@ -291,11 +291,11 @@ function StepperItem(props: StepperItemProps) {
         data-state={dataState}
         {...itemProps}
         ref={ref}
-        className={cn(
-          "relative flex flex-1 last:flex-none items-center",
-          orientation === "horizontal" ? "flex-row" : "flex-col",
-          className
-        )}
+      className={cn(
+        "relative flex flex-1 items-center gap-3 last:flex-none",
+        orientation === "horizontal" ? "flex-row" : "flex-col",
+        className
+      )}
       >
         {children}
       </ItemPrimitive>
@@ -461,8 +461,8 @@ function StepperSeparator(props: StepperSeparatorProps) {
       {...separatorProps}
       ref={ref}
       className={cn(
-        "mx-5 bg-border transition-colors data-[state=active]:bg-primary data-[state=completed]:bg-primary",
-        orientation === "horizontal" ? "h-px flex-1" : "h-10 w-px",
+        "mx-2 rounded-full bg-border/80 transition-colors data-[state=active]:bg-primary data-[state=completed]:bg-primary",
+        orientation === "horizontal" ? "h-0.5 min-w-6 flex-1 self-center" : "h-10 w-0.5",
         className
       )}
     />

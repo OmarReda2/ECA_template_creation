@@ -9,6 +9,8 @@ import {
   StepperTrigger,
 } from '@/shared/ui/stepper';
 import { PageHeader } from '@/shared/ui/PageHeader';
+import { Button } from '@/shared/ui/Button';
+import { Modal } from '@/shared/ui/Modal';
 import { useToast } from '@/shared/ui/Toast';
 import { normalizeHttpError, getErrorMessage, type FrontendError } from '@/shared/errors/errorTypes';
 import { submissionApi } from '../api';
@@ -22,6 +24,10 @@ import { SubmissionStepThreeView } from '../components/SubmissionStepThreeView';
 const FALLBACK_STATES = new Set(['METADATA_MISSING', 'METADATA_INVALID', 'VERSION_NOT_FOUND']);
 
 type WizardStep = 'upload' | 'validate' | 'review';
+type PendingConfirmation =
+  | { type: 'back-to-upload' }
+  | { type: 'change-template'; nextTemplateId: string }
+  | null;
 
 export default function SubmissionWizardPage() {
   const [activeStep, setActiveStep] = useState<WizardStep>('upload');
@@ -34,6 +40,7 @@ export default function SubmissionWizardPage() {
   const [validating, setValidating] = useState(false);
   const [identifyError, setIdentifyError] = useState<FrontendError | null>(null);
   const [validationError, setValidationError] = useState<FrontendError | null>(null);
+  const [pendingConfirmation, setPendingConfirmation] = useState<PendingConfirmation>(null);
   const { showErrorToast } = useToast();
 
   const shouldShowFallback = identifyResult != null && FALLBACK_STATES.has(identifyResult.status);
@@ -49,6 +56,20 @@ export default function SubmissionWizardPage() {
       setTemplates([]);
     });
   }, [shouldShowFallback, templates.length]);
+
+  const clearValidationState = () => {
+    setValidationResult(null);
+    setValidationError(null);
+  };
+
+  const handleIdentifyStart = (file: File) => {
+    setUploadedFile(file);
+    setIdentifyResult(null);
+    clearValidationState();
+    setSelectedTemplateId('');
+    setIdentifyError(null);
+    setActiveStep('upload');
+  };
 
   const handleIdentified = (file: File, result: SubmissionIdentifyResponse) => {
     setUploadedFile(file);
@@ -111,23 +132,13 @@ export default function SubmissionWizardPage() {
     setActiveStep('upload');
   };
 
-  const clearValidationState = () => {
-    setValidationResult(null);
-    setValidationError(null);
-  };
-
   const handleSelectTemplate = (templateId: string) => {
     if (selectedTemplateId === templateId) {
       return;
     }
     if (validationResult != null) {
-      const confirmed = window.confirm(
-        'Changing the manual fallback template will clear the current validation results. Continue?'
-      );
-      if (!confirmed) {
-        return;
-      }
-      clearValidationState();
+      setPendingConfirmation({ type: 'change-template', nextTemplateId: templateId });
+      return;
     }
     setSelectedTemplateId(templateId);
     setActiveStep('upload');
@@ -137,6 +148,9 @@ export default function SubmissionWizardPage() {
     if (step === activeStep) {
       return;
     }
+    if (validating && step !== 'validate') {
+      return;
+    }
     if (step === 'validate' && !canEnterValidate) {
       return;
     }
@@ -144,16 +158,31 @@ export default function SubmissionWizardPage() {
       return;
     }
     if (step === 'upload' && validationResult != null) {
-      const confirmed = window.confirm(
-        'Going back to Step 1 will clear the current validation results. Continue?'
-      );
-      if (!confirmed) {
-        return;
-      }
-      clearValidationState();
+      setPendingConfirmation({ type: 'back-to-upload' });
+      return;
     }
     setActiveStep(step);
   };
+
+  const confirmPendingNavigation = () => {
+    if (pendingConfirmation == null) {
+      return;
+    }
+
+    clearValidationState();
+
+    if (pendingConfirmation.type === 'change-template') {
+      setSelectedTemplateId(pendingConfirmation.nextTemplateId);
+      setActiveStep('upload');
+    } else {
+      setActiveStep('upload');
+    }
+
+    setPendingConfirmation(null);
+  };
+
+  const stepViewClassName =
+    'motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-right-1 motion-safe:duration-200';
 
   const uploadCompleted = activeStep !== 'upload' && canEnterValidate;
   const validateCompleted = activeStep === 'review' && validationResult != null;
@@ -162,7 +191,7 @@ export default function SubmissionWizardPage() {
     <div className="mx-auto w-full max-w-6xl space-y-6">
       <Stepper value={activeStep}>
         <StepperList className="w-full">
-          <StepperItem value="upload" completed={uploadCompleted} disabled={false}>
+          <StepperItem value="upload" completed={uploadCompleted} disabled={validating}>
             <StepperTrigger onClick={() => navigateToStep('upload')}>
               <StepperIndicator />
               <StepperTitle>Upload &amp; Identify</StepperTitle>
@@ -176,7 +205,7 @@ export default function SubmissionWizardPage() {
             </StepperTrigger>
             <StepperSeparator />
           </StepperItem>
-          <StepperItem value="review" completed={false} disabled={!canEnterReviewStep}>
+          <StepperItem value="review" completed={false} disabled={!canEnterReviewStep || validating}>
             <StepperTrigger onClick={() => navigateToStep('review')}>
               <StepperIndicator />
               <StepperTitle>Review / Restart</StepperTitle>
@@ -191,46 +220,53 @@ export default function SubmissionWizardPage() {
       />
 
       {activeStep === 'upload' && (
-        <SubmissionStepOneView
-          uploadKey={uploadKey}
-          identifyResult={identifyResult}
-          identifyError={identifyError}
-          templates={templates}
-          selectedTemplateId={selectedTemplateId}
-          shouldShowFallback={shouldShowFallback}
-          canContinue={canEnterValidate}
-          onIdentified={handleIdentified}
-          onIdentifyError={setIdentifyError}
-          onSelectTemplate={handleSelectTemplate}
-          onContinue={() => navigateToStep('validate')}
-        />
+        <div className={stepViewClassName}>
+          <SubmissionStepOneView
+            uploadKey={uploadKey}
+            identifyResult={identifyResult}
+            identifyError={identifyError}
+            templates={templates}
+            selectedTemplateId={selectedTemplateId}
+            shouldShowFallback={shouldShowFallback}
+            canContinue={canEnterValidate}
+            onIdentifyStart={handleIdentifyStart}
+            onIdentified={handleIdentified}
+            onIdentifyError={setIdentifyError}
+            onSelectTemplate={handleSelectTemplate}
+            onContinue={() => navigateToStep('validate')}
+          />
+        </div>
       )}
 
       {activeStep === 'validate' && (
-        <SubmissionStepTwoView
-          identifyResult={identifyResult}
-          validationResult={validationResult}
-          validationError={validationError}
-          validating={validating}
-          selectedTemplateId={selectedTemplateId}
-          templates={templates}
-          canValidate={identifyResult?.status === 'EXACT_MATCH' && uploadedFile != null}
-          canValidateWithManualFallback={shouldShowFallback && uploadedFile != null && selectedTemplateId !== ''}
-          onValidate={handleValidate}
-          onManualFallbackValidate={handleManualFallbackValidate}
-          onValidationErrorDismiss={() => setValidationError(null)}
-          onBack={() => navigateToStep('upload')}
-          onContinue={() => navigateToStep('review')}
-        />
+        <div className={stepViewClassName}>
+          <SubmissionStepTwoView
+            identifyResult={identifyResult}
+            validationResult={validationResult}
+            validationError={validationError}
+            validating={validating}
+            selectedTemplateId={selectedTemplateId}
+            templates={templates}
+            canValidate={identifyResult?.status === 'EXACT_MATCH' && uploadedFile != null}
+            canValidateWithManualFallback={shouldShowFallback && uploadedFile != null && selectedTemplateId !== ''}
+            onValidate={handleValidate}
+            onManualFallbackValidate={handleManualFallbackValidate}
+            onValidationErrorDismiss={() => setValidationError(null)}
+            onBack={() => navigateToStep('upload')}
+            onContinue={() => navigateToStep('review')}
+          />
+        </div>
       )}
 
       {activeStep === 'review' && (
-        <SubmissionStepThreeView
-          identifyResult={identifyResult}
-          validationResult={validationResult}
-          onBack={() => navigateToStep('validate')}
-          onRestart={handleRestart}
-        />
+        <div className={stepViewClassName}>
+          <SubmissionStepThreeView
+            identifyResult={identifyResult}
+            validationResult={validationResult}
+            onBack={() => navigateToStep('validate')}
+            onRestart={handleRestart}
+          />
+        </div>
       )}
 
       {activeStep === 'validate' && !canEnterValidate && (
@@ -238,6 +274,28 @@ export default function SubmissionWizardPage() {
           Validation is not available until Step 1 resolves an exact match or a manual fallback selection is ready.
         </div>
       )}
+
+      <Modal
+        open={pendingConfirmation != null}
+        onClose={() => setPendingConfirmation(null)}
+        title="Clear current validation results?"
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-muted-foreground">
+            {pendingConfirmation?.type === 'change-template'
+              ? 'Changing the manual fallback template will clear the current validation results before continuing.'
+              : 'Going back to Step 1 will clear the current validation results before continuing.'}
+          </p>
+          <div className="flex justify-end gap-3">
+            <Button type="button" variant="outline" onClick={() => setPendingConfirmation(null)}>
+              Cancel
+            </Button>
+            <Button type="button" variant="destructive" onClick={confirmPendingNavigation}>
+              Clear and continue
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }
