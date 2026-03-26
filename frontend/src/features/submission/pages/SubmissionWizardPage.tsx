@@ -21,7 +21,7 @@ import { SubmissionStepThreeView } from '../components/SubmissionStepThreeView';
 
 const FALLBACK_STATES = new Set(['METADATA_MISSING', 'METADATA_INVALID', 'VERSION_NOT_FOUND']);
 
-type WizardStep = 'upload' | 'validation' | 'review';
+type WizardStep = 'upload' | 'validate' | 'review';
 
 export default function SubmissionWizardPage() {
   const [activeStep, setActiveStep] = useState<WizardStep>('upload');
@@ -37,11 +37,10 @@ export default function SubmissionWizardPage() {
   const { showErrorToast } = useToast();
 
   const shouldShowFallback = identifyResult != null && FALLBACK_STATES.has(identifyResult.status);
-  const canValidate = identifyResult?.status === 'EXACT_MATCH' && uploadedFile != null;
-  const canValidateWithManualFallback = shouldShowFallback && uploadedFile != null && selectedTemplateId !== '';
-  const canEnterValidationStep = canValidate || canValidateWithManualFallback || validationResult != null;
+  const canEnterValidate =
+    (identifyResult?.status === 'EXACT_MATCH' && uploadedFile != null) ||
+    (shouldShowFallback && uploadedFile != null && selectedTemplateId !== '');
   const canEnterReviewStep = validationResult != null;
-
   useEffect(() => {
     if (!shouldShowFallback || templates.length > 0) {
       return;
@@ -58,11 +57,7 @@ export default function SubmissionWizardPage() {
     setSelectedTemplateId('');
     setIdentifyError(null);
     setValidationError(null);
-    if (result.status === 'EXACT_MATCH' || FALLBACK_STATES.has(result.status)) {
-      setActiveStep('validation');
-    } else {
-      setActiveStep('upload');
-    }
+    setActiveStep('upload');
   };
 
   const handleValidate = async () => {
@@ -75,7 +70,7 @@ export default function SubmissionWizardPage() {
     try {
       const result = await submissionApi.validateWorkbook(uploadedFile);
       setValidationResult(result);
-      setActiveStep('review');
+      setActiveStep('validate');
     } catch (error) {
       const normalized = normalizeHttpError(error);
       setValidationError(normalized);
@@ -86,7 +81,7 @@ export default function SubmissionWizardPage() {
   };
 
   const handleManualFallbackValidate = async () => {
-    if (uploadedFile == null || !canValidateWithManualFallback) {
+    if (uploadedFile == null || !canEnterValidate || !shouldShowFallback || selectedTemplateId === '') {
       return;
     }
 
@@ -95,7 +90,7 @@ export default function SubmissionWizardPage() {
     try {
       const result = await submissionApi.validateWorkbook(uploadedFile, { templateId: selectedTemplateId });
       setValidationResult(result);
-      setActiveStep('review');
+      setActiveStep('validate');
     } catch (error) {
       const normalized = normalizeHttpError(error);
       setValidationError(normalized);
@@ -133,16 +128,16 @@ export default function SubmissionWizardPage() {
         return;
       }
       clearValidationState();
-      setActiveStep('upload');
     }
     setSelectedTemplateId(templateId);
+    setActiveStep('upload');
   };
 
   const navigateToStep = (step: WizardStep) => {
     if (step === activeStep) {
       return;
     }
-    if (step === 'validation' && !canEnterValidationStep) {
+    if (step === 'validate' && !canEnterValidate) {
       return;
     }
     if (step === 'review' && !canEnterReviewStep) {
@@ -160,19 +155,22 @@ export default function SubmissionWizardPage() {
     setActiveStep(step);
   };
 
+  const uploadCompleted = activeStep !== 'upload' && canEnterValidate;
+  const validateCompleted = activeStep === 'review' && validationResult != null;
+
   return (
     <div className="mx-auto w-full max-w-6xl space-y-6">
       <Stepper value={activeStep}>
         <StepperList className="w-full">
-          <StepperItem value="upload" completed={identifyResult != null} disabled={false}>
+          <StepperItem value="upload" completed={uploadCompleted} disabled={false}>
             <StepperTrigger onClick={() => navigateToStep('upload')}>
               <StepperIndicator />
               <StepperTitle>Upload &amp; Identify</StepperTitle>
             </StepperTrigger>
             <StepperSeparator />
           </StepperItem>
-          <StepperItem value="validation" completed={validationResult != null} disabled={!canEnterValidationStep}>
-            <StepperTrigger onClick={() => navigateToStep('validation')}>
+          <StepperItem value="validate" completed={validateCompleted} disabled={!canEnterValidate}>
+            <StepperTrigger onClick={() => navigateToStep('validate')}>
               <StepperIndicator />
               <StepperTitle>Validate &amp; Review Results</StepperTitle>
             </StepperTrigger>
@@ -200,13 +198,15 @@ export default function SubmissionWizardPage() {
           templates={templates}
           selectedTemplateId={selectedTemplateId}
           shouldShowFallback={shouldShowFallback}
+          canContinue={canEnterValidate}
           onIdentified={handleIdentified}
           onIdentifyError={setIdentifyError}
           onSelectTemplate={handleSelectTemplate}
+          onContinue={() => navigateToStep('validate')}
         />
       )}
 
-      {activeStep === 'validation' && (
+      {activeStep === 'validate' && (
         <SubmissionStepTwoView
           identifyResult={identifyResult}
           validationResult={validationResult}
@@ -214,8 +214,8 @@ export default function SubmissionWizardPage() {
           validating={validating}
           selectedTemplateId={selectedTemplateId}
           templates={templates}
-          canValidate={canValidate}
-          canValidateWithManualFallback={canValidateWithManualFallback}
+          canValidate={identifyResult?.status === 'EXACT_MATCH' && uploadedFile != null}
+          canValidateWithManualFallback={shouldShowFallback && uploadedFile != null && selectedTemplateId !== ''}
           onValidate={handleValidate}
           onManualFallbackValidate={handleManualFallbackValidate}
           onValidationErrorDismiss={() => setValidationError(null)}
@@ -228,12 +228,12 @@ export default function SubmissionWizardPage() {
         <SubmissionStepThreeView
           identifyResult={identifyResult}
           validationResult={validationResult}
-          onBack={() => navigateToStep('validation')}
+          onBack={() => navigateToStep('validate')}
           onRestart={handleRestart}
         />
       )}
 
-      {activeStep === 'validation' && !canEnterValidationStep && (
+      {activeStep === 'validate' && !canEnterValidate && (
         <div className="text-sm text-muted-foreground">
           Validation is not available until Step 1 resolves an exact match or a manual fallback selection is ready.
         </div>

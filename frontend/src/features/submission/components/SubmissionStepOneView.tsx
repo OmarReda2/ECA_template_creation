@@ -6,6 +6,7 @@ import { UploadIdentifyStep } from './UploadIdentifyStep';
 import { IdentityResultCard } from './IdentityResultCard';
 import { ManualTemplateSelection } from './ManualTemplateSelection';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/shared/ui/Card';
+import { Button } from '@/shared/ui/Button';
 
 interface SubmissionStepOneViewProps {
   uploadKey: number;
@@ -14,9 +15,11 @@ interface SubmissionStepOneViewProps {
   templates: TemplateSummary[];
   selectedTemplateId: string;
   shouldShowFallback: boolean;
+  canContinue: boolean;
   onIdentified: (file: File, result: SubmissionIdentifyResponse) => void;
   onIdentifyError: (error: FrontendError | null) => void;
   onSelectTemplate: (templateId: string) => void;
+  onContinue: () => void;
 }
 
 export function SubmissionStepOneView({
@@ -26,9 +29,11 @@ export function SubmissionStepOneView({
   templates,
   selectedTemplateId,
   shouldShowFallback,
+  canContinue,
   onIdentified,
   onIdentifyError,
   onSelectTemplate,
+  onContinue,
 }: SubmissionStepOneViewProps) {
   const selectedTemplate = templates.find((template) => template.templateId === selectedTemplateId) ?? null;
 
@@ -68,6 +73,12 @@ export function SubmissionStepOneView({
           </CardContent>
         </Card>
       )}
+
+      <div className="flex justify-end">
+        <Button type="button" onClick={onContinue} disabled={!canContinue}>
+          Continue to Validation
+        </Button>
+      </div>
     </div>
   );
 }
