@@ -27,7 +27,15 @@ export function SubmissionReviewCard({
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="rounded-md border border-border bg-muted/40 p-4 text-sm text-muted-foreground">
+        <div
+          className={`rounded-md border p-4 text-sm ${
+            validationFinished
+              ? submissionSaved
+                ? 'border-green-200 bg-green-50 text-green-900'
+                : 'border-amber-200 bg-amber-50 text-amber-900'
+              : 'border-border bg-muted/40 text-muted-foreground'
+          }`}
+        >
           {validationFinished
             ? submissionSaved
               ? usedManualFallback

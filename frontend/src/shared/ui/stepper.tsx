@@ -41,18 +41,12 @@ function getDataState(
   value: string | undefined,
   itemValue: string,
   stepState: StepState | undefined,
-  steps: Map<string, StepState>,
+  _steps: Map<string, StepState>,
   variant: "item" | "separator" = "item"
 ): DataState {
-  const stepKeys = Array.from(steps.keys());
-  const currentIndex = stepKeys.indexOf(itemValue);
   if (stepState?.completed) return "completed";
   if (value === itemValue) {
     return variant === "separator" ? "inactive" : "active";
-  }
-  if (value) {
-    const activeIndex = stepKeys.indexOf(value);
-    if (activeIndex > currentIndex) return "completed";
   }
   return "inactive";
 }

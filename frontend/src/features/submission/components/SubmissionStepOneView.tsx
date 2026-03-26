@@ -7,6 +7,7 @@ import { IdentityResultCard } from './IdentityResultCard';
 import { ManualTemplateSelection } from './ManualTemplateSelection';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/shared/ui/Card';
 import { Button } from '@/shared/ui/Button';
+import { Badge } from '@/shared/ui/Badge';
 
 interface SubmissionStepOneViewProps {
   uploadKey: number;
@@ -62,12 +63,17 @@ export function SubmissionStepOneView({
       {selectedTemplate != null && (
         <Card>
           <CardHeader>
-            <CardTitle>Fallback selection summary</CardTitle>
-            <CardDescription>
-              This selection is manual fallback only and is not treated as auto-identification. Step 2 will validate against the latest version of the selected template.
-            </CardDescription>
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <CardTitle>Fallback selection summary</CardTitle>
+                <CardDescription>
+                  This selection is manual fallback only and is not treated as auto-identification. Step 2 will validate against the latest version of the selected template.
+                </CardDescription>
+              </div>
+              <Badge variant="warning">Manual fallback</Badge>
+            </div>
           </CardHeader>
-          <CardContent className="text-sm text-muted-foreground">
+          <CardContent className="rounded-md border border-amber-200 bg-amber-50/70 text-sm text-amber-900">
             {selectedTemplate.name} is ready for manual fallback validation using latest version v
             {selectedTemplate.latestVersion?.versionNumber ?? 'Not available'}.
           </CardContent>

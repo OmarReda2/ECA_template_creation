@@ -106,7 +106,15 @@ export function IdentityResultCard({ result }: IdentityResultCardProps) {
           </div>
         </div>
 
-        <div className="rounded-md border border-border bg-muted/30 p-4 text-sm text-muted-foreground">
+        <div
+          className={`rounded-md border p-4 text-sm ${
+            status === 'EXACT_MATCH'
+              ? 'border-green-200 bg-green-50 text-green-900'
+              : status === 'HASH_MISMATCH'
+                ? 'border-amber-200 bg-amber-50 text-amber-900'
+                : 'border-red-200 bg-red-50 text-red-900'
+          }`}
+        >
           {getStatusDescription(status)}
         </div>
 

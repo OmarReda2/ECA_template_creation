@@ -19,6 +19,7 @@ export function ValidationSummaryCard({ result }: ValidationSummaryCardProps) {
   const submissionSaved = result.submissionId != null;
   const targetSourceLabel =
     result.validationTargetSource === 'MANUAL_FALLBACK' ? 'Manual fallback' : 'Auto-identified';
+  const targetSourceVariant = result.validationTargetSource === 'MANUAL_FALLBACK' ? 'warning' : 'outline';
 
   return (
     <Card>
@@ -53,7 +54,9 @@ export function ValidationSummaryCard({ result }: ValidationSummaryCardProps) {
             </div>
             <div className="flex justify-between gap-4">
               <dt className="text-muted-foreground">Validation source</dt>
-              <dd className="text-right">{targetSourceLabel}</dd>
+              <dd className="text-right">
+                <Badge variant={targetSourceVariant}>{targetSourceLabel}</Badge>
+              </dd>
             </div>
           </dl>
         </div>
