@@ -44,7 +44,7 @@ export function ValidationSummaryCard({ result }: ValidationSummaryCardProps) {
         </div>
       </CardHeader>
       <CardContent className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        <div className="space-y-2 rounded-md border border-border bg-muted/20 p-4">
+        <div className="space-y-2 rounded-md border border-border bg-muted/30 p-4 shadow-sm">
           <h3 className="text-sm font-semibold text-foreground">Validation target</h3>
           <dl className="space-y-2 text-sm">
             <div className="flex justify-between gap-4">
@@ -74,7 +74,7 @@ export function ValidationSummaryCard({ result }: ValidationSummaryCardProps) {
           </dl>
         </div>
 
-        <div className="space-y-2 rounded-md border border-border bg-muted/20 p-4">
+        <div className="space-y-2 rounded-md border border-border bg-muted/30 p-4 shadow-sm">
           <h3 className="text-sm font-semibold text-foreground">Coverage</h3>
           <dl className="space-y-2 text-sm">
             <div className="flex justify-between gap-4">
@@ -92,7 +92,7 @@ export function ValidationSummaryCard({ result }: ValidationSummaryCardProps) {
           </dl>
         </div>
 
-        <div className="space-y-2 rounded-md border border-border bg-muted/20 p-4">
+        <div className="space-y-2 rounded-md border border-border bg-muted/30 p-4 shadow-sm">
           <h3 className="text-sm font-semibold text-foreground">Issue counts</h3>
           <dl className="space-y-2 text-sm">
             <div className="flex justify-between gap-4">
@@ -107,7 +107,7 @@ export function ValidationSummaryCard({ result }: ValidationSummaryCardProps) {
         </div>
 
         {submissionSaved && (
-          <div className="space-y-2 rounded-md border border-green-200 bg-green-50 p-4 xl:col-span-3">
+          <div className="space-y-2 rounded-md border border-green-200 bg-green-50 p-4 shadow-sm xl:col-span-3">
             <h3 className="text-sm font-semibold text-green-900">Submission saved successfully</h3>
             <p className="text-sm text-green-800">
               {hasIssues

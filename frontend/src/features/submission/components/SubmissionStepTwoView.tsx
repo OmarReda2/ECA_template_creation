@@ -18,8 +18,6 @@ interface SubmissionStepTwoViewProps {
   selectedTemplate: TemplateSummary | null;
   canValidate: boolean;
   canValidateWithManualFallback: boolean;
-  onValidate: () => void;
-  onManualFallbackValidate: () => void;
   onValidationErrorDismiss: () => void;
   onBack: () => void;
   onContinue: () => void;
@@ -33,8 +31,6 @@ export function SubmissionStepTwoView({
   selectedTemplate,
   canValidate,
   canValidateWithManualFallback,
-  onValidate,
-  onManualFallbackValidate,
   onValidationErrorDismiss,
   onBack,
   onContinue,
@@ -80,21 +76,12 @@ export function SubmissionStepTwoView({
                   Automatic validation is available because the workbook metadata matched a stored template version exactly.
                 </CardDescription>
               </CardHeader>
-              <CardContent className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                <div className="text-sm text-muted-foreground">
+              <CardContent>
+                <div className="rounded-md border border-border bg-muted/20 px-4 py-3 text-sm text-muted-foreground">
                   Validation will run against {identifyResult.resolvedVersion.templateName} v
                   {identifyResult.resolvedVersion.versionNumber}.
+                  <span className="mt-1 block text-foreground">Validation starts automatically when Step 2 opens.</span>
                 </div>
-                <Button type="button" onClick={onValidate} disabled={validating}>
-                  {validating ? (
-                    <>
-                      <Spinner className="h-4 w-4" />
-                      Validating...
-                    </>
-                  ) : (
-                    'Validate Workbook'
-                  )}
-                </Button>
               </CardContent>
             </Card>
           )}
@@ -112,21 +99,12 @@ export function SubmissionStepTwoView({
                   <Badge variant="warning">Manual fallback</Badge>
                 </div>
               </CardHeader>
-              <CardContent className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                <div className="text-sm text-muted-foreground">
+              <CardContent>
+                <div className="rounded-md border border-amber-200 bg-amber-50/60 px-4 py-3 text-sm text-amber-900">
                   {selectedTemplate?.name ?? 'Selected template'} will validate against latest version v
                   {selectedTemplate?.latestVersion?.versionNumber ?? 'Not available'}.
+                  <span className="mt-1 block">Validation starts automatically when Step 2 opens.</span>
                 </div>
-                <Button type="button" onClick={onManualFallbackValidate} disabled={validating}>
-                  {validating ? (
-                    <>
-                      <Spinner className="h-4 w-4" />
-                      Validating...
-                    </>
-                  ) : (
-                    'Validate with Selected Template'
-                  )}
-                </Button>
               </CardContent>
             </Card>
           )}

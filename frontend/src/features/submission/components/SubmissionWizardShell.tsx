@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { Check } from 'lucide-react';
 import {
   Stepper,
   StepperIndicator,
@@ -22,6 +23,7 @@ import { SubmissionStepTwoView } from './SubmissionStepTwoView';
 import { SubmissionStepThreeView } from './SubmissionStepThreeView';
 
 const FALLBACK_STATES = new Set(['METADATA_MISSING', 'METADATA_INVALID', 'VERSION_NOT_FOUND']);
+const VALIDATION_MIN_LOADING_MS = 800;
 
 type WizardStep = 'upload' | 'validate' | 'review';
 type PendingConfirmation =
@@ -31,6 +33,7 @@ type PendingConfirmation =
 
 interface WizardStepConfig {
   key: WizardStep;
+  stepNumber: 1 | 2 | 3;
   title: string;
   completed: boolean;
   disabled: boolean;
@@ -46,6 +49,8 @@ export function SubmissionWizardShell() {
   const [templates, setTemplates] = useState<TemplateSummary[]>([]);
   const [isIdentifying, setIsIdentifying] = useState(false);
   const [isValidating, setIsValidating] = useState(false);
+  const [validationEntryToken, setValidationEntryToken] = useState(0);
+  const [lastAutoValidatedEntryToken, setLastAutoValidatedEntryToken] = useState<number | null>(null);
   const [identifyError, setIdentifyError] = useState<FrontendError | null>(null);
   const [validationError, setValidationError] = useState<FrontendError | null>(null);
   const [pendingConfirmation, setPendingConfirmation] = useState<PendingConfirmation>(null);
@@ -72,6 +77,7 @@ export function SubmissionWizardShell() {
   const clearValidationState = () => {
     setValidationResult(null);
     setValidationError(null);
+    setLastAutoValidatedEntryToken(null);
   };
 
   const resetWizard = () => {
@@ -82,6 +88,8 @@ export function SubmissionWizardShell() {
     setIdentifyError(null);
     setIsIdentifying(false);
     setIsValidating(false);
+    setValidationEntryToken(0);
+    setLastAutoValidatedEntryToken(null);
     clearValidationState();
     setActiveStep('upload');
   };
@@ -94,6 +102,8 @@ export function SubmissionWizardShell() {
     setPendingConfirmation(null);
     setIsIdentifying(true);
     setActiveStep('upload');
+    setValidationEntryToken(0);
+    setLastAutoValidatedEntryToken(null);
     clearValidationState();
   };
 
@@ -104,6 +114,8 @@ export function SubmissionWizardShell() {
     setIdentifyError(null);
     setIsIdentifying(false);
     setPendingConfirmation(null);
+    setValidationEntryToken(0);
+    setLastAutoValidatedEntryToken(null);
     clearValidationState();
     setActiveStep('upload');
   };
@@ -136,7 +148,10 @@ export function SubmissionWizardShell() {
     setValidationError(null);
 
     try {
-      const result = await submissionApi.validateWorkbook(selectedFile);
+      const [result] = await Promise.all([
+        submissionApi.validateWorkbook(selectedFile),
+        new Promise((resolve) => setTimeout(resolve, VALIDATION_MIN_LOADING_MS)),
+      ]);
       setValidationResult(result);
       setActiveStep('validate');
     } catch (error) {
@@ -162,9 +177,12 @@ export function SubmissionWizardShell() {
     setValidationError(null);
 
     try {
-      const result = await submissionApi.validateWorkbook(selectedFile, {
-        templateId: selectedFallbackTemplateId,
-      });
+      const [result] = await Promise.all([
+        submissionApi.validateWorkbook(selectedFile, {
+          templateId: selectedFallbackTemplateId,
+        }),
+        new Promise((resolve) => setTimeout(resolve, VALIDATION_MIN_LOADING_MS)),
+      ]);
       setValidationResult(result);
       setActiveStep('validate');
     } catch (error) {
@@ -198,6 +216,10 @@ export function SubmissionWizardShell() {
       return;
     }
 
+    if (nextStep === 'validate') {
+      setValidationEntryToken((current) => current + 1);
+    }
+
     setActiveStep(nextStep);
   };
 
@@ -220,18 +242,21 @@ export function SubmissionWizardShell() {
     () => [
       {
         key: 'upload',
+        stepNumber: 1,
         title: 'Upload & Identify',
-        completed: activeStep !== 'upload' && canEnterValidate,
-        disabled: isValidating,
+        completed: activeStep !== 'upload',
+        disabled: false,
       },
       {
         key: 'validate',
+        stepNumber: 2,
         title: 'Validate & Review Results',
         completed: activeStep === 'review' && validationResult != null,
         disabled: !canEnterValidate,
       },
       {
         key: 'review',
+        stepNumber: 3,
         title: 'Review / Restart',
         completed: false,
         disabled: !canEnterReview || isValidating,
@@ -243,6 +268,54 @@ export function SubmissionWizardShell() {
   const stepViewClassName =
     'motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-right-1 motion-safe:duration-200';
 
+  useEffect(() => {
+    if (
+      activeStep !== 'validate' ||
+      !canEnterValidate ||
+      validationResult != null ||
+      isValidating ||
+      validationEntryToken === 0 ||
+      lastAutoValidatedEntryToken === validationEntryToken
+    ) {
+      return;
+    }
+
+    setLastAutoValidatedEntryToken(validationEntryToken);
+
+    if (identifyResult?.status === 'EXACT_MATCH') {
+      void handleValidateAutomatic();
+      return;
+    }
+
+    if (shouldShowFallback && selectedFallbackTemplateSummary != null) {
+      void handleValidateManualFallback();
+    }
+  }, [
+    activeStep,
+    canEnterValidate,
+    handleValidateAutomatic,
+    handleValidateManualFallback,
+    identifyResult?.status,
+    isValidating,
+    lastAutoValidatedEntryToken,
+    selectedFallbackTemplateSummary,
+    shouldShowFallback,
+    validationEntryToken,
+    validationResult,
+  ]);
+
+  const getIndicatorContent = (step: WizardStepConfig) => {
+    if (activeStep === step.key) {
+      return step.stepNumber;
+    }
+
+    if (step.completed) {
+      return <Check className="size-4" />;
+    }
+
+    return step.stepNumber;
+  };
+
   return (
     <div className="mx-auto w-full max-w-6xl space-y-6">
       <Stepper value={activeStep}>
@@ -250,10 +323,12 @@ export function SubmissionWizardShell() {
           {stepConfigs.map((step, index) => (
             <StepperItem key={step.key} value={step.key} completed={step.completed} disabled={step.disabled}>
               <StepperTrigger onClick={() => requestStepNavigation(step.key)}>
-                <StepperIndicator />
+                <StepperIndicator>{getIndicatorContent(step)}</StepperIndicator>
                 <StepperTitle>{step.title}</StepperTitle>
               </StepperTrigger>
-              {index < stepConfigs.length - 1 && <StepperSeparator />}
+              {index < stepConfigs.length - 1 && (
+                <StepperSeparator className={step.completed ? '!bg-primary' : '!bg-border/80'} />
+              )}
             </StepperItem>
           ))}
         </StepperList>
@@ -295,8 +370,6 @@ export function SubmissionWizardShell() {
             selectedTemplate={selectedFallbackTemplateSummary}
             canValidate={identifyResult?.status === 'EXACT_MATCH' && selectedFile != null}
             canValidateWithManualFallback={shouldShowFallback && selectedFile != null && selectedFallbackTemplateSummary != null}
-            onValidate={handleValidateAutomatic}
-            onManualFallbackValidate={handleValidateManualFallback}
             onValidationErrorDismiss={() => setValidationError(null)}
             onBack={() => requestStepNavigation('upload')}
             onContinue={() => requestStepNavigation('review')}

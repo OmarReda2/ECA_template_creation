@@ -126,9 +126,12 @@ export function IdentityResultCard({ result }: IdentityResultCardProps) {
         </div>
 
         {messages.length > 0 && (
-          <div className="space-y-2 rounded-md border border-border bg-muted/40 p-4">
-            <h3 className="text-sm font-semibold text-foreground">Messages</h3>
-            <ul className="space-y-2 text-sm text-muted-foreground">
+          <div className="space-y-3 rounded-md border border-border bg-muted/30 p-4">
+            <div className="flex items-center justify-between gap-3">
+              <h3 className="text-sm font-semibold text-foreground">Messages</h3>
+              <Badge variant="neutral">Details</Badge>
+            </div>
+            <ul className="list-disc space-y-2 pl-5 text-sm text-muted-foreground">
               {messages.map((message) => (
                 <li key={message}>{message}</li>
               ))}

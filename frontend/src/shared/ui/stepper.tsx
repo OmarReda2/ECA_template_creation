@@ -461,8 +461,8 @@ function StepperSeparator(props: StepperSeparatorProps) {
       {...separatorProps}
       ref={ref}
       className={cn(
-        "mx-2 rounded-full bg-border/80 transition-colors data-[state=active]:bg-primary data-[state=completed]:bg-primary",
-        orientation === "horizontal" ? "h-0.5 min-w-6 flex-1 self-center" : "h-10 w-0.5",
+        "mx-2 shrink-0 rounded-full bg-border/80 opacity-100 transition-colors data-[state=active]:bg-primary data-[state=completed]:bg-primary",
+        orientation === "horizontal" ? "h-0.5 min-w-8 flex-1 self-center" : "h-10 w-0.5",
         className
       )}
     />
