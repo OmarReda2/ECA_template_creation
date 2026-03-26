@@ -1,5 +1,5 @@
 import { NavLink, useLocation } from 'react-router-dom';
-import { FilePlus, FileText, History, Upload } from 'lucide-react';
+import { FilePlus, FileText, History, Home, Upload } from 'lucide-react';
 import {
   Sidebar as SidebarRoot,
   SidebarContent,
@@ -16,9 +16,12 @@ import {
 /** App sidebar using shadcn Sidebar block. Nav: Templates (/templates), Create Template (/templates/create). */
 export default function AppSidebar() {
   const location = useLocation();
+  const isHomeActive = location.pathname === '/';
   const isCreateActive = location.pathname.startsWith('/templates/create');
   const isSubmissionHistoryActive = location.pathname.startsWith('/submissions/history');
-  const isSubmissionActive = location.pathname === '/submissions';
+  const isSubmissionDetailsActive =
+    location.pathname.startsWith('/submissions/') && !isSubmissionHistoryActive && location.pathname !== '/submissions';
+  const isSubmissionActive = location.pathname === '/submissions' || isSubmissionDetailsActive;
   const isTemplatesActive =
     (location.pathname === '/templates' || location.pathname.startsWith('/templates/')) &&
     !isCreateActive;
@@ -30,6 +33,14 @@ export default function AppSidebar() {
           <SidebarGroupLabel>Admin</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild tooltip="Home" isActive={isHomeActive}>
+                  <NavLink to="/" end>
+                    <Home className="h-4 w-4 shrink-0" />
+                    <span>Home</span>
+                  </NavLink>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
               <SidebarMenuItem>
                 <SidebarMenuButton asChild tooltip="Templates" isActive={isTemplatesActive}>
                   <NavLink to="/templates" end>

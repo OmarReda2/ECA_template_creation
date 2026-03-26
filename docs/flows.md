@@ -1,185 +1,72 @@
-# System Flows (v1 - Verified)
+# System Flows (Current MVP)
 
-## Template Creation Flow
+## 1. Landing Flow
 
-### Step 1 - Frontend
+1. User opens `/`
+2. Landing page presents two primary routes:
+   - Template Creation & Export
+   - Data Submission
+3. User enters the appropriate flow from the landing page or sidebar navigation
 
-User inputs:
-- name
-- sectorCode
+## 2. Template Creation & Export
 
-Request:
-`POST /api/templates`
+1. User creates a template
+2. Backend creates template + initial version
+3. User edits latest-version schema
+4. Backend validates and stores schema JSON + schema hash
+5. User exports workbook
+6. Backend generates Excel with embedded `__metadata__`
 
-### Step 2 - Controller
+## 3. Submission Wizard
 
-`TemplateController.createTemplate()`
--> forwards request to service
-
-### Step 3 - Service Logic
-
-`TemplateService.createTemplate()`
-
-1. Create `TemplateEntity`
-2. Persist `TemplateEntity`
-3. Create `TemplateVersionEntity` (version 1)
-4. Persist `TemplateVersionEntity`
-
-### Step 4 - Response
-
-Return:
-- templateId
-- versionId
-- versionNumber
-
----
-
-## Submission Flow - Frontend + Backend (Current)
-
-### Step 1 - Upload and Identify
-
-Frontend:
+### Step 1 — Upload & Identify
 
 1. User selects `.xlsx` workbook
-2. Frontend calls `POST /api/submissions/identify`
-3. Frontend stays on Step 1 and renders:
-   - identify status
-   - extracted metadata
-   - resolved version summary
-   - messages from backend
+2. Frontend auto-calls `POST /api/submissions/identify`
+3. Backend reads `__metadata__`
+4. Backend resolves version using `version_id`
+5. Backend compares `schema_hash`
+6. Frontend renders identify result and any backend messages
 
-Backend:
+If automatic identity is unresolved:
+- frontend allows explicit manual fallback template selection
+- latest version of that template becomes the manual validation target
 
-1. Parse workbook using `SubmissionWorkbookParser`
-2. Extract metadata from `__metadata__`
-3. Resolve version using `version_id`
-4. Compare `schema_hash`
-5. Return identify response
+### Step 2 — Validate & Review Results
 
-### Step 2 - Validation Gate
+1. User explicitly enters Step 2
+2. Frontend auto-starts validation when Step 2 is eligible
+3. Frontend calls `POST /api/submissions/validate`
+4. Backend validates workbook structure
+5. Backend validates row/cell content
+6. If manual fallback was selected:
+   - backend validates against the latest version of the selected template
+   - response marks `validationTargetSource = MANUAL_FALLBACK`
+7. If validation has no blocking errors:
+   - backend persists minimal submission record
+   - backend returns `submissionId`
+8. Frontend stays on Step 2 and renders:
+   - target version info
+   - counts
+   - issue list
+   - `submissionId` when saved
 
-Frontend:
+### Step 3 — Review / Restart
 
-- show `Validate Workbook` only when identify status is `EXACT_MATCH`
-- block validation UI for all other identify states
-- allow restart / re-upload
-- stop repeat validation clicks after a result is already displayed
-- for `METADATA_MISSING`, `METADATA_INVALID`, and `VERSION_NOT_FOUND`, allow explicit manual fallback template selection
-- allow entry into Step 2 only when automatic validation or manual fallback validation is actually ready
+1. User explicitly enters Step 3 after validation
+2. Frontend renders lightweight review/restart state only
+3. User may go back to validation results or restart with a new workbook
 
-### Step 3 - Workbook Validation
+## 4. Submission History
 
-Frontend:
-
-1. User clicks `Validate Workbook`
-2. Frontend calls `POST /api/submissions/validate`
-3. Frontend shows loading state
-4. Frontend moves to Step 3 only after validation returns
-
-Backend:
-
-1. Re-run identity gate and require `EXACT_MATCH`
-2. Resolve `TemplateVersionEntity`
-3. Read schema JSON
-4. Ignore non-business sheets:
-   - `__metadata__`
-   - `_validation`
-   - `Instructions`
-5. Validate workbook structure
-6. If structure is clean enough, validate row/cell content
-
-### Step 3A - Manual Fallback Validation
-
-Frontend:
-
-1. User selects a template manually when metadata cannot be resolved automatically
-2. Frontend calls `POST /api/submissions/validate` with explicit `templateId`
-3. Frontend labels the result as manual fallback validation
-
-Backend:
-
-1. Confirm automatic identify state is one of the allowed unresolved states
-2. Resolve the latest version of the selected template
-3. Validate workbook structure and row/cell content against that latest version
-4. Return `validationTargetSource = MANUAL_FALLBACK`
-
-### Step 4 - Persist Validated Submission
-
-Backend:
-
-1. Check for blocking validation errors
-2. If errors exist, do not persist and return `submissionId = null`
-3. If no blocking errors exist, create a minimal `SubmissionEntity`
-4. Return validation response with `submissionId`
-
-### Step 5 - Results Rendering
-
-Frontend renders:
-
-- target version info
-- submission ID when persistence succeeds
-- sheets checked
-- rows checked
-- error count
-- warning count
-- issue list with:
-  - severity
-  - sheet name
-  - row number when present
-  - header name when present
-  - message
-- grouped for readability, with errors shown ahead of warnings
-- success feedback when a submission record is saved
-
-### Step 6 - Review / Restart
-
-Frontend provides:
-
-- dedicated review step view
-- lightweight review panel
-- re-upload / restart action
-- graceful error display when backend returns an unexpected failure
-
-Navigation behavior:
-
-- backward navigation is allowed
-- invalid forward navigation is blocked
-- going back to Step 1 after validation confirms before clearing stale downstream state
-
-### Step 7 - Read-only Submission History
-
-Frontend:
-
-1. User opens the submission history screen
+1. User opens `/submissions/history`
 2. Frontend calls `GET /api/submissions`
-3. Frontend renders saved submissions newest first
-4. If history is empty, frontend offers a clear path back to start a new submission
+3. Backend returns saved submissions newest first
+4. Frontend renders read-only history list
 
-Backend:
+## 5. Submission Details
 
-1. Read saved `SubmissionEntity` rows ordered by `createdAt` descending
-2. Enrich compact history rows with template name and version number when available
-3. Return read-only history items only
-
-### Step 8 - Read-only Submission Details
-
-Frontend:
-
-1. User opens one saved submission from history
+1. User opens `/submissions/:id`
 2. Frontend calls `GET /api/submissions/{id}`
-3. Frontend renders loading, not-found, or read-only details state
-4. Frontend provides a clear path back to submission history
-
-Backend:
-
-1. Read one `SubmissionEntity` by ID
-2. Enrich the compact details row with template name and version number when available
-3. Return 404 when the submission does not exist
-
-Not provided:
-
-- final submit
-- correction editing
-- re-validation from details
-- history actions beyond read-only viewing
-- workflow state changes
+3. Backend returns one saved submission or `404`
+4. Frontend renders read-only details, not-found, or generic error state
