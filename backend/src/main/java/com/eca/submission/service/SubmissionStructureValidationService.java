@@ -7,6 +7,7 @@ import com.eca.submission.dto.SubmissionStructureValidationSheetDto;
 import com.eca.submission.dto.SubmissionValidationIssueDto;
 import com.eca.submission.exception.SubmissionWorkbookException;
 import com.eca.submission.model.SubmissionIdentifyStatus;
+import com.eca.submission.model.SubmissionValidationTargetSource;
 import com.eca.submission.parser.SubmissionWorkbookParser;
 import com.eca.template.entity.TemplateVersionEntity;
 import com.eca.template.repository.TemplateVersionJpaRepository;
@@ -36,6 +37,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 
 @Service
 public class SubmissionStructureValidationService {
@@ -76,48 +78,52 @@ public class SubmissionStructureValidationService {
     }
 
     @Transactional
-    public SubmissionStructureValidationResponse validateStructure(MultipartFile file) {
+    public SubmissionStructureValidationResponse validateStructure(MultipartFile file, UUID manualTemplateId) {
         SubmissionIdentifyResponse identifyResponse;
         try {
             identifyResponse = submissionService.identify(file);
         } catch (SubmissionWorkbookException ex) {
-            return response(null, null, 0, 0, List.of(error(ex.getStatus().name(), null, null, null, ex.getMessage())), List.of(), List.of());
-        }
-
-        if (identifyResponse.status() != SubmissionIdentifyStatus.EXACT_MATCH || identifyResponse.resolvedVersion() == null) {
             return response(
-                    identifyResponse.resolvedVersion(),
+                    null,
+                    SubmissionValidationTargetSource.AUTO_IDENTIFIED,
+                    false,
                     null,
                     0,
                     0,
-                    toErrorIssues(identifyResponse.status(), identifyResponse.messages()),
+                    List.of(error(ex.getStatus().name(), null, null, null, ex.getMessage())),
                     List.of(),
                     List.of()
             );
         }
 
-        TemplateVersionEntity version = versionRepository.findById(identifyResponse.resolvedVersion().versionId()).orElse(null);
-        if (version == null) {
+        ValidationTarget validationTarget = resolveValidationTarget(identifyResponse, manualTemplateId);
+        if (!validationTarget.allowed()) {
             return response(
-                    null,
+                    validationTarget.resolvedVersion(),
+                    validationTarget.source(),
+                    validationTarget.manualFallbackUsed(),
                     null,
                     0,
                     0,
-                    List.of(error("VERSION_NOT_FOUND", null, null, null, "Resolved template version is no longer available for validation.")),
-                    List.of(),
+                    validationTarget.errors(),
+                    validationTarget.warnings(),
                     List.of()
             );
         }
+
+        TemplateVersionEntity version = validationTarget.version();
 
         List<SheetSpec> expectedSheets = extractSheetSpecs(version.getSchemaJson());
         if (expectedSheets.isEmpty()) {
             return response(
-                    identifyResponse.resolvedVersion(),
+                    validationTarget.resolvedVersion(),
+                    validationTarget.source(),
+                    validationTarget.manualFallbackUsed(),
                     null,
                     0,
                     0,
                     List.of(error("SCHEMA_TABLES_MISSING", null, null, null, "Resolved template version schema does not define business sheets.")),
-                    toWarningIssues(identifyResponse.messages()),
+                    validationTarget.warnings(),
                     List.of()
             );
         }
@@ -125,47 +131,62 @@ public class SubmissionStructureValidationService {
         try (Workbook workbook = workbookParser.openWorkbook(file)) {
             return validateWorkbookAgainstSchema(
                     workbook,
-                    identifyResponse.resolvedVersion(),
+                    validationTarget.resolvedVersion(),
+                    validationTarget.source(),
+                    validationTarget.manualFallbackUsed(),
                     expectedSheets,
-                    identifyResponse.messages(),
+                    validationTarget.warningMessages(),
                     file.getOriginalFilename()
             );
         } catch (SubmissionWorkbookException ex) {
             return response(
-                    identifyResponse.resolvedVersion(),
+                    validationTarget.resolvedVersion(),
+                    validationTarget.source(),
+                    validationTarget.manualFallbackUsed(),
                     null,
                     0,
                     0,
                     List.of(error(ex.getStatus().name(), null, null, null, ex.getMessage())),
-                    toWarningIssues(identifyResponse.messages()),
+                    validationTarget.warnings(),
                     List.of()
             );
         } catch (IOException e) {
             return response(
-                    identifyResponse.resolvedVersion(),
+                    validationTarget.resolvedVersion(),
+                    validationTarget.source(),
+                    validationTarget.manualFallbackUsed(),
                     null,
                     0,
                     0,
                     List.of(error("UNSUPPORTED_FILE", null, null, null, "The uploaded workbook could not be read.")),
-                    toWarningIssues(identifyResponse.messages()),
+                    validationTarget.warnings(),
                     List.of()
             );
         } catch (RuntimeException e) {
             return response(
-                    identifyResponse.resolvedVersion(),
+                    validationTarget.resolvedVersion(),
+                    validationTarget.source(),
+                    validationTarget.manualFallbackUsed(),
                     null,
                     0,
                     0,
                     List.of(error("UNSUPPORTED_FILE", null, null, null, "The uploaded workbook is corrupt or unsupported.")),
-                    toWarningIssues(identifyResponse.messages()),
+                    validationTarget.warnings(),
                     List.of()
             );
         }
     }
 
+    @Transactional
+    public SubmissionStructureValidationResponse validateStructure(MultipartFile file) {
+        return validateStructure(file, null);
+    }
+
     private SubmissionStructureValidationResponse validateWorkbookAgainstSchema(
             Workbook workbook,
             SubmissionResolvedVersionDto resolvedVersion,
+            SubmissionValidationTargetSource validationTargetSource,
+            boolean manualFallbackUsed,
             List<SheetSpec> expectedSheets,
             List<String> identifyMessages,
             String originalFileName
@@ -217,6 +238,8 @@ public class SubmissionStructureValidationService {
         if (!errors.isEmpty()) {
             return response(
                     resolvedVersion,
+                    validationTargetSource,
+                    manualFallbackUsed,
                     null,
                     expectedSheets.size(),
                     0,
@@ -238,6 +261,8 @@ public class SubmissionStructureValidationService {
 
         return response(
                 resolvedVersion,
+                validationTargetSource,
+                manualFallbackUsed,
                 submissionId,
                 expectedSheets.size(),
                 rowsChecked,
@@ -611,6 +636,89 @@ public class SubmissionStructureValidationService {
         return List.copyOf(issues);
     }
 
+    private ValidationTarget resolveValidationTarget(SubmissionIdentifyResponse identifyResponse, UUID manualTemplateId) {
+        if (identifyResponse.status() == SubmissionIdentifyStatus.EXACT_MATCH && identifyResponse.resolvedVersion() != null) {
+            TemplateVersionEntity version = versionRepository.findById(identifyResponse.resolvedVersion().versionId()).orElse(null);
+            if (version == null) {
+                return ValidationTarget.blocked(
+                        SubmissionValidationTargetSource.AUTO_IDENTIFIED,
+                        false,
+                        null,
+                        List.of(error("VERSION_NOT_FOUND", null, null, null, "Resolved template version is no longer available for validation.")),
+                        List.of()
+                );
+            }
+            return ValidationTarget.allowed(
+                    SubmissionValidationTargetSource.AUTO_IDENTIFIED,
+                    false,
+                    identifyResponse.resolvedVersion(),
+                    version,
+                    List.of()
+            );
+        }
+
+        if (manualTemplateId == null) {
+            return ValidationTarget.blocked(
+                    SubmissionValidationTargetSource.AUTO_IDENTIFIED,
+                    false,
+                    identifyResponse.resolvedVersion(),
+                    toErrorIssues(identifyResponse.status(), identifyResponse.messages()),
+                    List.of()
+            );
+        }
+
+        if (!isManualFallbackAllowed(identifyResponse.status())) {
+            return ValidationTarget.blocked(
+                    SubmissionValidationTargetSource.MANUAL_FALLBACK,
+                    true,
+                    null,
+                    List.of(error("MANUAL_FALLBACK_NOT_ALLOWED", null, null, null, "Manual fallback validation is only available when metadata is missing, invalid, or the referenced version cannot be resolved.")),
+                    List.of()
+            );
+        }
+
+        TemplateVersionEntity latestVersion = versionRepository.findTopByTemplate_IdOrderByVersionNumberDesc(manualTemplateId).orElse(null);
+        if (latestVersion == null) {
+            return ValidationTarget.blocked(
+                    SubmissionValidationTargetSource.MANUAL_FALLBACK,
+                    true,
+                    null,
+                    List.of(error("MANUAL_TEMPLATE_VERSION_NOT_FOUND", null, null, null, "No latest template version is available for the selected manual fallback template.")),
+                    List.of()
+            );
+        }
+
+        List<String> warningMessages = new ArrayList<>();
+        warningMessages.add("Manual fallback validation is using the latest version of the selected template.");
+        if (identifyResponse.messages() != null) {
+            warningMessages.addAll(identifyResponse.messages());
+        }
+
+        return ValidationTarget.allowed(
+                SubmissionValidationTargetSource.MANUAL_FALLBACK,
+                true,
+                toResolvedVersion(latestVersion),
+                latestVersion,
+                List.copyOf(warningMessages)
+        );
+    }
+
+    private boolean isManualFallbackAllowed(SubmissionIdentifyStatus status) {
+        return status == SubmissionIdentifyStatus.METADATA_MISSING
+                || status == SubmissionIdentifyStatus.METADATA_INVALID
+                || status == SubmissionIdentifyStatus.VERSION_NOT_FOUND;
+    }
+
+    private SubmissionResolvedVersionDto toResolvedVersion(TemplateVersionEntity version) {
+        return new SubmissionResolvedVersionDto(
+                version.getTemplate().getId(),
+                version.getTemplate().getName(),
+                version.getId(),
+                version.getVersionNumber(),
+                version.getSchemaHash()
+        );
+    }
+
     private String defaultMessageForStatus(SubmissionIdentifyStatus status) {
         return switch (status) {
             case METADATA_MISSING -> "Workbook metadata sheet '__metadata__' was not found.";
@@ -632,6 +740,8 @@ public class SubmissionStructureValidationService {
 
     private SubmissionStructureValidationResponse response(
             SubmissionResolvedVersionDto targetVersion,
+            SubmissionValidationTargetSource validationTargetSource,
+            boolean manualFallbackUsed,
             java.util.UUID submissionId,
             int sheetsChecked,
             int rowsChecked,
@@ -639,7 +749,17 @@ public class SubmissionStructureValidationService {
             List<SubmissionValidationIssueDto> warnings,
             List<SubmissionStructureValidationSheetDto> sheetIssues
     ) {
-        return new SubmissionStructureValidationResponse(targetVersion, submissionId, sheetsChecked, rowsChecked, errors, warnings, sheetIssues);
+        return new SubmissionStructureValidationResponse(
+                targetVersion,
+                validationTargetSource,
+                manualFallbackUsed,
+                submissionId,
+                sheetsChecked,
+                rowsChecked,
+                errors,
+                warnings,
+                sheetIssues
+        );
     }
 
     private String readCell(Cell cell) {
@@ -689,5 +809,47 @@ public class SubmissionStructureValidationService {
             SheetSpec sheetSpec,
             Map<String, Integer> headerIndexByName
     ) {
+    }
+
+    private record ValidationTarget(
+            boolean allowed,
+            SubmissionValidationTargetSource source,
+            boolean manualFallbackUsed,
+            SubmissionResolvedVersionDto resolvedVersion,
+            TemplateVersionEntity version,
+            List<SubmissionValidationIssueDto> errors,
+            List<SubmissionValidationIssueDto> warnings,
+            List<String> warningMessages
+    ) {
+        private static ValidationTarget allowed(
+                SubmissionValidationTargetSource source,
+                boolean manualFallbackUsed,
+                SubmissionResolvedVersionDto resolvedVersion,
+                TemplateVersionEntity version,
+                List<String> warningMessages
+        ) {
+            return new ValidationTarget(true, source, manualFallbackUsed, resolvedVersion, version, List.of(), toWarningIssuesFromMessages(warningMessages), warningMessages);
+        }
+
+        private static ValidationTarget blocked(
+                SubmissionValidationTargetSource source,
+                boolean manualFallbackUsed,
+                SubmissionResolvedVersionDto resolvedVersion,
+                List<SubmissionValidationIssueDto> errors,
+                List<SubmissionValidationIssueDto> warnings
+        ) {
+            return new ValidationTarget(false, source, manualFallbackUsed, resolvedVersion, null, errors, warnings, List.of());
+        }
+    }
+
+    private static List<SubmissionValidationIssueDto> toWarningIssuesFromMessages(List<String> warningMessages) {
+        if (warningMessages == null || warningMessages.isEmpty()) {
+            return List.of();
+        }
+        List<SubmissionValidationIssueDto> issues = new ArrayList<>();
+        for (String message : warningMessages) {
+            issues.add(new SubmissionValidationIssueDto(WARNING_SEVERITY, "IDENTITY_WARNING", null, null, null, message));
+        }
+        return List.copyOf(issues);
     }
 }

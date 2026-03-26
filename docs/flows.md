@@ -64,6 +64,7 @@ Frontend:
 - block validation UI for all other identify states
 - allow restart / re-upload
 - stop repeat validation clicks after a result is already displayed
+- for `METADATA_MISSING`, `METADATA_INVALID`, and `VERSION_NOT_FOUND`, allow explicit manual fallback template selection
 
 ### Step 3 - Workbook Validation
 
@@ -84,6 +85,21 @@ Backend:
    - `Instructions`
 5. Validate workbook structure
 6. If structure is clean enough, validate row/cell content
+
+### Step 3A - Manual Fallback Validation
+
+Frontend:
+
+1. User selects a template manually when metadata cannot be resolved automatically
+2. Frontend calls `POST /api/submissions/validate` with explicit `templateId`
+3. Frontend labels the result as manual fallback validation
+
+Backend:
+
+1. Confirm automatic identify state is one of the allowed unresolved states
+2. Resolve the latest version of the selected template
+3. Validate workbook structure and row/cell content against that latest version
+4. Return `validationTargetSource = MANUAL_FALLBACK`
 
 ### Step 4 - Persist Validated Submission
 

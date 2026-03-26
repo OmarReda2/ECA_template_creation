@@ -16,6 +16,7 @@ export function SubmissionReviewCard({
   const validationFinished = validationResult != null;
   const canValidate = identifyResult?.status === 'EXACT_MATCH';
   const submissionSaved = validationResult?.submissionId != null;
+  const usedManualFallback = validationResult?.manualFallbackUsed === true;
 
   return (
     <Card>
@@ -29,8 +30,12 @@ export function SubmissionReviewCard({
         <div className="rounded-md border border-border bg-muted/40 p-4 text-sm text-muted-foreground">
           {validationFinished
             ? submissionSaved
-              ? 'Validation finished and a submission record was saved. You can review the saved result or restart with a new workbook.'
-              : 'Validation finished for the current workbook. Review the returned issues, then restart with a corrected workbook if needed.'
+              ? usedManualFallback
+                ? 'Manual fallback validation finished and a submission record was saved. You can review the saved result or restart with a new workbook.'
+                : 'Validation finished and a submission record was saved. You can review the saved result or restart with a new workbook.'
+              : usedManualFallback
+                ? 'Manual fallback validation finished for the current workbook. Review the returned issues, then restart or choose another template if needed.'
+                : 'Validation finished for the current workbook. Review the returned issues, then restart with a corrected workbook if needed.'
             : canValidate
               ? 'Workbook identity is resolved. Run validation when you are ready, or restart with another workbook.'
               : 'Validation cannot continue until a workbook is uploaded and identified with EXACT_MATCH.'}

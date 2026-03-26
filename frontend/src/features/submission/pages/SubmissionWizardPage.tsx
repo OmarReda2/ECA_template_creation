@@ -42,6 +42,7 @@ export default function SubmissionWizardPage() {
 
   const shouldShowFallback = identifyResult != null && FALLBACK_STATES.has(identifyResult.status);
   const canValidate = identifyResult?.status === 'EXACT_MATCH' && uploadedFile != null;
+  const canValidateWithManualFallback = shouldShowFallback && uploadedFile != null && selectedTemplateId !== '';
   const validationCompleted = validationResult != null;
 
   useEffect(() => {
@@ -58,7 +59,7 @@ export default function SubmissionWizardPage() {
     [selectedTemplateId, templates]
   );
 
-  const stepValue = validationResult != null ? 'review' : canValidate ? 'validation' : 'upload';
+  const stepValue = validationResult != null ? 'review' : canValidate || canValidateWithManualFallback ? 'validation' : 'upload';
 
   const handleIdentified = (file: File, result: SubmissionIdentifyResponse) => {
     setUploadedFile(file);
@@ -78,6 +79,25 @@ export default function SubmissionWizardPage() {
     setValidationError(null);
     try {
       const result = await submissionApi.validateWorkbook(uploadedFile);
+      setValidationResult(result);
+    } catch (error) {
+      const normalized = normalizeHttpError(error);
+      setValidationError(normalized);
+      showErrorToast(getErrorMessage(normalized, true));
+    } finally {
+      setValidating(false);
+    }
+  };
+
+  const handleManualFallbackValidate = async () => {
+    if (uploadedFile == null || !canValidateWithManualFallback) {
+      return;
+    }
+
+    setValidating(true);
+    setValidationError(null);
+    try {
+      const result = await submissionApi.validateWorkbook(uploadedFile, { templateId: selectedTemplateId });
       setValidationResult(result);
     } catch (error) {
       const normalized = normalizeHttpError(error);
@@ -178,7 +198,7 @@ export default function SubmissionWizardPage() {
           <CardHeader>
             <CardTitle>Validation Not Available Yet</CardTitle>
             <CardDescription>
-              Backend validation is blocked until the workbook identifies with EXACT_MATCH. Review the identification result, then re-upload or use manual fallback guidance if available.
+              Backend validation is blocked until the workbook identifies with EXACT_MATCH. For missing, invalid, or unresolved metadata you can continue with explicit manual fallback using the selected template&apos;s latest version.
             </CardDescription>
           </CardHeader>
         </Card>
@@ -189,6 +209,9 @@ export default function SubmissionWizardPage() {
           templates={templates}
           value={selectedTemplateId}
           onChange={setSelectedTemplateId}
+          onValidate={handleManualFallbackValidate}
+          validating={validating}
+          disabled={validationCompleted}
         />
       )}
 
@@ -197,12 +220,12 @@ export default function SubmissionWizardPage() {
           <CardHeader>
             <CardTitle>Fallback selection summary</CardTitle>
             <CardDescription>
-              This selection is manual fallback only and is not treated as auto-identification or validation eligibility.
+              This selection is manual fallback only and is not treated as auto-identification. Validation will use the latest version of the selected template.
             </CardDescription>
           </CardHeader>
           <CardContent className="text-sm text-muted-foreground">
             {selectedTemplate.name} would use latest version v
-            {selectedTemplate.latestVersion?.versionNumber ?? 'Not available'} in a later slice.
+            {selectedTemplate.latestVersion?.versionNumber ?? 'Not available'} for validation in this slice.
           </CardContent>
         </Card>
       )}

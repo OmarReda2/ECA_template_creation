@@ -19,11 +19,11 @@ It reflects the system as implemented, not intended design.
 ## 2. Manual Fallback UX Is Still Partial
 
 ### Observation
-- Manual fallback UI exists for unresolved identify states
-- Fallback does not lead into a real validation path in the current MVP
+- Manual fallback now supports real validation against the latest version of the selected template
+- Manual version selection is still not supported
 
 ### Impact
-- Users can understand fallback intent, but cannot complete a fallback-driven validation/submission flow yet
+- Users can now complete fallback-driven validation, but they cannot choose a specific version when multiple versions exist
 
 ---
 

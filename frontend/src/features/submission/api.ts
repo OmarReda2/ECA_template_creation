@@ -21,9 +21,15 @@ export const submissionApi = {
     const response = await http.post('/api/submissions/identify', formData);
     return response.data;
   },
-  validateWorkbook: async (file: File): Promise<SubmissionValidationResponse> => {
+  validateWorkbook: async (
+    file: File,
+    options?: { templateId?: string | null }
+  ): Promise<SubmissionValidationResponse> => {
     const formData = new FormData();
     formData.append('file', file);
+    if (options?.templateId) {
+      formData.append('templateId', options.templateId);
+    }
     const response = await http.post('/api/submissions/validate', formData);
     return response.data;
   },

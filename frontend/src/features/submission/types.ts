@@ -31,6 +31,7 @@ export interface SubmissionIdentifyResponse {
 }
 
 export type SubmissionValidationSeverity = 'ERROR' | 'WARNING';
+export type SubmissionValidationTargetSource = 'AUTO_IDENTIFIED' | 'MANUAL_FALLBACK';
 
 export interface SubmissionValidationIssue {
   severity: SubmissionValidationSeverity;
@@ -49,6 +50,8 @@ export interface SubmissionValidationSheetIssue {
 
 export interface SubmissionValidationResponse {
   targetVersion: SubmissionResolvedVersion | null;
+  validationTargetSource: SubmissionValidationTargetSource;
+  manualFallbackUsed: boolean;
   submissionId: string | null;
   sheetsChecked: number;
   rowsChecked: number;

@@ -1,14 +1,26 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/shared/ui/Card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/ui/Select';
+import { Button } from '@/shared/ui/Button';
+import { Spinner } from '@/shared/ui/Spinner';
 import type { TemplateSummary } from '@/features/templates/types';
 
 interface ManualTemplateSelectionProps {
   templates: TemplateSummary[];
   value: string;
   onChange: (templateId: string) => void;
+  onValidate: () => void;
+  validating?: boolean;
+  disabled?: boolean;
 }
 
-export function ManualTemplateSelection({ templates, value, onChange }: ManualTemplateSelectionProps) {
+export function ManualTemplateSelection({
+  templates,
+  value,
+  onChange,
+  onValidate,
+  validating = false,
+  disabled = false,
+}: ManualTemplateSelectionProps) {
   const selectedTemplate = templates.find((template) => template.templateId === value) ?? null;
 
   return (
@@ -49,8 +61,28 @@ export function ManualTemplateSelection({ templates, value, onChange }: ManualTe
               Latest version that would be used: v
               {selectedTemplate.latestVersion?.versionNumber ?? 'Not available'}
             </p>
+            <p className="mt-1 text-muted-foreground">
+              This continues validation using the selected template&apos;s latest version as a manual fallback.
+            </p>
           </div>
         )}
+
+        <div className="flex justify-end">
+          <Button
+            type="button"
+            onClick={onValidate}
+            disabled={disabled || validating || selectedTemplate == null}
+          >
+            {validating ? (
+              <>
+                <Spinner className="h-4 w-4" />
+                Validating...
+              </>
+            ) : (
+              'Validate with Selected Template'
+            )}
+          </Button>
+        </div>
       </CardContent>
     </Card>
   );

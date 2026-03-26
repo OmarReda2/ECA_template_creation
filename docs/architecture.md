@@ -77,6 +77,7 @@ Handles workbook upload, identity resolution, backend validation, minimal submis
 - Slice 6: read-only submission history
 - Slice 7: read-only submission details view
 - Slice 8: stabilization and UX polish
+- Slice 9: manual fallback validation path
 
 ### Current Responsibilities
 
@@ -87,6 +88,7 @@ Handles workbook upload, identity resolution, backend validation, minimal submis
 - Validate expected business sheets and headers
 - Validate row / cell content against schema field rules
 - Persist a minimal validated submission record after successful validation
+- Validate against the latest version of an explicitly selected template during manual fallback
 - List saved submission records in read-only history order
 - Read one saved submission record in a read-only details view
 - Render identify and validation results in the frontend

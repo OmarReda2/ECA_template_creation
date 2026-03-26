@@ -17,6 +17,8 @@ export function ValidationSummaryCard({ result }: ValidationSummaryCardProps) {
   const warningCount = warnings.length;
   const hasIssues = errorCount > 0 || warningCount > 0;
   const submissionSaved = result.submissionId != null;
+  const targetSourceLabel =
+    result.validationTargetSource === 'MANUAL_FALLBACK' ? 'Manual fallback' : 'Auto-identified';
 
   return (
     <Card>
@@ -48,6 +50,10 @@ export function ValidationSummaryCard({ result }: ValidationSummaryCardProps) {
             <div className="flex justify-between gap-4">
               <dt className="text-muted-foreground">schema_hash</dt>
               <dd className="text-right">{formatValue(result.targetVersion?.schemaHash)}</dd>
+            </div>
+            <div className="flex justify-between gap-4">
+              <dt className="text-muted-foreground">Validation source</dt>
+              <dd className="text-right">{targetSourceLabel}</dd>
             </div>
           </dl>
         </div>
@@ -92,6 +98,11 @@ export function ValidationSummaryCard({ result }: ValidationSummaryCardProps) {
                 ? 'The workbook completed validation without blocking errors, and a validated submission record was created.'
                 : 'No errors or warnings were returned for the uploaded workbook. A validated submission record was created.'}
             </p>
+            {result.validationTargetSource === 'MANUAL_FALLBACK' && (
+              <p className="text-sm text-green-800">
+                This result came from manual fallback validation using the latest version of the selected template.
+              </p>
+            )}
           </div>
         )}
       </CardContent>

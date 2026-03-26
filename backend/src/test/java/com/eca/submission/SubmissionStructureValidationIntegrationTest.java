@@ -1,6 +1,7 @@
 package com.eca.submission;
 
 import com.eca.submission.controller.SubmissionController;
+import com.eca.submission.model.SubmissionValidationTargetSource;
 import com.eca.submission.repository.SubmissionJpaRepository;
 import com.eca.submission.service.SubmissionPersistenceService;
 import com.eca.submission.service.SubmissionService;
@@ -105,6 +106,8 @@ class SubmissionStructureValidationIntegrationTest {
         ));
 
         assertThat(response.targetVersion()).isNotNull();
+        assertThat(response.validationTargetSource()).isEqualTo(SubmissionValidationTargetSource.AUTO_IDENTIFIED);
+        assertThat(response.manualFallbackUsed()).isFalse();
         assertThat(response.sheetsChecked()).isEqualTo(2);
         assertThat(response.rowsChecked()).isEqualTo(2);
         assertThat(response.errors()).isEmpty();
@@ -131,6 +134,8 @@ class SubmissionStructureValidationIntegrationTest {
 
         assertThat(response.sheetsChecked()).isEqualTo(2);
         assertThat(response.rowsChecked()).isZero();
+        assertThat(response.validationTargetSource()).isEqualTo(SubmissionValidationTargetSource.AUTO_IDENTIFIED);
+        assertThat(response.manualFallbackUsed()).isFalse();
         assertThat(response.submissionId()).isNull();
         assertThat(response.errors().stream().map(issue -> issue.code()).toList()).contains("MISSING_SHEET", "MISSING_HEADER");
         assertThat(response.warnings().stream().map(issue -> issue.code()).toList()).contains("EXTRA_SHEET", "EXTRA_HEADER");
@@ -167,6 +172,8 @@ class SubmissionStructureValidationIntegrationTest {
 
         assertThat(response.sheetsChecked()).isEqualTo(2);
         assertThat(response.rowsChecked()).isEqualTo(3);
+        assertThat(response.validationTargetSource()).isEqualTo(SubmissionValidationTargetSource.AUTO_IDENTIFIED);
+        assertThat(response.manualFallbackUsed()).isFalse();
         assertThat(response.submissionId()).isNull();
         assertThat(response.errors().stream().map(issue -> issue.code()).toList()).contains(
                 "REQUIRED_VALUE_MISSING",
@@ -198,9 +205,43 @@ class SubmissionStructureValidationIntegrationTest {
         assertThat(response.targetVersion()).isNotNull();
         assertThat(response.sheetsChecked()).isZero();
         assertThat(response.rowsChecked()).isZero();
+        assertThat(response.validationTargetSource()).isEqualTo(SubmissionValidationTargetSource.AUTO_IDENTIFIED);
+        assertThat(response.manualFallbackUsed()).isFalse();
         assertThat(response.submissionId()).isNull();
         assertThat(response.errors().stream().map(issue -> issue.code()).toList()).contains("HASH_MISMATCH");
         assertThat(response.sheetIssues()).isEmpty();
+    }
+
+    @Test
+    void validateStructure_allowsManualFallbackAgainstLatestTemplateVersion() throws Exception {
+        TemplateVersionEntity oldVersion = saveVersion("hash-old");
+        TemplateVersionEntity latestVersion = saveVersion(oldVersion.getTemplate(), 2, "hash-new");
+
+        var response = structureValidationService.validateStructure(
+                workbookWithMissingMetadata(List.of(
+                        new SheetSpec(
+                                "Employees",
+                                List.of("Employee ID *", "Employee Name", "Active", "Salary", "Category", "Start Date"),
+                                List.of(List.of(new CellSpec("E001"), new CellSpec("Alice"), new CellSpec("Yes"), new CellSpec(1000.50), new CellSpec("A"), new CellSpec("2026-03-01")))
+                        ),
+                        new SheetSpec(
+                                "Departments",
+                                List.of("Department Code *"),
+                                List.of(List.of(new CellSpec("D01")))
+                        )
+                )),
+                latestVersion.getTemplate().getId()
+        );
+
+        assertThat(response.validationTargetSource()).isEqualTo(SubmissionValidationTargetSource.MANUAL_FALLBACK);
+        assertThat(response.manualFallbackUsed()).isTrue();
+        assertThat(response.targetVersion()).isNotNull();
+        assertThat(response.targetVersion().versionId()).isEqualTo(latestVersion.getId());
+        assertThat(response.submissionId()).isNotNull();
+        assertThat(response.errors()).isEmpty();
+        assertThat(response.warnings()).isNotEmpty();
+        assertThat(response.warnings().stream().map(issue -> issue.message()).toList())
+                .anyMatch(message -> message.contains("Manual fallback validation"));
     }
 
     private TemplateVersionEntity saveVersion(String schemaHash) {
@@ -214,6 +255,17 @@ class SubmissionStructureValidationIntegrationTest {
         TemplateVersionEntity version = new TemplateVersionEntity();
         version.setTemplate(template);
         version.setVersionNumber(1);
+        version.setStatus("DRAFT");
+        version.setSchemaJson(schemaJson());
+        version.setSchemaHash(schemaHash);
+        version.setCreatedBy("u");
+        return versionRepository.saveAndFlush(version);
+    }
+
+    private TemplateVersionEntity saveVersion(TemplateEntity template, int versionNumber, String schemaHash) {
+        TemplateVersionEntity version = new TemplateVersionEntity();
+        version.setTemplate(template);
+        version.setVersionNumber(versionNumber);
         version.setStatus("DRAFT");
         version.setSchemaJson(schemaJson());
         version.setSchemaHash(schemaHash);
@@ -288,6 +340,36 @@ class SubmissionStructureValidationIntegrationTest {
             return new MockMultipartFile(
                     "file",
                     "submission.xlsx",
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    out.toByteArray()
+            );
+        }
+    }
+
+    private MockMultipartFile workbookWithMissingMetadata(List<SheetSpec> sheets) throws Exception {
+        try (Workbook workbook = new XSSFWorkbook(); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            workbook.createSheet("Instructions");
+            workbook.createSheet("_validation");
+
+            for (SheetSpec spec : sheets) {
+                Sheet sheet = workbook.createSheet(spec.name());
+                Row headerRow = sheet.createRow(0);
+                for (int i = 0; i < spec.headers().size(); i++) {
+                    headerRow.createCell(i).setCellValue(spec.headers().get(i));
+                }
+                for (int rowIndex = 0; rowIndex < spec.rows().size(); rowIndex++) {
+                    Row row = sheet.createRow(rowIndex + 1);
+                    List<CellSpec> rowValues = spec.rows().get(rowIndex);
+                    for (int columnIndex = 0; columnIndex < rowValues.size(); columnIndex++) {
+                        writeCell(row, columnIndex, rowValues.get(columnIndex));
+                    }
+                }
+            }
+
+            workbook.write(out);
+            return new MockMultipartFile(
+                    "file",
+                    "submission-missing-metadata.xlsx",
                     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                     out.toByteArray()
             );

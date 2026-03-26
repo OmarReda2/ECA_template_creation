@@ -13,7 +13,8 @@ This module allows a user to:
 5. persist a minimal validated submission record when validation succeeds
 6. view saved submissions in a read-only history screen
 7. inspect one saved submission in a read-only details view
-8. review validation results and re-upload when needed
+8. use explicit manual fallback validation when metadata cannot be resolved automatically
+9. review validation results and re-upload when needed
 
 ---
 
@@ -28,9 +29,10 @@ This module allows a user to:
 - Slice 6 (Read-only submission history) is implemented
 - Slice 7 (Read-only submission details view) is implemented
 - Slice 8 (Stabilization, regression checks, and small UX cleanup) is implemented
+- Slice 9 (Manual fallback to real validation path) is implemented
 
 This document includes both:
-- implemented behavior (Slices 1 through 8)
+- implemented behavior (Slices 1 through 9)
 - planned behavior (future slices)
 
 ---
@@ -174,6 +176,12 @@ Submission must reuse:
 - add small null-safety and action-state guards
 - regression-check the current MVP flow without changing business behavior
 
+#### Slice 9
+- turn manual fallback into a real validation path
+- accept explicit manual template selection during validation
+- use latest version of the selected template only
+- keep manual fallback visually and technically distinct from auto-identification
+
 ### Out of Scope (Current State)
 
 - approval workflow
@@ -185,6 +193,7 @@ Submission must reuse:
 - editing submissions
 - re-validation from history or details
 - delete functionality
+- manual version selector
 
 ---
 
@@ -227,6 +236,13 @@ Frontend:
 - renders summary counts, issue list, and submission save result
 - differentiates warnings from errors
 - disables repeat validation clicks after a completed result is already shown
+
+Manual fallback:
+- shown only for `METADATA_MISSING`, `METADATA_INVALID`, and `VERSION_NOT_FOUND`
+- requires explicit template selection by the user
+- validates against the latest version of the selected template
+- persists on clean validation success just like the automatic path
+- is labeled as manual fallback, not auto-identification
 
 ### Step 3 - Review / Restart (Lightweight)
 
@@ -354,6 +370,8 @@ Current behavior:
 - includes full backend workbook validation
 - persists a minimal submission record only when validation returns no blocking errors
 - returns `submissionId` when persistence succeeds, otherwise `null`
+- accepts optional manual `templateId` for explicit fallback validation
+- returns `validationTargetSource` and `manualFallbackUsed`
 - frontend presents this action as "Validate Workbook"
 
 ### History Endpoint
@@ -398,6 +416,7 @@ Rules:
 - history is read-only only
 - details are read-only only
 - loading, empty, and error states should stay readable and safe
+- manual fallback validation must remain visually distinct from auto-identification
 - no fake submit workflow
 - no fallback automation
 - no correction editing
@@ -464,6 +483,12 @@ Rules:
 - safer empty/loading/not-found states
 - no behavior change to validation or persistence
 
+### Slice 9 (Done)
+
+- manual fallback validation against latest template version
+- explicit validation target source in the response
+- persistence on successful manual fallback validation
+
 ---
 
 ## 14. Acceptance Criteria (Current State)
@@ -486,6 +511,7 @@ System is valid when:
 14. user can restart with a new workbook
 15. frontend handles loading and backend error states gracefully
 16. read-only history and details screens remain stable when optional values are missing
+17. unresolved metadata can continue through explicit manual fallback validation against the selected template's latest version
 
 ---
 

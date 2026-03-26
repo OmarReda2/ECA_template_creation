@@ -23,6 +23,7 @@
 - Submission history is read-only only
 - Submission details view is read-only only
 - Submission stabilization must not change validation or persistence business rules
+- Manual fallback must be explicit and must never be selected silently by the backend
 
 ---
 
@@ -42,6 +43,8 @@
   - numeric min/max checks
 - Persistence is blocked when validation errors exist
 - Warnings do not block persistence
+- Manual fallback validation may use only the latest version of the selected template
+- Manual fallback is allowed only for missing, invalid, or unresolved metadata states
 
 ---
 
@@ -58,6 +61,7 @@
 - Submission history may only show saved metadata and must not expose edit or workflow actions
 - Submission details may only show saved metadata and must not expose edit, delete, or revalidate actions
 - Submission screens must guard nullable backend fields and render readable empty/not-found states
+- Manual fallback success must stay visually distinct from auto-identification success
 
 Still not implemented:
 - correction grid
@@ -67,3 +71,4 @@ Still not implemented:
 - row data persistence
 - editable history actions
 - editable details actions
+- manual version selection
