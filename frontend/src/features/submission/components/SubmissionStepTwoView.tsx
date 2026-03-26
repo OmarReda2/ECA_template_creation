@@ -3,20 +3,19 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/sha
 import { Spinner } from '@/shared/ui/Spinner';
 import { ErrorPanel } from '@/shared/errors/ErrorPanel';
 import { getErrorMessage, type FrontendError } from '@/shared/errors/errorTypes';
-import type { TemplateSummary } from '@/features/templates/types';
 import type { SubmissionIdentifyResponse, SubmissionValidationResponse } from '../types';
 import { ValidationIssueList } from './ValidationIssueList';
 import { ValidationSummaryCard } from './ValidationSummaryCard';
 import { Badge } from '@/shared/ui/Badge';
 import { Skeleton } from '@/shared/ui/skeleton';
+import type { TemplateSummary } from '@/features/templates/types';
 
 interface SubmissionStepTwoViewProps {
   identifyResult: SubmissionIdentifyResponse | null;
   validationResult: SubmissionValidationResponse | null;
   validationError: FrontendError | null;
   validating: boolean;
-  selectedTemplateId: string;
-  templates: TemplateSummary[];
+  selectedTemplate: TemplateSummary | null;
   canValidate: boolean;
   canValidateWithManualFallback: boolean;
   onValidate: () => void;
@@ -31,8 +30,7 @@ export function SubmissionStepTwoView({
   validationResult,
   validationError,
   validating,
-  selectedTemplateId,
-  templates,
+  selectedTemplate,
   canValidate,
   canValidateWithManualFallback,
   onValidate,
@@ -41,8 +39,6 @@ export function SubmissionStepTwoView({
   onBack,
   onContinue,
 }: SubmissionStepTwoViewProps) {
-  const selectedTemplate = templates.find((template) => template.templateId === selectedTemplateId) ?? null;
-
   return (
     <div className="space-y-6">
       {validationError != null && (

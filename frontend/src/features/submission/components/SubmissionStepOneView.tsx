@@ -15,7 +15,9 @@ interface SubmissionStepOneViewProps {
   identifyError: FrontendError | null;
   templates: TemplateSummary[];
   selectedTemplateId: string;
+  selectedTemplateSummary: TemplateSummary | null;
   shouldShowFallback: boolean;
+  identifying: boolean;
   canContinue: boolean;
   onIdentifyStart: (file: File) => void;
   onIdentified: (file: File, result: SubmissionIdentifyResponse) => void;
@@ -30,7 +32,9 @@ export function SubmissionStepOneView({
   identifyError,
   templates,
   selectedTemplateId,
+  selectedTemplateSummary,
   shouldShowFallback,
+  identifying,
   canContinue,
   onIdentifyStart,
   onIdentified,
@@ -38,8 +42,6 @@ export function SubmissionStepOneView({
   onSelectTemplate,
   onContinue,
 }: SubmissionStepOneViewProps) {
-  const selectedTemplate = templates.find((template) => template.templateId === selectedTemplateId) ?? null;
-
   return (
     <div className="space-y-6">
       <UploadIdentifyStep
@@ -63,7 +65,7 @@ export function SubmissionStepOneView({
         />
       )}
 
-      {selectedTemplate != null && (
+      {selectedTemplateSummary != null && (
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between gap-3">
@@ -78,10 +80,10 @@ export function SubmissionStepOneView({
           </CardHeader>
           <CardContent>
             <div className="rounded-md border border-amber-200 bg-amber-50/70 px-4 py-3 text-sm text-amber-900">
-              <p className="font-medium">{selectedTemplate.name}</p>
+              <p className="font-medium">{selectedTemplateSummary.name}</p>
               <p className="mt-1">
                 Manual fallback is ready. Step 2 will validate against latest version v
-                {selectedTemplate.latestVersion?.versionNumber ?? 'Not available'}.
+                {selectedTemplateSummary.latestVersion?.versionNumber ?? 'Not available'}.
               </p>
             </div>
           </CardContent>
@@ -89,7 +91,7 @@ export function SubmissionStepOneView({
       )}
 
       <div className="flex justify-end">
-        <Button type="button" onClick={onContinue} disabled={!canContinue}>
+        <Button type="button" onClick={onContinue} disabled={!canContinue || identifying}>
           Continue to Validation
         </Button>
       </div>
