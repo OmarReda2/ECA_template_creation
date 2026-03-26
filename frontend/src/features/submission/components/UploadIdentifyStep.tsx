@@ -68,12 +68,10 @@ export function UploadIdentifyStep({ onIdentified, onIdentifyStart, onError }: U
           onClick={(event) => {
             if (submitting) {
               event.preventDefault();
-              return;
             }
-            inputRef.current?.click();
           }}
         >
-          <div className="flex min-h-56 flex-col items-center justify-center rounded-lg border border-dashed border-border bg-muted/30 px-6 py-10 text-center transition-colors duration-150 group-hover:border-primary/40 group-hover:bg-muted/50">
+          <div className="flex min-h-56 flex-col items-center justify-center rounded-lg border border-dashed border-border bg-muted/25 px-6 py-10 text-center transition-all duration-150 group-hover:border-primary/60 group-hover:bg-muted/55 group-hover:shadow-sm group-focus-within:border-primary/60 group-focus-within:bg-muted/55">
             <span className="mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary">
               <Upload className="h-5 w-5" />
             </span>
@@ -83,11 +81,6 @@ export function UploadIdentifyStep({ onIdentified, onIdentifyStart, onError }: U
             <span className="mt-1 text-xs text-muted-foreground">
               Hidden workbook metadata will be inspected first. Validation can run only after a usable target is resolved.
             </span>
-            {!submitting && (
-              <span className="mt-4 text-xs font-medium text-primary">
-                {file == null ? 'Click to choose a workbook' : 'Click to replace this workbook'}
-              </span>
-            )}
 
             {submitting && (
               <div className="mt-5 w-full rounded-md border border-primary/20 bg-background/80 p-4 text-left shadow-sm">
