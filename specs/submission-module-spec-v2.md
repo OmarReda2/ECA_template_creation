@@ -30,9 +30,10 @@ This module allows a user to:
 - Slice 7 (Read-only submission details view) is implemented
 - Slice 8 (Stabilization, regression checks, and small UX cleanup) is implemented
 - Slice 9 (Manual fallback to real validation path) is implemented
+- Slice 11 (Real wizard step views and stepper/navigation correction) is implemented
 
 This document includes both:
-- implemented behavior (Slices 1 through 9)
+- implemented behavior (Slices 1 through 9 and 11)
 - planned behavior (future slices)
 
 ---
@@ -182,6 +183,12 @@ Submission must reuse:
 - use latest version of the selected template only
 - keep manual fallback visually and technically distinct from auto-identification
 
+#### Slice 11
+- render one active wizard step view at a time
+- enable backward navigation safely
+- block invalid forward navigation
+- clear stale downstream state when the user explicitly navigates back to earlier inputs
+
 ### Out of Scope (Current State)
 
 - approval workflow
@@ -236,6 +243,7 @@ Frontend:
 - renders summary counts, issue list, and submission save result
 - differentiates warnings from errors
 - disables repeat validation clicks after a completed result is already shown
+- shows Step 2 as a real step view instead of rendering validation content alongside every other section
 
 Manual fallback:
 - shown only for `METADATA_MISSING`, `METADATA_INVALID`, and `VERSION_NOT_FOUND`
@@ -247,6 +255,7 @@ Manual fallback:
 ### Step 3 - Review / Restart (Lightweight)
 
 Implemented:
+- dedicated review step view
 - lightweight summary panel
 - re-upload / restart action
 
@@ -413,6 +422,8 @@ Rules:
 - Step 1 is functional
 - Step 2 is functional
 - Step 3 is lightweight only
+- only one active step view is rendered at a time
+- stepper navigation allows safe backward movement and blocks invalid forward jumps
 - history is read-only only
 - details are read-only only
 - loading, empty, and error states should stay readable and safe
@@ -489,6 +500,12 @@ Rules:
 - explicit validation target source in the response
 - persistence on successful manual fallback validation
 
+### Slice 11 (Done)
+
+- real active step views
+- corrected stepper current/completed/disabled behavior
+- backward navigation with confirm-based state clearing when needed
+
 ---
 
 ## 14. Acceptance Criteria (Current State)
@@ -512,6 +529,7 @@ System is valid when:
 15. frontend handles loading and backend error states gracefully
 16. read-only history and details screens remain stable when optional values are missing
 17. unresolved metadata can continue through explicit manual fallback validation against the selected template's latest version
+18. only the current wizard step view is visible at a time and the stepper state matches the visible step
 
 ---
 

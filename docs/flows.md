@@ -42,7 +42,7 @@ Frontend:
 
 1. User selects `.xlsx` workbook
 2. Frontend calls `POST /api/submissions/identify`
-3. Frontend renders:
+3. Frontend stays on Step 1 and renders:
    - identify status
    - extracted metadata
    - resolved version summary
@@ -65,6 +65,7 @@ Frontend:
 - allow restart / re-upload
 - stop repeat validation clicks after a result is already displayed
 - for `METADATA_MISSING`, `METADATA_INVALID`, and `VERSION_NOT_FOUND`, allow explicit manual fallback template selection
+- allow entry into Step 2 only when automatic validation or manual fallback validation is actually ready
 
 ### Step 3 - Workbook Validation
 
@@ -73,6 +74,7 @@ Frontend:
 1. User clicks `Validate Workbook`
 2. Frontend calls `POST /api/submissions/validate`
 3. Frontend shows loading state
+4. Frontend moves to Step 3 only after validation returns
 
 Backend:
 
@@ -133,9 +135,16 @@ Frontend renders:
 
 Frontend provides:
 
+- dedicated review step view
 - lightweight review panel
 - re-upload / restart action
 - graceful error display when backend returns an unexpected failure
+
+Navigation behavior:
+
+- backward navigation is allowed
+- invalid forward navigation is blocked
+- going back to Step 1 after validation confirms before clearing stale downstream state
 
 ### Step 7 - Read-only Submission History
 

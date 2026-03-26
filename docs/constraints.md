@@ -24,6 +24,7 @@
 - Submission details view is read-only only
 - Submission stabilization must not change validation or persistence business rules
 - Manual fallback must be explicit and must never be selected silently by the backend
+- Submission wizard must render only one active step view at a time
 
 ---
 
@@ -62,6 +63,7 @@
 - Submission details may only show saved metadata and must not expose edit, delete, or revalidate actions
 - Submission screens must guard nullable backend fields and render readable empty/not-found states
 - Manual fallback success must stay visually distinct from auto-identification success
+- Stepper navigation must allow backward moves, block invalid forward moves, and clear stale downstream state only with explicit confirmation
 
 Still not implemented:
 - correction grid

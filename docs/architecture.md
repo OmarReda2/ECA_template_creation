@@ -47,6 +47,7 @@ Backend components:
 
 Frontend components:
 - `SubmissionWizardPage`
+- step view components for Step 1 / Step 2 / Step 3
 - `SubmissionHistoryPage`
 - `SubmissionDetailsPage`
 - `UploadIdentifyStep`
@@ -78,6 +79,7 @@ Handles workbook upload, identity resolution, backend validation, minimal submis
 - Slice 7: read-only submission details view
 - Slice 8: stabilization and UX polish
 - Slice 9: manual fallback validation path
+- Slice 11: real wizard step views and stepper correction
 
 ### Current Responsibilities
 
@@ -91,6 +93,7 @@ Handles workbook upload, identity resolution, backend validation, minimal submis
 - Validate against the latest version of an explicitly selected template during manual fallback
 - List saved submission records in read-only history order
 - Read one saved submission record in a read-only details view
+- Coordinate wizard step state and gated navigation in one parent submission page
 - Render identify and validation results in the frontend
 - Render read-only submission history in the frontend
 - Render read-only submission details in the frontend

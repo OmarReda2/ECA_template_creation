@@ -69,3 +69,14 @@ It reflects the system as implemented, not intended design.
 
 ### Impact
 - The MVP is now more stable to use end-to-end, but correction guidance and workflow remain intentionally outside the current scope
+
+---
+
+## 7. Wizard State Still Lives In One Page Route
+
+### Observation
+- Slice 11 now renders real active step views with gated stepper navigation
+- The wizard still uses one route and in-memory page state rather than step-specific routes or persisted drafts
+
+### Impact
+- The step UX is now much clearer, but a browser refresh still resets the active wizard state

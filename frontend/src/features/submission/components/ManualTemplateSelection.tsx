@@ -8,7 +8,7 @@ interface ManualTemplateSelectionProps {
   templates: TemplateSummary[];
   value: string;
   onChange: (templateId: string) => void;
-  onValidate: () => void;
+  onValidate?: () => void;
   validating?: boolean;
   disabled?: boolean;
 }
@@ -67,22 +67,24 @@ export function ManualTemplateSelection({
           </div>
         )}
 
-        <div className="flex justify-end">
-          <Button
-            type="button"
-            onClick={onValidate}
-            disabled={disabled || validating || selectedTemplate == null}
-          >
-            {validating ? (
-              <>
-                <Spinner className="h-4 w-4" />
-                Validating...
-              </>
-            ) : (
-              'Validate with Selected Template'
-            )}
-          </Button>
-        </div>
+        {onValidate != null && (
+          <div className="flex justify-end">
+            <Button
+              type="button"
+              onClick={onValidate}
+              disabled={disabled || validating || selectedTemplate == null}
+            >
+              {validating ? (
+                <>
+                  <Spinner className="h-4 w-4" />
+                  Validating...
+                </>
+              ) : (
+                'Validate with Selected Template'
+              )}
+            </Button>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
