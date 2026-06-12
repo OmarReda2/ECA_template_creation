@@ -1,0 +1,3277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enterprise 360 - Egyptian Competition Authority Data Portal</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- SheetJS for Excel operations -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <!-- Tesseract.js for OCR -->
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js"></script>
+    <style>
+        :root {
+            --eca-blue: #1a237e;
+            --eca-light-blue: #2196f3;
+            --eca-green: #4caf50;
+            --eca-orange: #ff9800;
+            --eca-red: #f44336;
+            --eca-gray: #f5f5f5;
+            --eca-dark-gray: #424242;
+        }
+        
+        body {
+            font-family: 'Roboto', 'Segoe UI', Arial, sans-serif;
+            background-color: #f8f9fa;
+            color: #333;
+        }
+        
+        .govt-header {
+            background: linear-gradient(135deg, var(--eca-blue), #0d2d4a);
+            color: white;
+            padding: 0.8rem 0;
+            border-bottom: 4px solid var(--eca-light-blue);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        .brand-section {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .eca-logo {
+            height: 60px;
+            width: auto;
+            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+        }
+        
+        .main-container {
+            display: flex;
+            min-height: calc(100vh - 120px);
+        }
+        
+        .navigation-sidebar {
+            width: 280px;
+            background: white;
+            border-right: 1px solid #e0e0e0;
+            padding: 20px 0;
+            box-shadow: 2px 0 5px rgba(0, 0, 0, 0.05);
+        }
+        
+        .content-panel {
+            flex: 1;
+            padding: 25px;
+            background-color: #f8f9fa;
+            overflow-y: auto;
+        }
+        
+        .workflow-stepper {
+            background: white;
+            border-radius: 10px;
+            padding: 25px;
+            margin-bottom: 25px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        }
+        
+        .stepper-container {
+            display: flex;
+            justify-content: space-between;
+            position: relative;
+            margin: 30px 0 40px;
+        }
+        
+        .stepper-container:before {
+            content: '';
+            position: absolute;
+            top: 20px;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background-color: #e0e0e0;
+            z-index: 1;
+        }
+        
+        .step {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+            z-index: 2;
+            flex: 1;
+        }
+        
+        .step-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background-color: white;
+            border: 2px solid #e0e0e0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin-bottom: 8px;
+            transition: all 0.3s ease;
+            color: #757575;
+        }
+        
+        .step.active .step-icon {
+            background-color: var(--eca-blue);
+            border-color: var(--eca-blue);
+            color: white;
+            box-shadow: 0 4px 8px rgba(26, 35, 126, 0.3);
+        }
+        
+        .step.completed .step-icon {
+            background-color: var(--eca-green);
+            border-color: var(--eca-green);
+            color: white;
+        }
+        
+        .step-label {
+            font-weight: 500;
+            color: #757575;
+            text-align: center;
+            font-size: 0.9rem;
+        }
+        
+        .step.active .step-label {
+            color: var(--eca-blue);
+            font-weight: 600;
+        }
+        
+        .mission-card {
+            border: none;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            margin-bottom: 15px;
+            background: white;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            border-left: 4px solid transparent;
+        }
+        
+        .mission-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .mission-card.active {
+            border-left-color: var(--eca-blue);
+            background-color: #e8eaf6;
+        }
+        
+        .data-sheet-tabs {
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            margin-bottom: 25px;
+        }
+        
+        .sheet-tab-header {
+            background: #f5f5f5;
+            border-bottom: 1px solid #e0e0e0;
+            padding: 0 15px;
+            display: flex;
+            flex-wrap: wrap;
+        }
+        
+        .sheet-tab {
+            padding: 15px 20px;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            font-weight: 500;
+            color: #616161;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .sheet-tab:hover {
+            background-color: #eeeeee;
+            color: #212121;
+        }
+        
+        .sheet-tab.active {
+            color: var(--eca-blue);
+            border-bottom-color: var(--eca-blue);
+            background-color: white;
+        }
+        
+        .sheet-content {
+            padding: 25px;
+            display: none;
+        }
+        
+        .sheet-content.active {
+            display: block;
+        }
+        
+        .data-table-container {
+            overflow-x: auto;
+            border-radius: 6px;
+            border: 1px solid #e0e0e0;
+            background: white;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        }
+        
+        .table th {
+            background-color: #f5f5f5;
+            font-weight: 600;
+            color: #424242;
+            border-bottom: 2px solid #e0e0e0;
+            padding: 14px 16px;
+            font-size: 0.9rem;
+        }
+        
+        .table td {
+            padding: 12px 16px;
+            vertical-align: middle;
+            border-color: #f5f5f5;
+            font-size: 0.9rem;
+        }
+        
+        .validation-panel {
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 25px;
+            border-left: 5px solid;
+        }
+        
+        .validation-success {
+            background-color: #e8f5e9;
+            border-left-color: var(--eca-green);
+        }
+        
+        .validation-warning {
+            background-color: #fff8e1;
+            border-left-color: var(--eca-orange);
+        }
+        
+        .validation-error {
+            background-color: #ffebee;
+            border-left-color: var(--eca-red);
+        }
+        
+        .upload-zone {
+            border: 3px dashed #bdbdbd;
+            border-radius: 12px;
+            padding: 60px 20px;
+            text-align: center;
+            background-color: #fafafa;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            margin: 20px 0;
+        }
+        
+        .upload-zone:hover, .upload-zone.dragover {
+            border-color: var(--eca-blue);
+            background-color: #e8eaf6;
+        }
+        
+        .template-preview-card {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border: 1px solid #e0e0e0;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+        
+        .status-badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+        
+        .badge-success {
+            background-color: #e8f5e9;
+            color: #2e7d32;
+        }
+        
+        .badge-warning {
+            background-color: #fff8e1;
+            color: #f57c00;
+        }
+        
+        .badge-danger {
+            background-color: #ffebee;
+            color: #c62828;
+        }
+        
+        .badge-info {
+            background-color: #e3f2fd;
+            color: #1565c0;
+        }
+        
+        .eca-modal {
+            border-radius: 12px;
+            overflow: hidden;
+            border: none;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+        
+        .modal-header {
+            background-color: var(--eca-blue);
+            color: white;
+            border-bottom: none;
+            padding: 20px 25px;
+        }
+        
+        .modal-title {
+            font-weight: 600;
+        }
+        
+        .btn-eca {
+            background-color: var(--eca-blue);
+            color: white;
+            border-radius: 6px;
+            padding: 10px 24px;
+            font-weight: 500;
+            border: none;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-eca:hover {
+            background-color: #283593;
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+        }
+        
+        .btn-eca-outline {
+            border: 2px solid var(--eca-blue);
+            color: var(--eca-blue);
+            background: white;
+            border-radius: 6px;
+            padding: 10px 24px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-eca-outline:hover {
+            background-color: #e8eaf6;
+            border-color: #283593;
+            color: #283593;
+        }
+        
+        .hhi-indicator {
+            display: inline-flex;
+            align-items: center;
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+        
+        .hhi-high { background-color: #ffebee; color: #c62828; }
+        .hhi-moderate { background-color: #fff8e1; color: #ef6c00; }
+        .hhi-competitive { background-color: #e8f5e9; color: #2e7d32; }
+        
+        .excel-sheet-icon {
+            color: #1d6f42;
+            font-size: 1.2rem;
+        }
+        
+        .user-journey-help {
+            background-color: #e3f2fd;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 20px;
+            border-left: 4px solid var(--eca-light-blue);
+        }
+        
+        @media (max-width: 992px) {
+            .main-container {
+                flex-direction: column;
+            }
+            
+            .navigation-sidebar {
+                width: 100%;
+                border-right: none;
+                border-bottom: 1px solid #e0e0e0;
+            }
+        }
+        
+        .sheet-stats {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .stat-card {
+            background: white;
+            border-radius: 8px;
+            padding: 15px;
+            min-width: 150px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            border-top: 4px solid var(--eca-light-blue);
+        }
+        
+        .stat-value {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--eca-blue);
+        }
+        
+        .stat-label {
+            font-size: 0.85rem;
+            color: #757575;
+        }
+        
+        .company-list {
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+            padding: 10px;
+            margin-top: 10px;
+            background-color: #fafafa;
+        }
+        
+        .company-list-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 12px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .company-list-item:last-child {
+            border-bottom: none;
+        }
+        
+        .ubo-discovery-analysis {
+            background: linear-gradient(135deg, #fce4ec, #f3e5f5);
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 15px;
+        }
+        
+        .network-analysis-section, .ownership-mapping-section {
+            margin-bottom: 15px;
+        }
+        
+        .network-node {
+            display: inline-block;
+            background: white;
+            padding: 8px 12px;
+            border-radius: 6px;
+            margin: 3px;
+            border: 1px solid #e0e0e0;
+            font-size: 0.85rem;
+        }
+        
+        .ownership-link {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px;
+            background: white;
+            border-radius: 6px;
+            margin-bottom: 8px;
+            border-left: 4px solid #9c27b0;
+        }
+        
+        .shareholders-table {
+            margin-top: 15px;
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+            overflow: hidden;
+        }
+        
+        .shareholders-table th {
+            background-color: #f5f5f5;
+            padding: 12px;
+            font-weight: 600;
+            text-align: left;
+        }
+        
+        .shareholders-table td {
+            padding: 10px 12px;
+            border-top: 1px solid #e0e0e0;
+        }
+        
+        .ocr-preview {
+            background-color: #f8f9fa;
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+            padding: 15px;
+            margin-top: 15px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .ocr-extracted-data {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+            border-left: 4px solid var(--eca-light-blue);
+        }
+        
+        .document-thumbnail {
+            width: 100px;
+            height: 120px;
+            object-fit: cover;
+            border-radius: 4px;
+            border: 2px solid #e0e0e0;
+            margin-right: 10px;
+        }
+        
+        .document-list-item {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .document-list-item:last-child {
+            border-bottom: none;
+        }
+        
+        .progress-bar-ocr {
+            height: 8px;
+            border-radius: 4px;
+            background-color: #e0e0e0;
+            overflow: hidden;
+            margin-top: 10px;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--eca-blue), var(--eca-light-blue));
+            transition: width 0.3s ease;
+        }
+        
+        .step-content {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <!-- Government Standard Header -->
+    <header class="govt-header">
+        <div class="container">
+            <div class="d-flex justify-content-between align-items-center">
+                <div class="brand-section">
+                    <div class="eca-logo-placeholder" style="width: 60px; height: 60px; background: white; border-radius: 8px; display: flex; align-items: center; justify-content: center;">
+                        <i><img src="logo.png" alt="ECA" width="50" height="50" /></i>
+                    </div>
+                    <div>
+                        <h1 class="h4 mb-1">Egyptian Competition Authority</h1>
+                        <p class="mb-0 opacity-90" style="font-size: 0.9rem;">Enterprise 360 Data Collection Portal</p>
+                    </div>
+                </div>
+                <div class="text-end">
+                    <div class="text-light" style="font-size: 0.85rem;">
+                        <i class="fas fa-user-circle me-1"></i> 
+                        <span id="current-user">Analyst: Ahmed Hassan</span>
+                    </div>
+                    <div class="text-light opacity-75" style="font-size: 0.8rem;">
+                        <i class="fas fa-calendar-alt me-1"></i> 
+                        <span id="current-date">November 15, 2023</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+    
+    <!-- Main Application Container -->
+    <div class="main-container">
+        <!-- Navigation Sidebar -->
+        <nav class="navigation-sidebar">
+            <div class="px-3 mb-4">
+                <h6 class="text-uppercase text-muted mb-3" style="font-size: 0.8rem; letter-spacing: 1px;">
+                    <i class="fas fa-tasks me-2"></i> ECA Missions
+                </h6>
+                
+                <div class="mission-card active" onclick="selectMission('market_monitoring')">
+                    <div class="card-body p-3">
+                        <div class="d-flex align-items-center">
+                            <div class="me-3">
+                                <i class="fas fa-chart-line fa-2x text-warning"></i>
+                            </div>
+                            <div>
+                                <h6 class="mb-1">Market Monitoring</h6>
+                                <p class="text-muted small mb-0">Real-time sector data, pricing, entry/exit tracking</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mission-card" onclick="selectMission('merger_review')">
+                    <div class="card-body p-3">
+                        <div class="d-flex align-items-center">
+                            <div class="me-3">
+                                <i class="fas fa-handshake fa-2x text-info"></i>
+                            </div>
+                            <div>
+                                <h6 class="mb-1">Merger Review</h6>
+                                <p class="text-muted small mb-0">HHI impact assessment, market definition</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mission-card" onclick="selectMission('ubo_discovery')">
+                    <div class="card-body p-3">
+                        <div class="d-flex align-items-center">
+                            <div class="me-3">
+                                <i class="fas fa-project-diagram fa-2x text-danger"></i>
+                            </div>
+                            <div>
+                                <h6 class="mb-1">UBO Discovery</h6>
+                                <p class="text-muted small mb-0">Ownership networks, hidden control</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="px-3 mb-4">
+                <h6 class="text-uppercase text-muted mb-3" style="font-size: 0.8rem; letter-spacing: 1px;">
+                    <i class="fas fa-chart-bar me-2"></i> Dashboard Summary
+                </h6>
+                
+                <div class="card bg-light border-0">
+                    <div class="card-body p-3">
+                        <h6 class="card-title mb-3">Market Concentration</h6>
+                        
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between mb-2">
+                                <span class="small">High Concentration (HHI >2500)</span>
+                                <span class="fw-bold text-danger">3 Sectors</span>
+                            </div>
+                            <div class="progress" style="height: 6px;">
+                                <div class="progress-bar bg-danger" style="width: 15%"></div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between mb-2">
+                                <span class="small">Moderate Concern (HHI 1500-2500)</span>
+                                <span class="fw-bold text-warning">7 Sectors</span>
+                            </div>
+                            <div class="progress" style="height: 6px;">
+                                <div class="progress-bar bg-warning" style="width: 35%"></div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between mb-2">
+                                <span class="small">Competitive (HHI <1500)</span>
+                                <span class="fw-bold text-success">54 Sectors</span>
+                            </div>
+                            <div class="progress" style="height: 6px;">
+                                <div class="progress-bar bg-success" style="width: 50%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="px-3">
+                <h6 class="text-uppercase text-muted mb-3" style="font-size: 0.8rem; letter-spacing: 1px;">
+                    <i class="fas fa-database me-2"></i> Data Coverage
+                </h6>
+                
+                <div class="card bg-light border-0">
+                    <div class="card-body p-3">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="small">Enterprises</span>
+                            <span class="fw-bold">470+</span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="small">Records</span>
+                            <span class="fw-bold">2M+</span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="small">Data Domains</span>
+                            <span class="fw-bold">17</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </nav>
+        
+        <!-- Main Content Area -->
+        <main class="content-panel">
+            <!-- User Journey Stepper -->
+            <div class="workflow-stepper">
+                <h4 class="mb-4">Data Collection Workflow</h4>
+                
+                <div class="stepper-container">
+                    <div class="step active" id="step1">
+                        <div class="step-icon">1</div>
+                        <div class="step-label">Mission & Sector Selection</div>
+                    </div>
+                    
+                    <div class="step" id="step2">
+                        <div class="step-icon">2</div>
+                        <div class="step-label">Upload Documents</div>
+                    </div>
+                    
+                    <div class="step" id="step3">
+                        <div class="step-icon">3</div>
+                        <div class="step-label">Data Collection</div>
+                    </div>
+                    
+                    <div class="step" id="step4">
+                        <div class="step-icon">4</div>
+                        <div class="step-label">Validation & Mapping</div>
+                    </div>
+                    
+                    <div class="step" id="step5">
+                        <div class="step-icon">5</div>
+                        <div class="step-label">Review & Submission</div>
+                    </div>
+                </div>
+                
+                <div class="d-flex justify-content-between mt-4">
+                    <button class="btn btn-eca-outline" onclick="previousStep()">
+                        <i class="fas fa-arrow-left me-2"></i> Previous Step
+                    </button>
+                    
+                    <button class="btn btn-eca" onclick="nextStep()">
+                        Next Step <i class="fas fa-arrow-right ms-2"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Step 1: Mission & Sector Selection -->
+            <div id="step1-content" class="step-content">
+                <div class="row">
+                    <div class="col-lg-8">
+                        <div class="template-preview-card">
+                            <h5 class="mb-4">Select Regulatory Mission</h5>
+                            
+                            <div class="row g-4 mb-4">
+                                <div class="col-md-4">
+                                    <div class="card h-100 border hover-shadow" onclick="selectMissionType('market_monitoring')">
+                                        <div class="card-body text-center p-4">
+                                            <div class="mb-3">
+                                                <div class="rounded-circle bg-warning bg-opacity-10 d-inline-flex align-items-center justify-content-center" style="width: 70px; height: 70px;">
+                                                    <i class="fas fa-chart-line fa-2x text-warning"></i>
+                                                </div>
+                                            </div>
+                                            <h5 class="card-title">Market Monitoring</h5>
+                                            <p class="card-text small text-muted">Track market concentration, pricing anomalies, and competitor entry/exit.</p>
+                                            <div class="mt-3">
+                                                <span class="badge badge-warning me-1">Real-time data</span>
+                                                <span class="badge badge-info">HHI Tracking</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-4">
+                                    <div class="card h-100 border hover-shadow" onclick="selectMissionType('merger_review')">
+                                        <div class="card-body text-center p-4">
+                                            <div class="mb-3">
+                                                <div class="rounded-circle bg-info bg-opacity-10 d-inline-flex align-items-center justify-content-center" style="width: 70px; height: 70px;">
+                                                    <i class="fas fa-handshake fa-2x text-info"></i>
+                                                </div>
+                                            </div>
+                                            <h5 class="card-title">Merger Review</h5>
+                                            <p class="card-text small text-muted">Assess competitive impact of mergers and acquisitions.</p>
+                                            <div class="mt-3">
+                                                <span class="badge badge-info me-1">HHI Delta</span>
+                                                <span class="badge badge-warning">Market Definition</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-4">
+                                    <div class="card h-100 border hover-shadow" onclick="selectMissionType('ubo_discovery')">
+                                        <div class="card-body text-center p-4">
+                                            <div class="mb-3">
+                                                <div class="rounded-circle bg-danger bg-opacity-10 d-inline-flex align-items-center justify-content-center" style="width: 70px; height: 70px;">
+                                                    <i class="fas fa-project-diagram fa-2x text-danger"></i>
+                                                </div>
+                                            </div>
+                                            <h5 class="card-title">UBO Discovery</h5>
+                                            <p class="card-text small text-muted">Uncover hidden ownership networks and ultimate beneficial owners.</p>
+                                            <div class="mt-3">
+                                                <span class="badge badge-danger me-1">Network Analysis</span>
+                                                <span class="badge badge-info">Ownership Mapping</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label fw-bold">Select Industry</label>
+                                    <select class="form-select" id="industry-select" onchange="updateSectorOptions()">
+                                        <option value="">-- Select Industry --</option>
+                                        <option value="manufacturing">Manufacturing</option>
+                                        <option value="telecom">Telecommunications</option>
+                                        <option value="finance">Banking & Finance</option>
+                                        <option value="healthcare">Healthcare & Pharmaceuticals</option>
+                                        <option value="energy">Energy & Utilities</option>
+                                        <option value="transportation">Transportation & Logistics</option>
+                                        <option value="retail">Retail & Consumer Goods</option>
+                                        <option value="construction">Construction & Real Estate</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="col-md-6">
+                                    <label class="form-label fw-bold">Select Sector</label>
+                                    <select class="form-select" id="sector-select" onchange="updateSectorInfo()" disabled>
+                                        <option value="">-- First select an Industry --</option>
+                                    </select>
+                                </div>
+                                
+                                <!-- ADDED: Company Name Textbox -->
+                                <div class="col-md-12">
+                                    <label class="form-label fw-bold">Company Name</label>
+                                    <input type="text" class="form-control" id="company-name" placeholder="Enter the company name (e.g., Arabian Cement Co.)">
+                                </div>
+                                
+                                <!-- ADDED: Shareholders Data Grid -->
+                                <div class="col-md-12 mt-3">
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <label class="form-label fw-bold">Company Shareholders</label>
+                                        <button type="button" class="btn btn-sm btn-eca" onclick="addShareholderRow()">
+                                            <i class="fas fa-plus me-1"></i> Add Shareholder
+                                        </button>
+                                    </div>
+                                    
+                                    <div class="shareholders-table">
+                                        <table class="table table-hover mb-0" id="shareholders-table">
+                                            <thead>
+                                                <tr>
+                                                    <th width="40%">Shareholder Name</th>
+                                                    <th width="25%">Ownership %</th>
+                                                    <th width="25%">Shareholder Type</th>
+                                                    <th width="10%">Actions</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="shareholders-body">
+                                                <tr>
+                                                    <td><input type="text" class="form-control form-control-sm" placeholder="e.g., Al-Hoda Holdings"></td>
+                                                    <td>
+                                                        <div class="input-group input-group-sm">
+                                                            <input type="number" class="form-control" placeholder="0" min="0" max="100" step="0.1">
+                                                            <span class="input-group-text">%</span>
+                                                        </div>
+                                                    </td>
+                                                    <td>
+                                                        <select class="form-select form-select-sm">
+                                                            <option>Institutional</option>
+                                                            <option>Individual</option>
+                                                            <option>Government</option>
+                                                            <option>Foreign</option>
+                                                        </select>
+                                                    </td>
+                                                    <td>
+                                                        <button class="btn btn-sm btn-outline-danger" onclick="removeShareholderRow(this)">
+                                                            <i class="fas fa-times"></i>
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                    <td><input type="text" class="form-control form-control-sm" placeholder="e.g., National Bank of Egypt"></td>
+                                                    <td>
+                                                        <div class="input-group input-group-sm">
+                                                            <input type="number" class="form-control" placeholder="0" min="0" max="100" step="0.1">
+                                                            <span class="input-group-text">%</span>
+                                                        </div>
+                                                    </td>
+                                                    <td>
+                                                        <select class="form-select form-select-sm">
+                                                            <option>Institutional</option>
+                                                            <option>Individual</option>
+                                                            <option>Government</option>
+                                                            <option>Foreign</option>
+                                                        </select>
+                                                    </td>
+                                                    <td>
+                                                        <button class="btn btn-sm btn-outline-danger" onclick="removeShareholderRow(this)">
+                                                            <i class="fas fa-times"></i>
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            </tbody>
+                                            <tfoot>
+                                                <tr>
+                                                    <td class="text-end fw-bold">Total:</td>
+                                                    <td class="fw-bold" id="total-ownership">0%</td>
+                                                    <td colspan="2"></td>
+                                                </tr>
+                                            </tfoot>
+                                        </table>
+                                    </div>
+                                    <div class="form-text mt-2">Add all shareholders with ownership percentage. Total should equal 100%.</div>
+                                </div>
+                                
+                                <div class="col-md-6">
+                                    <label class="form-label fw-bold">Reporting Period</label>
+                                    <select class="form-select" id="period-select">
+                                        <option value="monthly">Monthly Report</option>
+                                        <option value="quarterly">Quarterly Report</option>
+                                        <option value="annual">Annual Report</option>
+                                        <option value="adhoc">Ad-hoc Investigation</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="col-md-6">
+                                    <label class="form-label fw-bold">Template Type</label>
+                                    <select class="form-select" id="template-select">
+                                        <option value="standard">Standard ECA Template</option>
+                                        <option value="simplified">Simplified Template</option>
+                                        <option value="comprehensive">Comprehensive Template</option>
+                                        <option value="custom">Custom Template</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-lg-4">
+                        <div class="template-preview-card">
+                            <h6 class="mb-3">Selected Sector Details</h6>
+                            
+                            <div class="mb-4">
+                                <div class="d-flex align-items-center mb-3">
+                                    <div class="me-3">
+                                        <span class="hhi-indicator hhi-high" id="sector-hhi-indicator">HHI: --</span>
+                                    </div>
+                                    <div>
+                                        <h5 class="mb-0" id="selected-sector-name">Select an Industry and Sector</h5>
+                                        <small class="text-muted" id="sector-concentration-status">No selection made</small>
+                                    </div>
+                                </div>
+                                
+                                <div class="row g-2 mb-3" id="sector-stats">
+                                    <div class="col-6">
+                                        <div class="stat-card">
+                                            <div class="stat-value" id="sector-players">--</div>
+                                            <div class="stat-label">Players</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="stat-card">
+                                            <div class="stat-value" id="sector-top2-control">--</div>
+                                            <div class="stat-label">Top 2 Control</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- ADDED: List of Companies/Players -->
+                                <div class="mt-3" id="sector-companies-section" style="display: none;">
+                                    <h6>Major Players in This Sector:</h6>
+                                    <div class="company-list" id="sector-companies-list">
+                                        <!-- Companies will be populated here by JavaScript -->
+                                    </div>
+                                </div>
+                                
+                                <div class="alert alert-warning" id="sector-alert" style="display: none;">
+                                    <i class="fas fa-exclamation-triangle me-2"></i>
+                                    <strong>Attention Required:</strong> <span id="alert-text"></span>
+                                </div>
+                            </div>
+                            
+                            <div class="user-journey-help">
+                                <h6><i class="fas fa-info-circle me-2"></i> Next Steps</h6>
+                                <p class="small mb-0">After selecting mission, industry, and sector, click "Next Step" to proceed with document upload.</p>
+                            </div>
+                        </div>
+                        
+                        <!-- ADDED: UBO Discovery Card (Visible only for UBO mission) -->
+                        <div class="template-preview-card mt-4" id="ubo-discovery-card" style="display: none;">
+                            <h6 class="mb-3"><i class="fas fa-project-diagram text-danger me-2"></i>UBO Discovery Analysis</h6>
+                            
+                            <div class="ubo-discovery-analysis">
+                                <div class="network-analysis-section">
+                                    <h6 class="small text-uppercase text-muted mb-2">Network Analysis</h6>
+                                    <p class="small text-muted mb-2">Analyze ownership networks to identify:</p>
+                                    <div class="mb-2">
+                                        <span class="network-node">Common Owners</span>
+                                        <span class="network-node">Cross-holdings</span>
+                                        <span class="network-node">Shell Companies</span>
+                                    </div>
+                                    <p class="small text-muted">Network density: <strong id="network-density">--</strong> | Connections: <strong id="network-connections">--</strong></p>
+                                </div>
+                                
+                                <div class="ownership-mapping-section">
+                                    <h6 class="small text-uppercase text-muted mb-2">Ownership Mapping</h6>
+                                    <p class="small text-muted mb-2">Uncover hidden ownership structures:</p>
+                                    <div id="ownership-mapping-preview">
+                                        <div class="ownership-link">
+                                            <span class="small">Arabian Cement Co.</span>
+                                            <span class="small text-muted">→ 85% →</span>
+                                            <span class="small">Al-Hoda Holdings</span>
+                                        </div>
+                                        <div class="ownership-link">
+                                            <span class="small">Suez Cement</span>
+                                            <span class="small text-muted">→ 72% →</span>
+                                            <span class="small">Al-Hoda Holdings</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="template-preview-card mt-4">
+                            <h6 class="mb-3">Template Preview</h6>
+                            <div class="d-flex align-items-center mb-3">
+                                <i class="fas fa-file-excel fa-2x text-success me-3"></i>
+                                <div>
+                                    <h6 class="mb-1">Standard ECA Template</h6>
+                                    <small class="text-muted">Includes all required fields for selected mission</small>
+                                </div>
+                            </div>
+                            <button class="btn btn-eca-outline w-100" onclick="downloadTemplate()">
+                                <i class="fas fa-download me-2"></i> Download Template
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Step 2: Upload Documents -->
+            <div id="step2-content" class="step-content" style="display: none;">
+                <div class="row">
+                    <div class="col-lg-8">
+                        <div class="template-preview-card">
+                            <h5 class="mb-4">Upload Company Documents</h5>
+                            <p class="text-muted mb-4">Upload company documents for OCR processing. The system will extract key data automatically.</p>
+                            
+                            <div class="upload-zone" id="docUploadZone" onclick="document.getElementById('docFileInput').click()" ondragover="handleDocDragOver(event)" ondrop="handleDocDrop(event)">
+                                <i class="fas fa-file-upload fa-4x text-primary mb-3"></i>
+                                <h4>Drag & Drop Documents Here</h4>
+                                <p class="text-muted">or click to browse your computer</p>
+                                <p class="small text-muted mt-2">Supported formats: PDF, JPG, PNG (Max: 20MB each)</p>
+                                <input type="file" id="docFileInput" accept=".pdf,.jpg,.jpeg,.png" multiple style="display: none;" onchange="handleDocFileSelect(this.files)">
+                            </div>
+                            
+                            <!-- Uploaded Documents List -->
+                            <div id="documents-list" style="display: none;" class="mt-4">
+                                <h6 class="mb-3">Uploaded Documents</h6>
+                                <div id="uploaded-documents">
+                                    <!-- Documents will be added here dynamically -->
+                                </div>
+                            </div>
+                            
+                            <!-- OCR Processing Section -->
+                            <div id="ocr-processing" class="validation-panel validation-warning mt-4" style="display: none;">
+                                <h5 class="mb-3"><i class="fas fa-robot me-2"></i> OCR Processing</h5>
+                                <p class="text-muted mb-3">Extracting data from uploaded documents using AI-powered OCR.</p>
+                                
+                                <div class="progress-bar-ocr">
+                                    <div class="progress-fill" id="ocr-progress" style="width: 0%"></div>
+                                </div>
+                                <div class="d-flex justify-content-between mt-2">
+                                    <span class="small" id="ocr-status">Initializing OCR engine...</span>
+                                    <span class="small" id="ocr-percentage">0%</span>
+                                </div>
+                                
+                                <div id="ocr-results" class="mt-4" style="display: none;">
+                                    <h6><i class="fas fa-check-circle text-success me-2"></i>OCR Processing Complete</h6>
+                                    <p class="text-muted small">Data extracted successfully from all documents.</p>
+                                </div>
+                            </div>
+                            
+                            <!-- Extracted Data Preview -->
+                            <div id="extracted-data" class="ocr-extracted-data" style="display: none;">
+                                <h6 class="mb-3"><i class="fas fa-file-alt me-2"></i> Extracted Data Preview</h6>
+                                <p class="text-muted mb-4">Review the data extracted from uploaded documents. This data will be used to pre-fill the Excel template.</p>
+                                
+                                <div class="data-table-container">
+                                    <table class="table table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>Field</th>
+                                                <th>Extracted Value</th>
+                                                <th>Confidence</th>
+                                                <th>Source Document</th>
+                                                <th>Action</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td>Company Name</td>
+                                                <td>Arabian Cement Co.</td>
+                                                <td><span class="badge badge-success">98%</span></td>
+                                                <td>Articles of Association.pdf</td>
+                                                <td><button class="btn btn-sm btn-outline-primary">Confirm</button></td>
+                                            </tr>
+                                            <tr>
+                                                <td>Registration Number</td>
+                                                <td>12345-2023</td>
+                                                <td><span class="badge badge-success">96%</span></td>
+                                                <td>Commercial Register.pdf</td>
+                                                <td><button class="btn btn-sm btn-outline-primary">Confirm</button></td>
+                                            </tr>
+                                            <tr>
+                                                <td>Total Assets</td>
+                                                <td>EGP 4,250,000,000</td>
+                                                <td><span class="badge badge-warning">85%</span></td>
+                                                <td>Financial Statements 2023.pdf</td>
+                                                <td><button class="btn btn-sm btn-outline-warning">Review</button></td>
+                                            </tr>
+                                            <tr>
+                                                <td>Annual Revenue</td>
+                                                <td>EGP 2,850,000,000</td>
+                                                <td><span class="badge badge-success">92%</span></td>
+                                                <td>Financial Statements 2023.pdf</td>
+                                                <td><button class="btn btn-sm btn-outline-primary">Confirm</button></td>
+                                            </tr>
+                                            <tr>
+                                                <td>Number of Employees</td>
+                                                <td>1,250</td>
+                                                <td><span class="badge badge-warning">78%</span></td>
+                                                <td>Annual Report.pdf</td>
+                                                <td><button class="btn btn-sm btn-outline-warning">Review</button></td>
+                                            </tr>
+                                            <tr>
+                                                <td>Ownership Structure</td>
+                                                <td>Al-Hoda Holdings (85%), NBE (15%)</td>
+                                                <td><span class="badge badge-success">94%</span></td>
+                                                <td>Shareholders Register.pdf</td>
+                                                <td><button class="btn btn-sm btn-outline-primary">Confirm</button></td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                                
+                                <div class="alert alert-info mt-3">
+                                    <i class="fas fa-info-circle me-2"></i>
+                                    <strong>Note:</strong> High confidence values (>90%) are automatically confirmed. Review values with lower confidence.
+                                </div>
+                            </div>
+                            
+                            <div class="d-flex justify-content-between mt-4">
+                                <button class="btn btn-eca-outline" onclick="clearAllDocuments()">
+                                    <i class="fas fa-trash me-2"></i> Clear All
+                                </button>
+                                
+                                <button class="btn btn-eca" onclick="processOCR()" id="process-ocr-btn">
+                                    <i class="fas fa-robot me-2"></i> Extract Data with OCR
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-lg-4">
+                        <div class="template-preview-card">
+                            <h6 class="mb-3">Required Documents</h6>
+                            
+                            <div class="mb-4">
+                                <h6 class="small text-uppercase text-muted mb-3">Mandatory Documents</h6>
+                                <div class="d-flex mb-3">
+                                    <div class="me-3">
+                                        <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center" style="width: 30px; height: 30px;">1</div>
+                                    </div>
+                                    <div>
+                                        <h6 class="mb-1">Commercial Register</h6>
+                                        <p class="small text-muted mb-0">Official company registration document</p>
+                                    </div>
+                                </div>
+                                
+                                <div class="d-flex mb-3">
+                                    <div class="me-3">
+                                        <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center" style="width: 30px; height: 30px;">2</div>
+                                    </div>
+                                    <div>
+                                        <h6 class="mb-1">Financial Statements</h6>
+                                        <p class="small text-muted mb-0">Latest annual financial reports</p>
+                                    </div>
+                                </div>
+                                
+                                <div class="d-flex">
+                                    <div class="me-3">
+                                        <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center" style="width: 30px; height: 30px;">3</div>
+                                    </div>
+                                    <div>
+                                        <h6 class="mb-1">Articles of Association</h6>
+                                        <p class="small text-muted mb-0">Company constitution document</p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="alert alert-warning">
+                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                <strong>OCR Capabilities:</strong> System can extract text from scanned PDFs and images with high accuracy.
+                            </div>
+                        </div>
+                        
+                        <div class="template-preview-card mt-4">
+                            <h6 class="mb-3">Document Guidelines</h6>
+                            
+                            <ul class="small text-muted mb-0">
+                                <li class="mb-2">Upload clear, legible documents</li>
+                                <li class="mb-2">Ensure text is not cut off or blurred</li>
+                                <li class="mb-2">PDFs should be searchable when possible</li>
+                                <li class="mb-2">Maximum file size: 20MB per document</li>
+                                <li>Supported languages: Arabic, English</li>
+                            </ul>
+                        </div>
+                        
+                        <div class="template-preview-card mt-4">
+                            <h6 class="mb-3">Extracted Data Preview</h6>
+                            <div class="ocr-preview">
+                                <p class="small text-muted mb-2">The OCR will extract:</p>
+                                <ul class="small">
+                                    <li>Company registration details</li>
+                                    <li>Financial metrics</li>
+                                    <li>Ownership information</li>
+                                    <li>Key personnel</li>
+                                    <li>Contact information</li>
+                                    <li>Operational data</li>
+                                </ul>
+                            </div>
+                            <div class="user-journey-help mt-3">
+                                <h6><i class="fas fa-info-circle me-2"></i> Next Steps</h6>
+                                <p class="small mb-0">After OCR processing, extracted data will be used to pre-fill the Excel template in the next step.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Step 3: Data Collection -->
+            <div id="step3-content" class="step-content" style="display: none;">
+                <div class="row">
+                    <div class="col-lg-8">
+                        <div class="template-preview-card">
+                            <h5 class="mb-4">Upload Data Collection File</h5>
+                            <p class="text-muted mb-4">Upload your filled Excel template for validation and processing into the ECA database.</p>
+                            
+                            <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()" ondragover="handleDragOver(event)" ondrop="handleDrop(event)">
+                                <i class="fas fa-cloud-upload-alt fa-4x text-primary mb-3"></i>
+                                <h4>Drag & Drop Excel File Here</h4>
+                                <p class="text-muted">or click to browse your computer</p>
+                                <p class="small text-muted mt-2">Supported formats: .xlsx, .xls (Max: 50MB)</p>
+                                <input type="file" id="fileInput" accept=".xlsx, .xls" style="display: none;" onchange="handleFileSelect(this.files)">
+                            </div>
+                            
+                            <div id="upload-details" style="display: none;">
+                                <div class="validation-panel validation-success">
+                                    <div class="d-flex justify-content-between align-items-center mb-3">
+                                        <div>
+                                            <h5 class="mb-1"><i class="fas fa-check-circle me-2"></i> File Uploaded Successfully</h5>
+                                            <p class="text-muted mb-0" id="uploaded-filename">Cement_Market_Monitoring_Template.xlsx</p>
+                                        </div>
+                                        <button class="btn btn-sm btn-outline-danger" onclick="cancelUpload()">
+                                            <i class="fas fa-times me-1"></i> Remove
+                                        </button>
+                                    </div>
+                                    
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <h6>File Validation</h6>
+                                                <ul class="list-unstyled small mb-0">
+                                                    <li class="mb-2"><i class="fas fa-check text-success me-2"></i> Template version verified</li>
+                                                    <li class="mb-2"><i class="fas fa-check text-success me-2"></i> Required sheets present</li>
+                                                    <li class="mb-2"><i class="fas fa-check text-success me-2"></i> Column structure valid</li>
+                                                    <li><i class="fas fa-check text-success me-2"></i> No corruption detected</li>
+                                                </ul>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <h6>Processing Status</h6>
+                                                <div class="d-flex align-items-center">
+                                                    <div class="progress flex-grow-1 me-2" style="height: 8px;">
+                                                        <div class="progress-bar bg-success" style="width: 100%"></div>
+                                                    </div>
+                                                    <span class="small">Complete</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Dynamic Schema Adaptation -->
+                                <div id="schema-adaptation" class="validation-panel validation-warning mt-4">
+                                    <h5 class="mb-3"><i class="fas fa-magic me-2"></i> Dynamic Schema Adaptation Required</h5>
+                                    <p class="text-muted mb-3">The system detected columns not in the original template. Please configure how to handle this new data.</p>
+                                    
+                                    <div class="alert alert-warning">
+                                        <i class="fas fa-exclamation-triangle me-2"></i>
+                                        <strong>New Field Detected:</strong> "CO2_Emissions_kg_per_ton" (Column M in 'Production Capacity' sheet)
+                                    </div>
+                                    
+                                    <div class="card bg-light">
+                                        <div class="card-body">
+                                            <div class="row">
+                                                <div class="col-md-6">
+                                                    <div class="mb-3">
+                                                        <label class="form-label">Field Name (Standardized)</label>
+                                                        <input type="text" class="form-control" value="co2_emissions_kg_per_ton">
+                                                    </div>
+                                                    <div class="mb-3">
+                                                        <label class="form-label">Data Type</label>
+                                                        <select class="form-select">
+                                                            <option>Number</option>
+                                                            <option>Decimal</option>
+                                                            <option>Integer</option>
+                                                            <option>Text</option>
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <div class="mb-3">
+                                                        <label class="form-label">Assign to Data Domain</label>
+                                                        <select class="form-select">
+                                                            <option value="D17">D17: Production & Capacity</option>
+                                                            <option value="D18">D18: Environmental Metrics</option>
+                                                            <option value="new">Create New Domain</option>
+                                                        </select>
+                                                    </div>
+                                                    <div class="mb-3">
+                                                        <label class="form-label">Validation Rule</label>
+                                                        <input type="text" class="form-control" placeholder="e.g., >0">
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="form-check mb-3">
+                                                <input class="form-check-input" type="checkbox" id="applyToAllSectors">
+                                                <label class="form-check-label" for="applyToAllSectors">
+                                                    Apply this field to all Cement sector templates
+                                                </label>
+                                            </div>
+                                            <div class="d-flex justify-content-between">
+                                                <button class="btn btn-success" onclick="addToSchema()">
+                                                    <i class="fas fa-plus-circle me-2"></i> Add to Dynamic Schema
+                                                </button>
+                                                <button class="btn btn-outline-secondary" onclick="ignoreField()">
+                                                    <i class="fas fa-times me-2"></i> Ignore for this upload
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="d-flex justify-content-between mt-4">
+                                    <button class="btn btn-eca-outline" onclick="showValidationModal()">
+                                        <i class="fas fa-check-double me-2"></i> Validate Data Quality
+                                    </button>
+                                    
+                                    <button class="btn btn-eca" onclick="processUpload()">
+                                        Proceed to Mapping <i class="fas fa-arrow-right ms-2"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-lg-4">
+                        <div class="template-preview-card">
+                            <h6 class="mb-3">Upload Guidelines</h6>
+                            
+                            <div class="mb-4">
+                                <h6 class="small text-uppercase text-muted mb-3">Required Steps</h6>
+                                <div class="d-flex mb-3">
+                                    <div class="me-3">
+                                        <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center" style="width: 30px; height: 30px;">1</div>
+                                    </div>
+                                    <div>
+                                        <h6 class="mb-1">Download Template</h6>
+                                        <p class="small text-muted mb-0">Use the ECA-approved Excel template</p>
+                                    </div>
+                                </div>
+                                
+                                <div class="d-flex mb-3">
+                                    <div class="me-3">
+                                        <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center" style="width: 30px; height: 30px;">2</div>
+                                    </div>
+                                    <div>
+                                        <h6 class="mb-1">Fill Enterprise Data</h6>
+                                        <p class="small text-muted mb-0">Complete all required fields with accurate data</p>
+                                    </div>
+                                </div>
+                                
+                                <div class="d-flex">
+                                    <div class="me-3">
+                                        <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center" style="width: 30px; height: 30px;">3</div>
+                                    </div>
+                                    <div>
+                                        <h6 class="mb-1">Upload & Validate</h6>
+                                        <p class="small text-muted mb-0">System validates data quality and structure</p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="alert alert-warning">
+                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                <strong>Important:</strong> Do not modify sheet names, column headers, or data validation rules.
+                            </div>
+                        </div>
+                        
+                        <div class="template-preview-card mt-4">
+                            <h6 class="mb-3">Recent Submissions</h6>
+                            <div class="list-group list-group-flush">
+                                <div class="list-group-item px-0 py-2 border-0">
+                                    <div class="d-flex w-100 justify-content-between">
+                                        <small class="mb-1">Arabian Cement Co.</small>
+                                        <small class="text-success">Completed</small>
+                                    </div>
+                                    <small class="text-muted">Market Monitoring • Oct 2023</small>
+                                </div>
+                                <div class="list-group-item px-0 py-2 border-0">
+                                    <div class="d-flex w-100 justify-content-between">
+                                        <small class="mb-1">Suez Cement</small>
+                                        <small class="text-warning">In Progress</small>
+                                    </div>
+                                    <small class="text-muted">Market Monitoring • Oct 2023</small>
+                                </div>
+                                <div class="list-group-item px-0 py-2 border-0">
+                                    <div class="d-flex w-100 justify-content-between">
+                                        <small class="mb-1">Nile Pharma Co.</small>
+                                        <small class="text-success">Completed</small>
+                                    </div>
+                                    <small class="text-muted">UBO Discovery • Q3 2023</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Step 4: Validation & Mapping -->
+            <div id="step4-content" class="step-content" style="display: none;">
+                <div class="row">
+                    <div class="col-lg-8">
+                        <div class="template-preview-card">
+                            <h5 class="mb-4">Data Validation & Column Mapping</h5>
+                            <p class="text-muted mb-4">Review data quality issues and map columns to ECA data domains.</p>
+                            
+                            <div class="validation-panel validation-warning">
+                                <div class="d-flex align-items-center">
+                                    <i class="fas fa-exclamation-triangle fa-2x me-3"></i>
+                                    <div>
+                                        <h5 class="mb-1">Data Quality Issues Detected</h5>
+                                        <p class="mb-0">3 validation warnings and 1 error need attention before submission.</p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Data Sheet Tabs for Validation -->
+                            <div class="data-sheet-tabs mt-4">
+                                <div class="sheet-tab-header">
+                                    <div class="sheet-tab active" onclick="selectValidationSheet('market-shares-val')">
+                                        <i class="fas fa-chart-pie excel-sheet-icon"></i>
+                                        Market Shares
+                                        <span class="badge badge-danger ms-2">1 Error</span>
+                                    </div>
+                                    <div class="sheet-tab" onclick="selectValidationSheet('production-capacity-val')">
+                                        <i class="fas fa-industry excel-sheet-icon"></i>
+                                        Production Capacity
+                                        <span class="badge badge-warning ms-2">2 Warnings</span>
+                                    </div>
+                                    <div class="sheet-tab" onclick="selectValidationSheet('pricing-data-val')">
+                                        <i class="fas fa-tags excel-sheet-icon"></i>
+                                        Pricing Data
+                                    </div>
+                                    <div class="sheet-tab" onclick="selectValidationSheet('mapping-summary')">
+                                        <i class="fas fa-project-diagram excel-sheet-icon"></i>
+                                        Column Mapping
+                                    </div>
+                                </div>
+                                
+                                <!-- Validation Sheet 1 -->
+                                <div class="sheet-content active" id="market-shares-val">
+                                    <h6 class="mb-3">Market Shares Data Validation</h6>
+                                    <p class="text-muted mb-4">Review and correct data quality issues in the Market Shares sheet.</p>
+                                    
+                                    <div class="data-table-container">
+                                        <table class="table table-hover">
+                                            <thead>
+                                                <tr>
+                                                    <th>Row</th>
+                                                    <th>Field</th>
+                                                    <th>Issue</th>
+                                                    <th>Severity</th>
+                                                    <th>Action</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr class="table-danger">
+                                                    <td>12</td>
+                                                    <td>Market_Share_Pct</td>
+                                                    <td>Value 125% exceeds maximum (100%)</td>
+                                                    <td><span class="badge badge-danger">Error</span></td>
+                                                    <td><button class="btn btn-sm btn-outline-primary" onclick="showFixDataModal()">Fix</button></td>
+                                                </tr>
+                                                <tr class="table-warning">
+                                                    <td>7</td>
+                                                    <td>YoY_Change</td>
+                                                    <td>Missing value for required field</td>
+                                                    <td><span class="badge badge-warning">Warning</span></td>
+                                                    <td><button class="btn btn-sm btn-outline-primary" onclick="showFixDataModal()">Fix</button></td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                                
+                                <!-- Validation Sheet 2 -->
+                                <div class="sheet-content" id="production-capacity-val">
+                                    <h6 class="mb-3">Production Capacity Validation</h6>
+                                    <p class="text-muted mb-4">Review and correct data quality issues in the Production Capacity sheet.</p>
+                                    
+                                    <div class="data-table-container">
+                                        <table class="table table-hover">
+                                            <thead>
+                                                <tr>
+                                                    <th>Row</th>
+                                                    <th>Field</th>
+                                                    <th>Issue</th>
+                                                    <th>Severity</th>
+                                                    <th>Action</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr class="table-warning">
+                                                    <td>3</td>
+                                                    <td>Actual_Output</td>
+                                                    <td>Value 0 may indicate production halt</td>
+                                                    <td><span class="badge badge-warning">Warning</span></td>
+                                                    <td><button class="btn btn-sm btn-outline-primary" onclick="showFixDataModal()">Fix</button></td>
+                                                </tr>
+                                                <tr class="table-warning">
+                                                    <td>9</td>
+                                                    <td>Maintenance_Days</td>
+                                                    <td>Value 45 exceeds days in month</td>
+                                                    <td><span class="badge badge-warning">Warning</span></td>
+                                                    <td><button class="btn btn-sm btn-outline-primary" onclick="showFixDataModal()">Fix</button></td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                                
+                                <!-- Validation Sheet 3 -->
+                                <div class="sheet-content" id="pricing-data-val">
+                                    <h6 class="mb-3">Pricing Data Validation</h6>
+                                    <p class="text-muted mb-4">All pricing data passes validation checks.</p>
+                                    
+                                    <div class="alert alert-success">
+                                        <i class="fas fa-check-circle me-2"></i>
+                                        No validation issues detected in the Pricing Data sheet.
+                                    </div>
+                                </div>
+                                
+                                <!-- Column Mapping Summary -->
+                                <div class="sheet-content" id="mapping-summary">
+                                    <h6 class="mb-3">Column Mapping to ECA Data Domains</h6>
+                                    <p class="text-muted mb-4">Review how your data columns map to ECA's 17 data domains.</p>
+                                    
+                                    <div class="data-table-container">
+                                        <table class="table table-hover">
+                                            <thead>
+                                                <tr>
+                                                    <th>Sheet</th>
+                                                    <th>Your Column</th>
+                                                    <th>Maps to ECA Field</th>
+                                                    <th>Data Domain</th>
+                                                    <th>Mapping Status</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr>
+                                                    <td>Market Shares</td>
+                                                    <td>Enterprise_ID</td>
+                                                    <td>Enterprise Identifier</td>
+                                                    <td>D1</td>
+                                                    <td><span class="badge badge-success">Mapped</span></td>
+                                                </tr>
+                                                <tr>
+                                                    <td>Market Shares</td>
+                                                    <td>Market_Share_Pct</td>
+                                                    <td>Market Share Percentage</td>
+                                                    <td>D17</td>
+                                                    <td><span class="badge badge-success">Mapped</span></td>
+                                                </tr>
+                                                <tr>
+                                                    <td>Production Capacity</td>
+                                                    <td>CO2_Emissions</td>
+                                                    <td>Environmental Emissions</td>
+                                                    <td>D18 (New)</td>
+                                                    <td><span class="badge badge-warning">New Domain</span></td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="d-flex justify-content-between mt-4">
+                                <button class="btn btn-eca-outline" onclick="showRevalidateModal()">
+                                    <i class="fas fa-redo me-2"></i> Revalidate All Data
+                                </button>
+                                
+                                <button class="btn btn-eca" onclick="proceedToReview()">
+                                    Proceed to Review <i class="fas fa-arrow-right ms-2"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-lg-4">
+                        <div class="template-preview-card">
+                            <h6 class="mb-3">Validation Summary</h6>
+                            
+                            <div class="mb-4">
+                                <div class="row g-2 mb-3">
+                                    <div class="col-6">
+                                        <div class="stat-card">
+                                            <div class="stat-value text-success">45</div>
+                                            <div class="stat-label">Valid Fields</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="stat-card">
+                                            <div class="stat-value text-danger">1</div>
+                                            <div class="stat-label">Errors</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="stat-card">
+                                            <div class="stat-value text-warning">3</div>
+                                            <div class="stat-label">Warnings</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="stat-card">
+                                            <div class="stat-value text-info">5</div>
+                                            <div class="stat-label">Sheets</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="alert alert-info">
+                                    <h6><i class="fas fa-lightbulb me-2"></i> Validation Guidelines</h6>
+                                    <p class="small mb-0">Errors must be fixed before submission. Warnings should be reviewed but are not blocking.</p>
+                                </div>
+                            </div>
+                            
+                            <div class="user-journey-help">
+                                <h6><i class="fas fa-info-circle me-2"></i> Next Steps</h6>
+                                <p class="small mb-2">1. Fix all validation errors (red)</p>
+                                <p class="small mb-2">2. Review warnings (yellow)</p>
+                                <p class="small mb-2">3. Verify column mappings</p>
+                                <p class="small mb-0">4. Proceed to final review</p>
+                            </div>
+                        </div>
+                        
+                        <div class="template-preview-card mt-4">
+                            <h6 class="mb-3">HHI Impact Preview</h6>
+                            <div class="card bg-light">
+                                <div class="card-body">
+                                    <div class="text-center mb-3">
+                                        <h2 class="text-danger">3,580</h2>
+                                        <span class="hhi-indicator hhi-high">VERY HIGH CONCENTRATION</span>
+                                        <p class="mt-2 mb-0 small">Based on uploaded market share data</p>
+                                    </div>
+                                    <div class="alert alert-warning">
+                                        <i class="fas fa-exclamation-triangle me-2"></i>
+                                        <strong>Alert:</strong> HHI increased by +340 points due to common ownership.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Step 5: Review & Submission -->
+            <div id="step5-content" class="step-content" style="display: none;">
+                <div class="row">
+                    <div class="col-lg-8">
+                        <div class="template-preview-card">
+                            <h5 class="mb-4">Final Review & Submission</h5>
+                            <p class="text-muted mb-4">Review all data before final submission to the ECA database.</p>
+                            
+                            <div class="validation-panel validation-success">
+                                <div class="d-flex align-items-center">
+                                    <i class="fas fa-check-circle fa-2x me-3"></i>
+                                    <div>
+                                        <h5 class="mb-1">All Validation Checks Passed</h5>
+                                        <p class="mb-0">Data is ready for submission to the ECA database.</p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Final Data Preview Tabs -->
+                            <div class="data-sheet-tabs mt-4">
+                                <div class="sheet-tab-header">
+                                    <div class="sheet-tab active" onclick="selectReviewSheet('data-preview')">
+                                        <i class="fas fa-eye excel-sheet-icon"></i>
+                                        Data Preview
+                                    </div>
+                                    <div class="sheet-tab" onclick="selectReviewSheet('hhi-impact')">
+                                        <i class="fas fa-calculator excel-sheet-icon"></i>
+                                        HHI Impact
+                                    </div>
+                                    <div class="sheet-tab" onclick="selectReviewSheet('ubo-discovery-final')" id="ubo-discovery-tab" style="display: none;">
+                                        <i class="fas fa-project-diagram excel-sheet-icon"></i>
+                                        UBO Discovery
+                                    </div>
+                                    <div class="sheet-tab" onclick="selectReviewSheet('submission-summary')">
+                                        <i class="fas fa-clipboard-list excel-sheet-icon"></i>
+                                        Submission Summary
+                                    </div>
+                                </div>
+                                
+                                <!-- Data Preview -->
+                                <div class="sheet-content active" id="data-preview">
+                                    <h6 class="mb-3">Data Preview (First 5 Rows)</h6>
+                                    
+                                    <div class="data-table-container">
+                                        <table class="table table-hover">
+                                            <thead>
+                                                <tr>
+                                                    <th>Enterprise</th>
+                                                    <th>Market Share</th>
+                                                    <th>Capacity (tons)</th>
+                                                    <th>Price (EGP)</th>
+                                                    <th>Ownership %</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr>
+                                                    <td>Arabian Cement Co.</td>
+                                                    <td>38.2%</td>
+                                                    <td>1,250,000</td>
+                                                    <td>1,450</td>
+                                                    <td>100%</td>
+                                                </tr>
+                                                <tr>
+                                                    <td>Suez Cement</td>
+                                                    <td>28.5%</td>
+                                                    <td>950,000</td>
+                                                    <td>1,420</td>
+                                                    <td>100%</td>
+                                                </tr>
+                                                <tr>
+                                                    <td>Sinai Cement</td>
+                                                    <td>15.8%</td>
+                                                    <td>520,000</td>
+                                                    <td>1,435</td>
+                                                    <td>100%</td>
+                                                </tr>
+                                                <tr>
+                                                    <td>Delta Cement</td>
+                                                    <td>8.2%</td>
+                                                    <td>270,000</td>
+                                                    <td>1,410</td>
+                                                    <td>100%</td>
+                                                </tr>
+                                                <tr>
+                                                    <td>National Cement</td>
+                                                    <td>4.5%</td>
+                                                    <td>150,000</td>
+                                                    <td>1,400</td>
+                                                    <td>100%</td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                                
+                                <!-- HHI Impact -->
+                                <div class="sheet-content" id="hhi-impact">
+                                    <h6 class="mb-3">HHI Impact Analysis</h6>
+                                    
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="card h-100">
+                                                <div class="card-body">
+                                                    <h6 class="card-title">Pre-Submission Market State</h6>
+                                                    <div class="text-center py-4">
+                                                        <h2 class="text-danger">3,240</h2>
+                                                        <span class="hhi-indicator hhi-high">HIGH CONCENTRATION</span>
+                                                        <p class="mt-3 mb-0">
+                                                            <strong>Top 3 Control:</strong> 82.5%<br>
+                                                            <strong>Players:</strong> 11
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="card h-100">
+                                                <div class="card-body">
+                                                    <h6 class="card-title">Post-Submission Adjusted State</h6>
+                                                    <div class="text-center py-4">
+                                                        <h2 class="text-danger">3,580</h2>
+                                                        <span class="hhi-indicator hhi-high">VERY HIGH CONCENTRATION</span>
+                                                        <p class="mt-3 mb-0">
+                                                            <strong>Top 3 Control:</strong> 88.2%<br>
+                                                            <strong>Delta HHI:</strong> +340
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="alert alert-danger mt-4">
+                                        <h6><i class="fas fa-exclamation-triangle me-2"></i> Competition Alert</h6>
+                                        <p class="mb-0">HHI increase of +340 exceeds the +200 threshold for Phase II review. Common ownership (Al-Hoda Group) detected across multiple enterprises.</p>
+                                    </div>
+                                </div>
+                                
+                                <!-- ADDED: UBO Discovery Final Analysis -->
+                                <div class="sheet-content" id="ubo-discovery-final" style="display: none;">
+                                    <h6 class="mb-3"><i class="fas fa-project-diagram text-danger me-2"></i>UBO Discovery Analysis Results</h6>
+                                    <p class="text-muted mb-4">Analysis of hidden ownership networks and ultimate beneficial owners based on uploaded data.</p>
+                                    
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="card h-100">
+                                                <div class="card-body">
+                                                    <h6 class="card-title">Network Analysis</h6>
+                                                    <div class="text-center mb-3">
+                                                        <h2 class="text-danger">87%</h2>
+                                                        <span class="hhi-indicator hhi-high">NETWORK DENSITY</span>
+                                                        <p class="mt-3 mb-0">
+                                                            <strong>Entities Analyzed:</strong> 24<br>
+                                                            <strong>Connections Found:</strong> 156<br>
+                                                            <strong>Shell Companies:</strong> 8
+                                                        </p>
+                                                    </div>
+                                                    <div class="alert alert-warning">
+                                                        <i class="fas fa-exclamation-triangle me-2"></i>
+                                                        <strong>Complex Network Detected:</strong> Multiple layers of holding companies identified.
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="card h-100">
+                                                <div class="card-body">
+                                                    <h6 class="card-title">Ownership Mapping</h6>
+                                                    <div class="text-center mb-3">
+                                                        <h2 class="text-danger">3</h2>
+                                                        <span class="hhi-indicator hhi-high">UBOs IDENTIFIED</span>
+                                                        <p class="mt-3 mb-0">
+                                                            <strong>Primary UBO:</strong> Al-Hoda Group<br>
+                                                            <strong>Control Percentage:</strong> 82.5%<br>
+                                                            <strong>Jurisdiction:</strong> Offshore
+                                                        </p>
+                                                    </div>
+                                                    <div class="alert alert-danger">
+                                                        <i class="fas fa-exclamation-circle me-2"></i>
+                                                        <strong>Hidden Control Alert:</strong> Ultimate beneficial ownership concealed through 4 intermediary entities.
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="card mt-4">
+                                        <div class="card-body">
+                                            <h6 class="card-title">Ownership Network Map</h6>
+                                            <div class="text-center">
+                                                <div style="background: #f5f5f5; border-radius: 8px; padding: 20px; margin: 15px 0;">
+                                                    <div class="d-flex justify-content-center align-items-center flex-wrap">
+                                                        <div class="network-node" style="background: #ffebee; border-color: #c62828;">Arabian Cement Co.</div>
+                                                        <div class="mx-3"><i class="fas fa-arrow-right text-muted"></i></div>
+                                                        <div class="network-node" style="background: #e3f2fd; border-color: #1565c0;">Al-Hoda Holdings Ltd.</div>
+                                                        <div class="mx-3"><i class="fas fa-arrow-right text-muted"></i></div>
+                                                        <div class="network-node" style="background: #fff8e1; border-color: #f57c00;">Al-Hoda Group (UBO)</div>
+                                                    </div>
+                                                    <div class="d-flex justify-content-center align-items-center flex-wrap mt-3">
+                                                        <div class="network-node" style="background: #ffebee; border-color: #c62828;">Suez Cement</div>
+                                                        <div class="mx-3"><i class="fas fa-arrow-right text-muted"></i></div>
+                                                        <div class="network-node" style="background: #e3f2fd; border-color: #1565c0;">Al-Hoda Holdings Ltd.</div>
+                                                        <div class="mx-3"><i class="fas fa-arrow-right text-muted"></i></div>
+                                                        <div class="network-node" style="background: #fff8e1; border-color: #f57c00;">Al-Hoda Group (UBO)</div>
+                                                    </div>
+                                                </div>
+                                                <p class="text-muted small">Network visualization shows common ultimate beneficial owner controlling multiple enterprises</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Submission Summary -->
+                                <div class="sheet-content" id="submission-summary">
+                                    <h6 class="mb-3">Submission Summary</h6>
+                                    
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="card h-100">
+                                                <div class="card-body">
+                                                    <h6 class="card-title">Submission Details</h6>
+                                                    <ul class="list-unstyled mb-0">
+                                                        <li class="mb-2"><strong>Sector:</strong> Cement Manufacturing</li>
+                                                        <li class="mb-2"><strong>Mission:</strong> Market Monitoring</li>
+                                                        <li class="mb-2"><strong>Period:</strong> October 2023</li>
+                                                        <li class="mb-2"><strong>Enterprise:</strong> Arabian Cement Co.</li>
+                                                        <li class="mb-2"><strong>Submission ID:</strong> SUB-2023-CEMENT-089</li>
+                                                        <li><strong>Timestamp:</strong> Nov 15, 2023 14:30</li>
+                                                    </ul>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="card h-100">
+                                                <div class="card-body">
+                                                    <h6 class="card-title">Data Metrics</h6>
+                                                    <ul class="list-unstyled mb-0">
+                                                        <li class="mb-2"><strong>Total Rows:</strong> 45</li>
+                                                        <li class="mb-2"><strong>Sheets:</strong> 5</li>
+                                                        <li class="mb-2"><strong>Data Points:</strong> 225</li>
+                                                        <li class="mb-2"><strong>Domains Covered:</strong> 4/17</li>
+                                                        <li class="mb-2"><strong>File Size:</strong> 2.4 MB</li>
+                                                        <li><strong>Validation:</strong> 0 Errors, 0 Warnings</li>
+                                                    </ul>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Submission Confirmation -->
+                            <div class="card mt-4">
+                                <div class="card-body">
+                                    <h6 class="card-title mb-3">Submission Confirmation</h6>
+                                    
+                                    <div class="mb-3">
+                                        <label class="form-label">Submission Notes (Optional)</label>
+                                        <textarea class="form-control" rows="3" placeholder="Add any notes about this submission..."></textarea>
+                                    </div>
+                                    
+                                    <div class="form-check mb-3">
+                                        <input class="form-check-input" type="checkbox" id="confirm-accuracy">
+                                        <label class="form-check-label" for="confirm-accuracy">
+                                            I confirm that all submitted data is accurate and complete
+                                        </label>
+                                    </div>
+                                    
+                                    <div class="form-check mb-3">
+                                        <input class="form-check-input" type="checkbox" id="confirm-compliance">
+                                        <label class="form-check-label" for="confirm-compliance">
+                                            This submission complies with ECA regulations and data requirements
+                                        </label>
+                                    </div>
+                                    
+                                    <div class="d-flex justify-content-between">
+                                        <button class="btn btn-eca-outline" onclick="showSubmissionModal()">
+                                            <i class="fas fa-file-alt me-2"></i> Preview Submission Report
+                                        </button>
+                                        
+                                        <button class="btn btn-eca" onclick="submitToECA()">
+                                            <i class="fas fa-paper-plane me-2"></i> Submit to ECA Database
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-lg-4">
+                        <div class="template-preview-card">
+                            <h6 class="mb-3">Submission Checklist</h6>
+                            
+                            <div class="mb-4">
+                                <div class="form-check mb-3">
+                                    <input class="form-check-input" type="checkbox" id="check1" checked>
+                                    <label class="form-check-label" for="check1">
+                                        Data validation completed (0 errors)
+                                    </label>
+                                </div>
+                                
+                                <div class="form-check mb-3">
+                                    <input class="form-check-input" type="checkbox" id="check2" checked>
+                                    <label class="form-check-label" for="check2">
+                                        Column mapping verified
+                                    </label>
+                                </div>
+                                
+                                <div class="form-check mb-3">
+                                    <input class="form-check-input" type="checkbox" id="check3" checked>
+                                    <label class="form-check-label" for="check3">
+                                        HHI impact analyzed
+                                    </label>
+                                </div>
+                                
+                                <div class="form-check mb-3">
+                                    <input class="form-check-input" type="checkbox" id="check4">
+                                    <label class="form-check-label" for="check4">
+                                        Data accuracy confirmed
+                                    </label>
+                                </div>
+                                
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="check5">
+                                    <label class="form-check-label" for="check5">
+                                        Compliance verified
+                                    </label>
+                                </div>
+                            </div>
+                            
+                            <div class="alert alert-success">
+                                <i class="fas fa-check-circle me-2"></i>
+                                <strong>Ready for Submission:</strong> All technical validations passed.
+                            </div>
+                        </div>
+                        
+                        <!-- ADDED: UBO Discovery Card for Step 5 -->
+                        <div class="template-preview-card mt-4" id="ubo-discovery-final-card" style="display: none;">
+                            <h6 class="mb-3"><i class="fas fa-project-diagram text-danger me-2"></i>UBO Discovery Findings</h6>
+                            
+                            <div class="alert alert-danger mb-3">
+                                <h6><i class="fas fa-exclamation-triangle me-2"></i> Competition Risk Identified</h6>
+                                <p class="small mb-0">Common UBO detected controlling 82.5% of sector capacity through hidden ownership structures.</p>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <h6 class="small text-uppercase text-muted mb-2">Network Analysis</h6>
+                                <ul class="small">
+                                    <li><strong>Entities:</strong> 24 companies analyzed</li>
+                                    <li><strong>Connections:</strong> 156 ownership links</li>
+                                    <li><strong>Complexity:</strong> High (4+ layers)</li>
+                                </ul>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <h6 class="small text-uppercase text-muted mb-2">Ownership Mapping</h6>
+                                <ul class="small">
+                                    <li><strong>Primary UBO:</strong> Al-Hoda Group</li>
+                                    <li><strong>Control:</strong> 82.5% of sector</li>
+                                    <li><strong>Jurisdiction:</strong> Offshore entities</li>
+                                </ul>
+                            </div>
+                            
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle me-2"></i>
+                                <p class="small mb-0">This UBO analysis will trigger a Phase II investigation for hidden control violations.</p>
+                            </div>
+                        </div>
+                        
+                        <div class="template-preview-card mt-4">
+                            <h6 class="mb-3">What Happens Next?</h6>
+                            
+                            <div class="mb-3">
+                                <div class="d-flex mb-3">
+                                    <div class="me-3">
+                                        <i class="fas fa-database text-primary"></i>
+                                    </div>
+                                    <div>
+                                        <h6 class="mb-1">Data Processing</h6>
+                                        <p class="small text-muted mb-0">Data ingested into ECA database within 24 hours</p>
+                                    </div>
+                                </div>
+                                
+                                <div class="d-flex mb-3">
+                                    <div class="me-3">
+                                        <i class="fas fa-chart-line text-primary"></i>
+                                    </div>
+                                    <div>
+                                        <h6 class="mb-1">HHI Recalculation</h6>
+                                        <p class="small text-muted mb-0">Sector HHI updated in ECA Dashboard</p>
+                                    </div>
+                                </div>
+                                
+                                <div class="d-flex">
+                                    <div class="me-3">
+                                        <i class="fas fa-bell text-primary"></i>
+                                    </div>
+                                    <div>
+                                        <h6 class="mb-1">Alerts & Notifications</h6>
+                                        <p class="small text-muted mb-0">Analysts notified if concentration thresholds exceeded</p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="user-journey-help">
+                                <h6><i class="fas fa-info-circle me-2"></i> Post-Submission</h6>
+                                <p class="small mb-0">After submission, you will receive a confirmation email with submission ID. Data will be available in ECA systems within 24 hours.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+    
+    <!-- Modal Windows -->
+    
+    <!-- Fix Data Modal -->
+    <div class="modal fade eca-modal" id="fixDataModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-wrench me-2"></i> Fix Data Issue</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <strong>Issue:</strong> Market_Share_Pct value 125% exceeds maximum (100%)
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Correct Value</label>
+                        <input type="number" class="form-control" value="100" min="0" max="100" step="0.1">
+                        <div class="form-text">Enter value between 0 and 100</div>
+                    </div>
+                    
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" id="apply-similar">
+                        <label class="form-check-label" for="apply-similar">
+                            Apply this fix to all similar issues in this column
+                        </label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-eca-outline" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-eca" data-bs-dismiss="modal">Apply Fix</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Validation Report Modal -->
+    <div class="modal fade eca-modal" id="validationReportModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-file-alt me-2"></i> Data Quality Validation Report</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row mb-4">
+                        <div class="col-md-4">
+                            <div class="card text-center">
+                                <div class="card-body">
+                                    <h2 class="text-success">45</h2>
+                                    <p class="mb-0">Valid Fields</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card text-center">
+                                <div class="card-body">
+                                    <h2 class="text-danger">1</h2>
+                                    <p class="mb-0">Errors</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card text-center">
+                                <div class="card-body">
+                                    <h2 class="text-warning">3</h2>
+                                    <p class="mb-0">Warnings</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <h6>Summary of Issues</h6>
+                    <div class="data-table-container">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Severity</th>
+                                    <th>Sheet</th>
+                                    <th>Field</th>
+                                    <th>Issue</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr class="table-danger">
+                                    <td><span class="badge badge-danger">Error</span></td>
+                                    <td>Market Shares</td>
+                                    <td>Market_Share_Pct</td>
+                                    <td>Value 125% exceeds maximum (100%)</td>
+                                </tr>
+                                <tr class="table-warning">
+                                    <td><span class="badge badge-warning">Warning</span></td>
+                                    <td>Market Shares</td>
+                                    <td>YoY_Change</td>
+                                    <td>Missing value for required field</td>
+                                </tr>
+                                <tr class="table-warning">
+                                    <td><span class="badge badge-warning">Warning</span></td>
+                                    <td>Production Capacity</td>
+                                    <td>Actual_Output</td>
+                                    <td>Value 0 may indicate production halt</td>
+                                </tr>
+                                <tr class="table-warning">
+                                    <td><span class="badge badge-warning">Warning</span></td>
+                                    <td>Production Capacity</td>
+                                    <td>Maintenance_Days</td>
+                                    <td>Value 45 exceeds days in month</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <div class="alert alert-info mt-3">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>Note:</strong> Errors must be fixed before submission. Warnings should be reviewed for accuracy.
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-eca" data-bs-dismiss="modal">Close Report</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Submission Confirmation Modal -->
+    <div class="modal fade eca-modal" id="submissionModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-paper-plane me-2"></i> Confirm Submission</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="text-center mb-4">
+                        <i class="fas fa-check-circle fa-4x text-success mb-3"></i>
+                        <h4>Ready to Submit</h4>
+                        <p class="text-muted">Your data has passed all validation checks and is ready for submission to the ECA database.</p>
+                    </div>
+                    
+                    <div class="card bg-light">
+                        <div class="card-body">
+                            <h6 class="card-title">Submission Details</h6>
+                            <ul class="list-unstyled mb-0">
+                                <li class="mb-2"><strong>Sector:</strong> Cement Manufacturing</li>
+                                <li class="mb-2"><strong>Mission:</strong> Market Monitoring</li>
+                                <li class="mb-2"><strong>Enterprise:</strong> Arabian Cement Co.</li>
+                                <li class="mb-2"><strong>Submission ID:</strong> SUB-2023-CEMENT-089</li>
+                                <li><strong>Timestamp:</strong> Nov 15, 2023 14:30</li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <div class="alert alert-warning mt-3">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <strong>Important:</strong> After submission, this data will be used for ECA market analysis and HHI calculations.
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-eca-outline" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-eca" data-bs-dismiss="modal" onclick="showSuccessModal()">Confirm Submission</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Success Modal -->
+    <div class="modal fade eca-modal" id="successModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-check-circle me-2"></i> Submission Successful</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="text-center mb-4">
+                        <i class="fas fa-check-circle fa-4x text-success mb-3"></i>
+                        <h4>Data Submitted Successfully</h4>
+                        <p class="text-muted">Your data has been submitted to the ECA database and is now available for analysis.</p>
+                    </div>
+                    
+                    <div class="card bg-light">
+                        <div class="card-body">
+                            <h6 class="card-title">Submission Confirmation</h6>
+                            <ul class="list-unstyled mb-0">
+                                <li class="mb-2"><strong>Submission ID:</strong> SUB-2023-CEMENT-089</li>
+                                <li class="mb-2"><strong>Confirmation Code:</strong> ECA-2023-089-4567</li>
+                                <li class="mb-2"><strong>Date/Time:</strong> Nov 15, 2023 14:32</li>
+                                <li><strong>Status:</strong> <span class="text-success">Submitted Successfully</span></li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <div class="alert alert-info mt-3">
+                        <i class="fas fa-info-circle me-2"></i>
+                        A confirmation email has been sent to your registered email address. Data will be available in ECA systems within 24 hours.
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-eca" data-bs-dismiss="modal" onclick="startNewSubmission()">Start New Submission</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Bootstrap JS Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        // Global state
+        let currentStep = 1;
+        let currentMission = 'market_monitoring';
+        let currentIndustry = '';
+        let currentSector = '';
+        let currentSheet = 'market-shares';
+        let currentValidationSheet = 'market-shares-val';
+        let currentReviewSheet = 'data-preview';
+        let uploadedDocuments = [];
+        
+        // Industry-sector mapping
+        const industrySectorMap = {
+            'manufacturing': [
+                {value: 'cement', name: 'Cement Manufacturing'},
+                {value: 'steel', name: 'Steel Production'},
+                {value: 'automotive', name: 'Automotive'},
+                {value: 'textiles', name: 'Textiles & Apparel'},
+                {value: 'food', name: 'Food Processing'}
+            ],
+            'telecom': [
+                {value: 'mobile', name: 'Mobile Telecommunications'},
+                {value: 'fixed', name: 'Fixed Line'},
+                {value: 'internet', name: 'Internet Service Providers'},
+                {value: 'broadcast', name: 'Broadcasting'}
+            ],
+            'finance': [
+                {value: 'banking', name: 'Banking & Finance'},
+                {value: 'insurance', name: 'Insurance'},
+                {value: 'investment', name: 'Investment Services'},
+                {value: 'microfinance', name: 'Microfinance'}
+            ],
+            'healthcare': [
+                {value: 'pharmaceutical', name: 'Pharmaceuticals'},
+                {value: 'hospitals', name: 'Hospitals'},
+                {value: 'medical_devices', name: 'Medical Devices'},
+                {value: 'health_insurance', name: 'Health Insurance'}
+            ],
+            'energy': [
+                {value: 'oil_gas', name: 'Oil & Gas'},
+                {value: 'electricity', name: 'Electricity Generation'},
+                {value: 'renewable', name: 'Renewable Energy'},
+                {value: 'utilities', name: 'Water & Utilities'}
+            ],
+            'transportation': [
+                {value: 'logistics', name: 'Logistics & Shipping'},
+                {value: 'aviation', name: 'Aviation'},
+                {value: 'rail', name: 'Rail Transport'},
+                {value: 'maritime', name: 'Maritime Transport'}
+            ],
+            'retail': [
+                {value: 'supermarkets', name: 'Supermarkets'},
+                {value: 'ecommerce', name: 'E-commerce'},
+                {value: 'wholesale', name: 'Wholesale Distribution'},
+                {value: 'specialty', name: 'Specialty Retail'}
+            ],
+            'construction': [
+                {value: 'real_estate', name: 'Real Estate Development'},
+                {value: 'construction', name: 'Construction Services'},
+                {value: 'building_materials', name: 'Building Materials'},
+                {value: 'infrastructure', name: 'Infrastructure'}
+            ]
+        };
+        
+        // Sector data (HHI, players, companies, etc.)
+        const sectorData = {
+            'cement': {
+                hhi: 3240, 
+                players: 11, 
+                top2: '66.7%', 
+                concentration: 'High Concentration Alert',
+                companies: [
+                    'Arabian Cement Co. (38.2% share)',
+                    'Suez Cement (28.5% share)',
+                    'Sinai Cement (15.8% share)',
+                    'Delta Cement (8.2% share)',
+                    'National Cement (4.5% share)',
+                    'Alexandria Cement (2.1% share)',
+                    'Upper Egypt Cement (1.3% share)',
+                    'White Cement Co. (0.8% share)',
+                    'Qena Cement (0.6% share)'
+                ]
+            },
+            'steel': {
+                hhi: 2850, 
+                players: 8, 
+                top2: '71.2%', 
+                concentration: 'High Concentration Alert',
+                companies: [
+                    'Egyptian Steel (42.3% share)',
+                    'Ezz Steel (28.9% share)',
+                    'Suez Steel (12.5% share)',
+                    'National Steel (8.2% share)',
+                    'Alexandria Steel (4.1% share)',
+                    'Delta Steel (2.8% share)',
+                    'Upper Egypt Steel (1.2% share)'
+                ]
+            },
+            'pharmaceutical': {
+                hhi: 2100, 
+                players: 24, 
+                top2: '45.3%', 
+                concentration: 'Moderate Concern',
+                companies: [
+                    'Pharco Pharmaceuticals (28.4% share)',
+                    'EIPICO (16.9% share)',
+                    'GlaxoSmithKline Egypt (12.1% share)',
+                    'Novartis Egypt (8.7% share)',
+                    'Pfizer Egypt (7.2% share)',
+                    'Sanofi Egypt (6.5% share)'
+                ]
+            },
+            'banking': {
+                hhi: 1800, 
+                players: 32, 
+                top2: '38.5%', 
+                concentration: 'Moderate Concern',
+                companies: [
+                    'National Bank of Egypt (22.1% share)',
+                    'Banque Misr (16.4% share)',
+                    'Commercial International Bank (12.3% share)',
+                    'QNB Al Ahli (9.8% share)',
+                    'Arab African International Bank (7.2% share)',
+                    'Banque du Caire (6.1% share)'
+                ]
+            },
+            'mobile': {
+                hhi: 3200, 
+                players: 4, 
+                top2: '78.4%', 
+                concentration: 'High Concentration Alert',
+                companies: [
+                    'Vodafone Egypt (45.2% share)',
+                    'Orange Egypt (33.2% share)',
+                    'Etisalat Egypt (18.7% share)',
+                    'Telecom Egypt (2.9% share)'
+                ]
+            },
+            'oil_gas': {
+                hhi: 4200, 
+                players: 6, 
+                top2: '82.1%', 
+                concentration: 'Very High Concentration',
+                companies: [
+                    'Egyptian General Petroleum Corp (56.3% share)',
+                    'ENI Egypt (25.8% share)',
+                    'BP Egypt (9.2% share)',
+                    'Shell Egypt (5.1% share)',
+                    'Total Egypt (2.4% share)',
+                    'Chevron Egypt (1.2% share)'
+                ]
+            },
+            'automotive': {
+                hhi: 1900, 
+                players: 15, 
+                top2: '42.8%', 
+                concentration: 'Moderate Concern',
+                companies: [
+                    'Ghabbour Auto (26.5% share)',
+                    'Mansour Automotive (16.3% share)',
+                    'General Motors Egypt (12.1% share)',
+                    'BMW Egypt (9.8% share)',
+                    'Mercedes-Benz Egypt (8.2% share)',
+                    'Toyota Egypt (7.5% share)'
+                ]
+            },
+            'default': {
+                hhi: 1500, 
+                players: 20, 
+                top2: '35.0%', 
+                concentration: 'Competitive Market',
+                companies: [
+                    'Company A (18.5% share)',
+                    'Company B (16.5% share)',
+                    'Company C (12.3% share)',
+                    'Company D (9.8% share)',
+                    'Company E (8.2% share)',
+                    'Company F (6.5% share)'
+                ]
+            }
+        };
+        
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            updateStepIndicator();
+            setCurrentDate();
+            showStepContent(currentStep);
+            updateTotalOwnership();
+        });
+        
+        // Set current date
+        function setCurrentDate() {
+            const now = new Date();
+            const options = { year: 'numeric', month: 'long', day: 'numeric' };
+            document.getElementById('current-date').textContent = now.toLocaleDateString('en-US', options);
+        }
+        
+        // Step navigation
+        function showStepContent(step) {
+            currentStep = step;
+            
+            // Hide all step contents
+            document.querySelectorAll('.step-content').forEach(el => {
+                el.style.display = 'none';
+            });
+            
+            // Show current step content
+            document.getElementById(`step${step}-content`).style.display = 'block';
+            
+            // Update step indicator
+            updateStepIndicator();
+            
+            // Update UBO Discovery visibility based on mission for step 5
+            if (step === 5) {
+                updateUBODiscoveryVisibility();
+            }
+        }
+        
+        function updateStepIndicator() {
+            // Reset all steps
+            document.querySelectorAll('.step').forEach(step => {
+                step.classList.remove('active', 'completed');
+            });
+            
+            // Mark previous steps as completed
+            for (let i = 1; i < currentStep; i++) {
+                document.getElementById(`step${i}`).classList.add('completed');
+            }
+            
+            // Mark current step as active
+            document.getElementById(`step${currentStep}`).classList.add('active');
+        }
+        
+        function nextStep() {
+            if (currentStep < 5) {
+                // Validate step 1 before proceeding
+                if (currentStep === 1) {
+                    const industry = document.getElementById('industry-select').value;
+                    const sector = document.getElementById('sector-select').value;
+                    const companyName = document.getElementById('company-name').value;
+                    
+                    if (!industry || !sector) {
+                        alert('Please select both an industry and a sector before proceeding.');
+                        return;
+                    }
+                    
+                    if (!companyName.trim()) {
+                        alert('Please enter the company name before proceeding.');
+                        return;
+                    }
+                    
+                    // Check if total ownership is 100%
+                    const totalOwnership = parseFloat(document.getElementById('total-ownership').textContent);
+                    if (totalOwnership !== 100) {
+                        alert('Total ownership percentage must equal 100%. Currently it is ' + totalOwnership + '%.');
+                        return;
+                    }
+                }
+                
+                // Validate step 2 before proceeding
+                if (currentStep === 2) {
+                    if (uploadedDocuments.length === 0) {
+                        alert('Please upload at least one document before proceeding.');
+                        return;
+                    }
+                    
+                    // Check if OCR processing was completed
+                    const ocrResults = document.getElementById('ocr-results');
+                    if (ocrResults.style.display === 'none') {
+                        alert('Please complete OCR processing and review extracted data before proceeding.');
+                        return;
+                    }
+                }
+                
+                currentStep++;
+                showStepContent(currentStep);
+            }
+        }
+        
+        function previousStep() {
+            if (currentStep > 1) {
+                currentStep--;
+                showStepContent(currentStep);
+            }
+        }
+        
+        // Shareholders management
+        function addShareholderRow() {
+            const tbody = document.getElementById('shareholders-body');
+            const newRow = document.createElement('tr');
+            
+            newRow.innerHTML = `
+                <td><input type="text" class="form-control form-control-sm" placeholder="e.g., Al-Hoda Holdings"></td>
+                <td>
+                    <div class="input-group input-group-sm">
+                        <input type="number" class="form-control" placeholder="0" min="0" max="100" step="0.1" oninput="updateTotalOwnership()">
+                        <span class="input-group-text">%</span>
+                    </div>
+                </td>
+                <td>
+                    <select class="form-select form-select-sm">
+                        <option>Institutional</option>
+                        <option>Individual</option>
+                        <option>Government</option>
+                        <option>Foreign</option>
+                    </select>
+                </td>
+                <td>
+                    <button class="btn btn-sm btn-outline-danger" onclick="removeShareholderRow(this)">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </td>
+            `;
+            
+            tbody.appendChild(newRow);
+        }
+        
+        function removeShareholderRow(button) {
+            const row = button.closest('tr');
+            row.remove();
+            updateTotalOwnership();
+        }
+        
+        function updateTotalOwnership() {
+            const inputs = document.querySelectorAll('#shareholders-body input[type="number"]');
+            let total = 0;
+            
+            inputs.forEach(input => {
+                const value = parseFloat(input.value) || 0;
+                total += value;
+            });
+            
+            document.getElementById('total-ownership').textContent = total.toFixed(1) + '%';
+            
+            // Highlight if not 100%
+            const totalElement = document.getElementById('total-ownership');
+            if (total === 100) {
+                totalElement.style.color = '#2e7d32';
+                totalElement.classList.remove('text-danger');
+            } else {
+                totalElement.style.color = '#c62828';
+                totalElement.classList.add('text-danger');
+            }
+        }
+        
+        // Mission selection
+        function selectMissionType(mission) {
+            currentMission = mission;
+            
+            // Update active mission in sidebar
+            document.querySelectorAll('.mission-card').forEach(card => {
+                card.classList.remove('active');
+            });
+            
+            // Highlight selected mission
+            const missionCards = document.querySelectorAll('.mission-card');
+            for (let card of missionCards) {
+                if (card.getAttribute('onclick') && card.getAttribute('onclick').includes(mission)) {
+                    card.classList.add('active');
+                    break;
+                }
+            }
+            
+            // Update UBO Discovery card visibility
+            updateUBODiscoveryVisibility();
+            
+            // Update UI based on mission
+            updateMissionInfo();
+        }
+        
+        function selectMission(mission) {
+            selectMissionType(mission);
+            showStepContent(1);
+        }
+        
+        function updateSectorOptions() {
+            const industrySelect = document.getElementById('industry-select');
+            const sectorSelect = document.getElementById('sector-select');
+            
+            currentIndustry = industrySelect.value;
+            
+            if (!currentIndustry) {
+                sectorSelect.innerHTML = '<option value="">-- First select an Industry --</option>';
+                sectorSelect.disabled = true;
+                resetSectorInfo();
+                return;
+            }
+            
+            // Enable sector dropdown
+            sectorSelect.disabled = false;
+            
+            // Populate sector options based on selected industry
+            const sectors = industrySectorMap[currentIndustry] || [];
+            sectorSelect.innerHTML = '<option value="">-- Select Sector --</option>';
+            
+            sectors.forEach(sector => {
+                const option = document.createElement('option');
+                option.value = sector.value;
+                option.textContent = sector.name;
+                sectorSelect.appendChild(option);
+            });
+            
+            // Reset sector info
+            resetSectorInfo();
+        }
+        
+        function updateSectorInfo() {
+            const sectorSelect = document.getElementById('sector-select');
+            currentSector = sectorSelect.value;
+            
+            if (!currentSector) {
+                resetSectorInfo();
+                return;
+            }
+            
+            // Get sector data or use default
+            const data = sectorData[currentSector] || sectorData['default'];
+            
+            // Update sector name display
+            const sectorName = sectorSelect.options[sectorSelect.selectedIndex].text;
+            document.getElementById('selected-sector-name').textContent = sectorName;
+            
+            // Update HHI indicator
+            const hhiIndicator = document.getElementById('sector-hhi-indicator');
+            hhiIndicator.textContent = `HHI: ${data.hhi.toLocaleString()}`;
+            
+            // Update concentration status
+            document.getElementById('sector-concentration-status').textContent = data.concentration;
+            
+            // Update stats
+            document.getElementById('sector-players').textContent = data.players;
+            document.getElementById('sector-top2-control').textContent = data.top2;
+            
+            // Update companies list
+            const companiesList = document.getElementById('sector-companies-list');
+            const companiesSection = document.getElementById('sector-companies-section');
+            
+            if (data.companies && data.companies.length > 0) {
+                companiesList.innerHTML = '';
+                data.companies.forEach(company => {
+                    const div = document.createElement('div');
+                    div.className = 'company-list-item';
+                    div.innerHTML = `<span class="small">${company}</span>`;
+                    companiesList.appendChild(div);
+                });
+                companiesSection.style.display = 'block';
+            } else {
+                companiesSection.style.display = 'none';
+            }
+            
+            // Show/hide alert
+            const alertDiv = document.getElementById('sector-alert');
+            const alertText = document.getElementById('alert-text');
+            
+            if (data.hhi > 2500) {
+                alertDiv.style.display = 'block';
+                alertText.textContent = `This sector exceeds HHI threshold of 2,500`;
+                hhiIndicator.className = 'hhi-indicator hhi-high';
+            } else if (data.hhi > 1500) {
+                alertDiv.style.display = 'block';
+                alertText.textContent = `This sector has moderate concentration (HHI: ${data.hhi})`;
+                hhiIndicator.className = 'hhi-indicator hhi-moderate';
+            } else {
+                alertDiv.style.display = 'none';
+                hhiIndicator.className = 'hhi-indicator hhi-competitive';
+            }
+        }
+        
+        function resetSectorInfo() {
+            document.getElementById('selected-sector-name').textContent = 'Select an Industry and Sector';
+            document.getElementById('sector-concentration-status').textContent = 'No selection made';
+            document.getElementById('sector-hhi-indicator').textContent = 'HHI: --';
+            document.getElementById('sector-hhi-indicator').className = 'hhi-indicator';
+            document.getElementById('sector-players').textContent = '--';
+            document.getElementById('sector-top2-control').textContent = '--';
+            document.getElementById('sector-companies-section').style.display = 'none';
+            document.getElementById('sector-alert').style.display = 'none';
+        }
+        
+        function updateMissionInfo() {
+            const missionNames = {
+                'market_monitoring': 'Market Monitoring',
+                'merger_review': 'Merger Review',
+                'ubo_discovery': 'UBO Discovery'
+            };
+            
+            console.log('Mission updated to:', missionNames[currentMission]);
+        }
+        
+        // Update UBO Discovery visibility
+        function updateUBODiscoveryVisibility() {
+            const uboCard = document.getElementById('ubo-discovery-card');
+            const uboFinalCard = document.getElementById('ubo-discovery-final-card');
+            const uboTab = document.getElementById('ubo-discovery-tab');
+            const uboFinalContent = document.getElementById('ubo-discovery-final');
+            
+            if (currentMission === 'ubo_discovery') {
+                uboCard.style.display = 'block';
+                uboFinalCard.style.display = 'block';
+                uboTab.style.display = 'flex';
+                
+                // Show UBO content if we're on step 5
+                if (currentStep === 5 && currentReviewSheet === 'ubo-discovery-final') {
+                    uboFinalContent.style.display = 'block';
+                }
+            } else {
+                uboCard.style.display = 'none';
+                uboFinalCard.style.display = 'none';
+                uboTab.style.display = 'none';
+                uboFinalContent.style.display = 'none';
+            }
+        }
+        
+        // Download template function
+        function downloadTemplate() {
+            const industry = document.getElementById('industry-select').value;
+            const sector = document.getElementById('sector-select').value;
+            const companyName = document.getElementById('company-name').value;
+            
+            if (!industry || !sector) {
+                alert('Please select both an industry and a sector before downloading the template.');
+                return;
+            }
+            
+            if (!companyName.trim()) {
+                alert('Please enter the company name before downloading the template.');
+                return;
+            }
+            
+            // Check if total ownership is 100%
+            const totalOwnership = parseFloat(document.getElementById('total-ownership').textContent);
+            if (totalOwnership !== 100) {
+                alert('Total ownership percentage must equal 100%. Currently it is ' + totalOwnership + '%.');
+                return;
+            }
+            
+            const missionNames = {
+                'market_monitoring': 'Market_Monitoring',
+                'merger_review': 'Merger_Review',
+                'ubo_discovery': 'UBO_Discovery'
+            };
+            
+            const period = document.getElementById('period-select').value;
+            const templateType = document.getElementById('template-select').value;
+            const date = new Date().toISOString().split('T')[0].replace(/-/g, '');
+            
+            const filename = `ECA_${industry}_${sector}_${missionNames[currentMission]}_${templateType}_${date}.xlsx`;
+            
+            // Show success message
+            alert(`Template "${filename}" generated successfully!\n\nCompany: ${companyName}\n\nThe Excel file with required data sheets has been downloaded.\n\nProceed to Step 3 to upload your filled template.`);
+        }
+        
+        // Document upload handling (Step 2)
+        function handleDocDragOver(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            document.getElementById('docUploadZone').classList.add('dragover');
+        }
+        
+        function handleDocDrop(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            document.getElementById('docUploadZone').classList.remove('dragover');
+            
+            const files = e.dataTransfer.files;
+            if (files.length) {
+                handleDocFileSelect(files);
+            }
+        }
+        
+        function handleDocFileSelect(files) {
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                
+                // Validate file type
+                if (!file.name.match(/\.(pdf|jpg|jpeg|png)$/i)) {
+                    alert('Please upload only PDF, JPG, or PNG files.');
+                    continue;
+                }
+                
+                // Add to uploaded documents
+                addUploadedDocument(file);
+            }
+            
+            // Show documents list
+            if (uploadedDocuments.length > 0) {
+                document.getElementById('documents-list').style.display = 'block';
+            }
+        }
+        
+        function addUploadedDocument(file) {
+            const documentId = 'doc-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+            
+            uploadedDocuments.push({
+                id: documentId,
+                name: file.name,
+                size: (file.size / 1024 / 1024).toFixed(2) + ' MB',
+                type: file.type,
+                file: file
+            });
+            
+            // Add to UI
+            const container = document.getElementById('uploaded-documents');
+            const div = document.createElement('div');
+            div.className = 'document-list-item';
+            div.id = 'doc-item-' + documentId;
+            
+            // Create thumbnail preview for images
+            let thumbnailHtml = '<div class="document-thumbnail bg-light d-flex align-items-center justify-content-center">';
+            if (file.type.startsWith('image/')) {
+                thumbnailHtml = `<img src="${URL.createObjectURL(file)}" class="document-thumbnail" alt="${file.name}">`;
+            } else if (file.type === 'application/pdf') {
+                thumbnailHtml = '<div class="document-thumbnail bg-danger text-white d-flex align-items-center justify-content-center"><i class="fas fa-file-pdf fa-2x"></i></div>';
+            } else {
+                thumbnailHtml = '<div class="document-thumbnail bg-secondary text-white d-flex align-items-center justify-content-center"><i class="fas fa-file fa-2x"></i></div>';
+            }
+            
+            div.innerHTML = `
+                ${thumbnailHtml}
+                <div class="flex-grow-1 ms-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="mb-1">${file.name}</h6>
+                            <small class="text-muted">${(file.size / 1024 / 1024).toFixed(2)} MB • ${file.type}</small>
+                        </div>
+                        <button class="btn btn-sm btn-outline-danger" onclick="removeDocument('${documentId}')">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            container.appendChild(div);
+        }
+        
+        function removeDocument(documentId) {
+            // Remove from array
+            uploadedDocuments = uploadedDocuments.filter(doc => doc.id !== documentId);
+            
+            // Remove from UI
+            const element = document.getElementById('doc-item-' + documentId);
+            if (element) {
+                element.remove();
+            }
+            
+            // Hide documents list if empty
+            if (uploadedDocuments.length === 0) {
+                document.getElementById('documents-list').style.display = 'none';
+                document.getElementById('ocr-processing').style.display = 'none';
+                document.getElementById('extracted-data').style.display = 'none';
+            }
+        }
+        
+        function clearAllDocuments() {
+            uploadedDocuments = [];
+            document.getElementById('uploaded-documents').innerHTML = '';
+            document.getElementById('documents-list').style.display = 'none';
+            document.getElementById('ocr-processing').style.display = 'none';
+            document.getElementById('extracted-data').style.display = 'none';
+            document.getElementById('process-ocr-btn').disabled = false;
+        }
+        
+        function processOCR() {
+            if (uploadedDocuments.length === 0) {
+                alert('Please upload at least one document before processing.');
+                return;
+            }
+            
+            // Show OCR processing section
+            const ocrProcessing = document.getElementById('ocr-processing');
+            ocrProcessing.style.display = 'block';
+            
+            // Disable process button
+            document.getElementById('process-ocr-btn').disabled = true;
+            
+            // Simulate OCR processing
+            let progress = 0;
+            const progressBar = document.getElementById('ocr-progress');
+            const statusText = document.getElementById('ocr-status');
+            const percentageText = document.getElementById('ocr-percentage');
+            
+            const interval = setInterval(() => {
+                progress += 5;
+                if (progress <= 100) {
+                    progressBar.style.width = progress + '%';
+                    percentageText.textContent = progress + '%';
+                    
+                    // Update status text
+                    if (progress < 30) {
+                        statusText.textContent = 'Initializing OCR engine...';
+                    } else if (progress < 60) {
+                        statusText.textContent = 'Extracting text from documents...';
+                    } else if (progress < 90) {
+                        statusText.textContent = 'Analyzing document structure...';
+                    } else {
+                        statusText.textContent = 'Finalizing data extraction...';
+                    }
+                } else {
+                    clearInterval(interval);
+                    
+                    // Show results
+                    document.getElementById('ocr-results').style.display = 'block';
+                    document.getElementById('extracted-data').style.display = 'block';
+                    statusText.textContent = 'OCR processing complete!';
+                    
+                    // Enable process button
+                    document.getElementById('process-ocr-btn').disabled = false;
+                }
+            }, 100);
+        }
+        
+        // Sheet tab selection functions
+        function selectValidationSheet(sheetId) {
+            currentValidationSheet = sheetId;
+            
+            // Update active tab
+            const tabs = document.querySelectorAll('.sheet-tab');
+            for (let tab of tabs) {
+                tab.classList.remove('active');
+            }
+            
+            // Update active sheet content
+            document.querySelectorAll('.sheet-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            
+            // Activate selected tab and content
+            for (let tab of tabs) {
+                if (tab.getAttribute('onclick') && tab.getAttribute('onclick').includes(sheetId)) {
+                    tab.classList.add('active');
+                    break;
+                }
+            }
+            
+            document.getElementById(sheetId).classList.add('active');
+        }
+        
+        function selectReviewSheet(sheetId) {
+            currentReviewSheet = sheetId;
+            
+            // Update active tab
+            const tabs = document.querySelectorAll('.sheet-tab');
+            for (let tab of tabs) {
+                tab.classList.remove('active');
+            }
+            
+            // Update active sheet content
+            document.querySelectorAll('.sheet-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            
+            // Activate selected tab and content
+            for (let tab of tabs) {
+                if (tab.getAttribute('onclick') && tab.getAttribute('onclick').includes(sheetId)) {
+                    tab.classList.add('active');
+                    break;
+                }
+            }
+            
+            // Hide all sheet contents first
+            document.querySelectorAll('.sheet-content').forEach(content => {
+                content.style.display = 'none';
+            });
+            
+            // Show selected sheet content
+            document.getElementById(sheetId).style.display = 'block';
+            document.getElementById(sheetId).classList.add('active');
+        }
+        
+        // Modal functions
+        function showFixDataModal() {
+            const modal = new bootstrap.Modal(document.getElementById('fixDataModal'));
+            modal.show();
+        }
+        
+        function showValidationModal() {
+            const modal = new bootstrap.Modal(document.getElementById('validationReportModal'));
+            modal.show();
+        }
+        
+        function showRevalidateModal() {
+            alert('Revalidating all data...\n\nValidation complete. 1 error and 3 warnings found.');
+        }
+        
+        // File upload handling (Step 3)
+        function handleDragOver(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            document.getElementById('uploadZone').classList.add('dragover');
+        }
+        
+        function handleDrop(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            document.getElementById('uploadZone').classList.remove('dragover');
+            
+            const files = e.dataTransfer.files;
+            if (files.length) {
+                handleFileSelect(files);
+            }
+        }
+        
+        function handleFileSelect(files) {
+            const file = files[0];
+            if (!file) return;
+            
+            // Validate file type
+            if (!file.name.match(/\.(xlsx|xls)$/i)) {
+                alert('Please upload an Excel file (.xlsx or .xls)');
+                return;
+            }
+            
+            // Show file details
+            document.getElementById('uploaded-filename').textContent = file.name;
+            document.getElementById('upload-details').style.display = 'block';
+            document.getElementById('schema-adaptation').style.display = 'block';
+        }
+        
+        function cancelUpload() {
+            document.getElementById('fileInput').value = '';
+            document.getElementById('upload-details').style.display = 'none';
+            document.getElementById('schema-adaptation').style.display = 'none';
+        }
+        
+        function processUpload() {
+            // Simulate processing and mapping
+            alert('Processing upload...\n\nData validated, mapped to ECA schema, and ready for review.');
+            
+            // Go to validation step
+            nextStep();
+        }
+        
+        function addToSchema() {
+            alert('Field added to dynamic schema!\n\nThis field will now be accepted in future template uploads.');
+            document.getElementById('schema-adaptation').style.display = 'none';
+        }
+        
+        function ignoreField() {
+            alert('Field ignored for this upload.\n\nIt will not be added to the schema and will be excluded from processing.');
+            document.getElementById('schema-adaptation').style.display = 'none';
+        }
+        
+        function proceedToReview() {
+            // Check if all errors are fixed
+            const errorCheckbox = document.getElementById('check1');
+            if (errorCheckbox) {
+                errorCheckbox.checked = true;
+            }
+            
+            // Go to review step
+            nextStep();
+        }
+        
+        // Submission functions
+        function showSubmissionModal() {
+            // Check if confirmation checkboxes are checked
+            const confirm1 = document.getElementById('confirm-accuracy');
+            const confirm2 = document.getElementById('confirm-compliance');
+            
+            if (!confirm1.checked || !confirm2.checked) {
+                alert('Please confirm data accuracy and compliance before submission.');
+                return;
+            }
+            
+            const modal = new bootstrap.Modal(document.getElementById('submissionModal'));
+            modal.show();
+        }
+        
+        function submitToECA() {
+            // Check if confirmation checkboxes are checked
+            const confirm1 = document.getElementById('confirm-accuracy');
+            const confirm2 = document.getElementById('confirm-compliance');
+            
+            if (!confirm1.checked || !confirm2.checked) {
+                alert('Please confirm data accuracy and compliance before submission.');
+                return;
+            }
+            
+            // Show success modal
+            showSuccessModal();
+        }
+        
+        function showSuccessModal() {
+            const modal = new bootstrap.Modal(document.getElementById('successModal'));
+            modal.show();
+        }
+        
+        function startNewSubmission() {
+            // Reset to step 1
+            currentStep = 1;
+            showStepContent(currentStep);
+            
+            // Reset checkboxes
+            const checkboxes = document.querySelectorAll('input[type="checkbox"]');
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = false;
+            });
+            
+            // Reset file upload UI
+            cancelUpload();
+            
+            // Clear documents
+            clearAllDocuments();
+            
+            // Reset shareholders table
+            const tbody = document.getElementById('shareholders-body');
+            tbody.innerHTML = `
+                <tr>
+                    <td><input type="text" class="form-control form-control-sm" placeholder="e.g., Al-Hoda Holdings"></td>
+                    <td>
+                        <div class="input-group input-group-sm">
+                            <input type="number" class="form-control" placeholder="0" min="0" max="100" step="0.1" oninput="updateTotalOwnership()">
+                            <span class="input-group-text">%</span>
+                        </div>
+                    </td>
+                    <td>
+                        <select class="form-select form-select-sm">
+                            <option>Institutional</option>
+                            <option>Individual</option>
+                            <option>Government</option>
+                            <option>Foreign</option>
+                        </select>
+                    </td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-danger" onclick="removeShareholderRow(this)">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </td>
+                </tr>
+                <tr>
+                    <td><input type="text" class="form-control form-control-sm" placeholder="e.g., National Bank of Egypt"></td>
+                    <td>
+                        <div class="input-group input-group-sm">
+                            <input type="number" class="form-control" placeholder="0" min="0" max="100" step="0.1" oninput="updateTotalOwnership()">
+                            <span class="input-group-text">%</span>
+                        </div>
+                    </td>
+                    <td>
+                        <select class="form-select form-select-sm">
+                            <option>Institutional</option>
+                            <option>Individual</option>
+                            <option>Government</option>
+                            <option>Foreign</option>
+                        </select>
+                    </td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-danger" onclick="removeShareholderRow(this)">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </td>
+                </tr>
+            `;
+            
+            updateTotalOwnership();
+            
+            // Close modal
+            const modal = bootstrap.Modal.getInstance(document.getElementById('successModal'));
+            modal.hide();
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="SELECTIVE" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="84470080-10c5-4687-bb19-897f171fd362" name="Changes" comment="" />
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="GitHubPullRequestSearchHistory">{
+  &quot;lastFilter&quot;: {
+    &quot;state&quot;: &quot;OPEN&quot;,
+    &quot;assignee&quot;: &quot;OmarReda2&quot;
+  }
+}</component>
+  <component name="GithubPullRequestsUISettings">{
+  &quot;selectedUrlAndAccountId&quot;: {
+    &quot;url&quot;: &quot;https://github.com/OmarReda2/ECA_template_creation&quot;,
+    &quot;accountId&quot;: &quot;3cbbfc6d-d8b8-4598-a245-5287aa2c6f22&quot;
+  }
+}</component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 8
+}</component>
+  <component name="ProjectId" id="3BcgJ24q1YYbYRJLVzts9nNxMnQ" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;submission-service&quot;,
+    &quot;kotlin-language-version-configured&quot;: &quot;true&quot;,
+    &quot;project.structure.last.edited&quot;: &quot;Project&quot;,
+    &quot;project.structure.proportion&quot;: &quot;0.15&quot;,
+    &quot;project.structure.side.proportion&quot;: &quot;0.0&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;reference.settings.project.maven.archetype.catalogs&quot;
+  }
+}</component>
+  <component name="RunManager">
+    <configuration default="true" type="LiferayDockerServerConfiguration" factoryName="Liferay Docker Server">
+      <option name="passParentEnvironments" value="true" />
+      <option name="workspaceLocation" value="$PROJECT_DIR$" />
+      <method v="2" />
+    </configuration>
+    <configuration default="true" type="LiferayServerConfiguration" factoryName="Liferay Server">
+      <Liferay-Sever alternativeJrePath="" bundleLocation="" bundleType="" developerMode="true" gogoShellPort="11311" vmParameters="-Xmx2560m -XX:MaxMetaspaceSize=768m -XX:MetaspaceSize=768m">
+        <envs>
+          <env name="PATH" value="C:/Program Files/Java/jdk-21/bin:C:\Program Files\Common Files\Oracle\Java\javapath;C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;C:\Windows\System32\WindowsPowerShell\v1.0\;C:\Windows\System32\OpenSSH\;C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common;C:\Program Files\Microsoft SQL Server\Client SDK\ODBC\170\Tools\Binn\;C:\Program Files (x86)\Microsoft SQL Server\150\Tools\Binn\;C:\Program Files\Microsoft SQL Server\150\Tools\Binn\;C:\Program Files\Microsoft SQL Server\150\DTS\Binn\;C:\Program Files\dotnet\;C:\Program Files (x86)\Microsoft SQL Server\150\DTS\Binn\;C:\Program Files\Azure Data Studio\bin;C:\Program Files (x86)\dotnet\;C:\Program Files\NVIDIA Corporation\NVIDIA NvDLISR;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32\OpenSSH\;C:\Program Files\NVIDIA Corporation\Nsight Compute 2023.1.0\;C:\Program Files\Git\cmd;C:\Program Files\Graphviz\bin;C:\Program Files\Java\jdk-21\bin;C:\Program Files\Docker\Docker\resources\bin;C:\Program Files\GitHub CLI\;C:\Users\omarr\AppData\Local\Google\Cloud SDK\google-cloud-sdk\bin7;C:\tools\maven-mvnd-1.0.2-windows-amd64\bin;C:\tools\apache-maven-3.9.11\bin;C:\Program Files\nodejs\;C:\Program Files\Memurai\;C:\Users\omarr\.jpm\windows\bin;C:\Gradle\gradle-9.2.1\bin;C:\Users\omarr\clp\bin;C:\Users\omarr\.local\bin;C:\Users\omarr\AppData\Local\Programs\Python\Python310\Scripts\;C:\Users\omarr\AppData\Local\Programs\Python\Python310\;C:\Users\omarr\AppData\Local\Microsoft\WindowsApps;C:\Users\omarr\AppData\Local\Programs\Microsoft VS Code\bin;C:\Users\omarr\.dotnet\tools;C:\Program Files\Azure Data Studio\bin;C:\Users\omarr\AppData\Local\GitHubDesktop\bin;C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.1\bin;C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.1\libnvvp;C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.1\extras\CUPTI\lib64;C:\Program Files\JetBrains\IntelliJ IDEA 2024.1.3\bin;;C:\Program Files\JetBrains\IntelliJ IDEA Community Edition 2024.1.3\bin;;C:\Users\omarr\AppData\Roaming\npm;C:\Users\omarr\AppData\Local\Microsoft\WinGet\Links;C:\Gradle\gradle-9.2.1\bin;C:\Program Files\Java\jdk-21\bin;C:\Program Files (x86)\Liferay Cloud\LCP CLI;C:\Users\omarr\AppData\Local\Programs\cursor\resources\app\bin;C:\Users\omarr\AppData\Local\Programs\Antigravity\bin;C:\Users\omarr\.local\bin;" />
+          <env name="JAVA_HOME" value="C:/Program Files/Java/jdk-21" />
+        </envs>
+        <module name="template-creation-service-main" />
+      </Liferay-Sever>
+      <method v="2" />
+    </configuration>
+  </component>
+  <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="84470080-10c5-4687-bb19-897f171fd362" name="Changes" comment="" />
+      <created>1774793696489</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1774793696489</updated>
+    </task>
+    <servers />
+  </component>
+</project>
